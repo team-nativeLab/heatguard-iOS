@@ -1,0 +1,32 @@
+name: iOS CI
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  build:
+    name: Build iOS app
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build for iOS Simulator
+        run: >-
+          xcodebuild
+          -project heatguard-iOS.xcodeproj
+          -scheme heatguard-iOS
+          -configuration Debug
+          -sdk iphonesimulator
+          -derivedDataPath "$RUNNER_TEMP/heatguard-derived-data"
+          CODE_SIGNING_ALLOWED=NO
+          build
