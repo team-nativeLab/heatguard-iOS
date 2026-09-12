@@ -11,7 +11,9 @@ import SwiftUI
 struct heatguard_iOSApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            NavigationStack {
+                ComponentShowcaseView()
+            }
         }
     }
 }

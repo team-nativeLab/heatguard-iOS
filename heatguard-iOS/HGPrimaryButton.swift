@@ -18,7 +18,7 @@ struct HGPrimaryButton: View {
                 .frame(height: 48)
         }
         .foregroundStyle(.white)
-        .background(isEnabled ? HGColor.primary : Color(uiColor: .systemGray4), in: RoundedRectangle(cornerRadius: 14))
+        .background(isEnabled ? HGColor.primary : HGColor.disabled, in: RoundedRectangle(cornerRadius: 14))
         .disabled(!isEnabled)
         .accessibilityHint(isEnabled ? "" : "현재 사용할 수 없습니다")
     }

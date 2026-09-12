@@ -22,9 +22,13 @@ struct HGTextField: View {
 
             Group {
                 if isSecure {
-                    SecureField(placeholder, text: $text)
+                    SecureField(text: $text, prompt: Text(placeholder).foregroundStyle(HGColor.secondaryText)) {
+                        EmptyView()
+                    }
                 } else {
-                    TextField(placeholder, text: $text)
+                    TextField(text: $text, prompt: Text(placeholder).foregroundStyle(HGColor.secondaryText)) {
+                        EmptyView()
+                    }
                 }
             }
             .font(HGFont.regular(14))
