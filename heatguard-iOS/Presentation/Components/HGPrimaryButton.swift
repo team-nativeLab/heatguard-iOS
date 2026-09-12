@@ -8,6 +8,7 @@ import SwiftUI
 struct HGPrimaryButton: View {
     let title: String
     var isEnabled = true
+    var height: CGFloat = 48
     let action: () -> Void
 
     var body: some View {
@@ -15,7 +16,7 @@ struct HGPrimaryButton: View {
             Text(title)
                 .font(HGFont.semiBold(15))
                 .frame(maxWidth: .infinity)
-                .frame(height: 48)
+                .frame(height: height)
         }
         .foregroundStyle(.white)
         .background(isEnabled ? HGColor.primary : HGColor.disabled, in: RoundedRectangle(cornerRadius: 14))
