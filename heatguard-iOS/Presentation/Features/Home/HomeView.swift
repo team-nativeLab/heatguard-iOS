@@ -152,10 +152,42 @@ struct HomeView: View {
                     }
                     .padding(.top, 35)
                 }
+                .frame(maxWidth: .infinity, minHeight: 153, alignment: .topLeading)
             }
             .padding(.horizontal, 2)
             .padding(.top, 15)
+
+            additionalRecordSection
+                .padding(.top, 20)
         }
+    }
+
+    private var additionalRecordSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("추가 기록")
+                .font(HGFont.regular(11, relativeTo: .caption2))
+                .foregroundStyle(.black)
+                .padding(.leading, 18)
+
+            HGActionRow(
+                title: "현장 사진",
+                subtitle: "사진 촬영 또는 앨범에서 선택",
+                leading: {
+                    Text("📷")
+                },
+                action: {}
+            )
+
+            HGActionRow(
+                title: "기록 내역",
+                subtitle: "지금까지의 기록을 확인하세요",
+                leading: {
+                    Text("📊")
+                },
+                action: {}
+            )
+        }
+        .padding(.horizontal, 2)
     }
 
     private func recordMetric(title: String, value: String) -> some View {
@@ -167,9 +199,10 @@ struct HomeView: View {
                 .font(HGFont.regular(11, relativeTo: .caption2))
         }
         .foregroundStyle(.black)
-        .frame(maxWidth: .infinity, minHeight: 82, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(.horizontal, 14)
         .padding(.vertical, 14)
+        .frame(height: 82, alignment: .topLeading)
         .background(HGColor.metricBackground, in: RoundedRectangle(cornerRadius: 12))
     }
 
