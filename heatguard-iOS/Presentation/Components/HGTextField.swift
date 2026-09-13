@@ -11,6 +11,10 @@ struct HGTextField: View {
     @Binding var text: String
     var isSecure = false
     var errorMessage: String?
+    var fieldHeight: CGFloat = 45
+    var cornerRadius: CGFloat = 12
+    var textSize: CGFloat = 14
+    var titleLeadingPadding: CGFloat = 0
 
     @FocusState private var isFocused: Bool
 
@@ -19,6 +23,7 @@ struct HGTextField: View {
             Text(title)
                 .font(HGFont.semiBold(13, relativeTo: .caption))
                 .foregroundStyle(HGColor.primaryText)
+                .padding(.leading, titleLeadingPadding)
 
             Group {
                 if isSecure {
@@ -31,14 +36,14 @@ struct HGTextField: View {
                     }
                 }
             }
-            .font(HGFont.regular(14))
+            .font(HGFont.regular(textSize))
             .foregroundStyle(HGColor.primaryText)
             .focused($isFocused)
             .padding(.horizontal, 16)
-            .frame(height: 45)
-            .background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: 12))
+            .frame(height: fieldHeight)
+            .background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: cornerRadius))
             .overlay {
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: cornerRadius)
                     .stroke(borderColor, lineWidth: 1)
             }
 

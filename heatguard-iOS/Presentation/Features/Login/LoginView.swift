@@ -59,7 +59,9 @@ struct LoginView: View {
                     .font(HGFont.regular(14))
                     .foregroundStyle(HGColor.secondaryText)
 
-                Button("회원가입") {}
+                NavigationLink("회원가입") {
+                    SignupView()
+                }
                     .font(HGFont.bold(14))
                     .foregroundStyle(HGColor.primary)
             }
