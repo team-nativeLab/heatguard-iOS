@@ -8,6 +8,7 @@ import SwiftUI
 struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
+    @State private var showsHome = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -51,7 +52,9 @@ struct LoginView: View {
 
             Spacer(minLength: 24)
 
-            HGPrimaryButton(title: "로그인", height: 42) {}
+            HGPrimaryButton(title: "로그인", height: 42) {
+                showsHome = true
+            }
                 .padding(.horizontal, 40)
 
             HStack(spacing: 24) {
@@ -70,6 +73,9 @@ struct LoginView: View {
         }
         .background(HGColor.surface)
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $showsHome) {
+            HomeView()
+        }
     }
 }
 
