@@ -9,21 +9,20 @@ struct HomeView: View {
     @State private var isManualEntryEnabled = false
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                header
+        VStack(spacing: 0) {
+            header
 
-                heatStatusCard
-                    .padding(.top, 15)
+            heatStatusCard
+                .padding(.top, 15)
 
-                dataRecordSection
-                    .padding(.top, 47)
-            }
-            .padding(.horizontal, 25)
-            .padding(.top, 24)
-            .padding(.bottom, 24)
+            dataRecordSection
+                .padding(.top, 47)
+
+            Spacer(minLength: 0)
         }
-        .scrollIndicators(.hidden)
+        .padding(.horizontal, 25)
+        .padding(.top, 24)
+        .padding(.bottom, 10)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
     }
