@@ -6,6 +6,8 @@
 import SwiftUI
 
 struct HomeView: View {
+    @State private var isManualEntryEnabled = false
+
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
@@ -13,6 +15,9 @@ struct HomeView: View {
 
                 heatStatusCard
                     .padding(.top, 15)
+
+                dataRecordSection
+                    .padding(.top, 47)
             }
             .padding(.horizontal, 25)
             .padding(.top, 24)
@@ -106,6 +111,66 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 244, maxHeight: 244, alignment: .topLeading)
         .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 32))
+    }
+
+    private var dataRecordSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center) {
+                Text("데이터 기록")
+                    .font(HGFont.regular(11, relativeTo: .caption2))
+                    .foregroundStyle(.black)
+
+                Spacer()
+
+                Text("ⓘ 미설치 시 자동으로 기록됩니다")
+                    .font(HGFont.regular(11, relativeTo: .caption2))
+                    .foregroundStyle(.black)
+            }
+            .padding(.horizontal, 18)
+
+            HGCard(cornerRadius: 16, padding: 20) {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        Text("온도계 데이터 직접 입력")
+                            .font(HGFont.regular(11, relativeTo: .caption2))
+                            .foregroundStyle(.black)
+
+                        Spacer()
+
+                        Toggle("온도계 데이터 직접 입력", isOn: $isManualEntryEnabled)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .tint(HGColor.primary)
+                            .scaleEffect(0.75)
+                            .frame(width: 38, height: 18)
+                    }
+
+                    HStack(spacing: 8) {
+                        recordMetric(title: "온도(℃)", value: "47.5")
+                        recordMetric(title: "습도(%)", value: "55")
+                        recordMetric(title: "체감온도(℃)", value: "자동계산")
+                    }
+                    .padding(.top, 35)
+                }
+            }
+            .padding(.horizontal, 2)
+            .padding(.top, 15)
+        }
+    }
+
+    private func recordMetric(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(HGFont.regular(11, relativeTo: .caption2))
+
+            Text(value)
+                .font(HGFont.regular(11, relativeTo: .caption2))
+        }
+        .foregroundStyle(.black)
+        .frame(maxWidth: .infinity, minHeight: 82, alignment: .topLeading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 14)
+        .background(HGColor.metricBackground, in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func statusMetric(title: String, value: String) -> some View {
