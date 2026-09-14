@@ -58,13 +58,14 @@ struct WorkPhotoView: View {
         } message: {
             Text("실제 기기에서 카메라 촬영을 사용할 수 있습니다.")
         }
-        .confirmationDialog("사진 추가", isPresented: $showsPhotoSourceDialog) {
+        .alert("사진 추가", isPresented: $showsPhotoSourceDialog) {
             Button("카메라로 촬영") {
                 presentCamera()
             }
             Button("앨범에서 선택") {
                 showsPhotoPicker = true
             }
+            Button("취소", role: .cancel) {}
         }
         .photosPicker(
             isPresented: $showsPhotoPicker,
