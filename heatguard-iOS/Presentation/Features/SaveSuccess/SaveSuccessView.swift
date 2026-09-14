@@ -11,6 +11,9 @@ struct SaveSuccessView: View {
             HGPrimaryButton(title: "확인", height: 48) {}.padding(.horizontal, 28).padding(.top, 16).padding(.bottom, 20)
         }
         .background(Color(red: 249/255, green: 251/255, blue: 252/255), in: UnevenRoundedRectangle(topLeadingRadius: 40, topTrailingRadius: 40))
+        .presentationDetents([.height(683)])
+        .presentationCornerRadius(40)
+        .presentationDragIndicator(.hidden)
     }
 
     private var successCard: some View {
