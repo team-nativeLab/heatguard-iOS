@@ -4,17 +4,13 @@ struct SaveSuccessView: View {
     let records = [("온도계 기록", "47.5 ℃  ( 습도 55% 체감 40.7℃ )"), ("작업 사진", "2장"), ("휴식 사진", "2장"), ("저장 시간", "2026.07.18 10 : 30")]
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text("기록 저장").font(HGFont.bold(20, relativeTo: .title2)).padding(.top, 18)
+        HGStatusPopup(title: "기록 저장") {
             successCard.padding(.top, 52)
             summaryCard.padding(.top, 26)
-            HGPrimaryButton(title: "확인", height: 48) {}.padding(.horizontal, 28).padding(.top, 16).padding(.bottom, 20)
+        } actions: {
+            HGPrimaryButton(title: "확인") {}
+                .padding(.horizontal, 28)
         }
-        .background(Color(red: 249/255, green: 251/255, blue: 252/255))
-        .presentationBackground(Color(red: 249/255, green: 251/255, blue: 252/255))
-        .presentationDetents([.height(683)])
-        .presentationCornerRadius(40)
-        .presentationDragIndicator(.hidden)
     }
 
     private var successCard: some View {
@@ -22,7 +18,8 @@ struct SaveSuccessView: View {
             ZStack { Circle().fill(Color(red: 226/255, green: 246/255, blue: 235/255)).frame(width: 84, height: 84); Image("SaveSuccessCheck").resizable().scaledToFit().frame(width: 53, height: 53) }
             Text("기록이 저장됐어요").font(HGFont.bold(20, relativeTo: .title2)).padding(.top, 34)
             Text("현장관리자에게 실시간으로 전송됩니다.").font(HGFont.semiBold(15)).foregroundStyle(HGColor.secondaryText).padding(.top, 15)
-        }.frame(maxWidth: .infinity, minHeight: 218).background(HGColor.surface, in: RoundedRectangle(cornerRadius: 25)).overlay { RoundedRectangle(cornerRadius: 25).stroke(HGColor.inputBorder, lineWidth: 1) }.padding(.horizontal, 25)
+        }.frame(maxWidth: .infinity, minHeight: 178)
+        .padding(20).background(HGColor.surface, in: RoundedRectangle(cornerRadius: 25)).overlay { RoundedRectangle(cornerRadius: 25).stroke(HGColor.inputBorder, lineWidth: 1) }.padding(.horizontal, 25)
     }
 
     private var summaryCard: some View {
