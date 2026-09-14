@@ -15,4 +15,5 @@ enum HGColor {
     static let primaryText = Color(red: 31 / 255, green: 38 / 255, blue: 51 / 255)
     static let secondaryText = Color(red: 120 / 255, green: 130 / 255, blue: 148 / 255)
     static let error = Color(red: 255 / 255, green: 97 / 255, blue: 114 / 255)
+    static let inputBorder = Color(red: 234 / 255, green: 234 / 255, blue: 234 / 255)
 }
