@@ -21,9 +21,10 @@ struct HGPhotoCaptureSection: View {
         .buttonStyle(.plain)
         .accessibilityLabel("사진 선택")
         .accessibilityValue(selectionDescription)
-        .confirmationDialog("사진 추가", isPresented: $showsSourceDialog) {
+        .alert("사진 추가", isPresented: $showsSourceDialog) {
             Button("카메라로 촬영") { presentCamera() }
             Button("앨범에서 선택") { showsPhotoPicker = true }
+            Button("취소", role: .cancel) {}
         }
         .photosPicker(
             isPresented: $showsPhotoPicker,
