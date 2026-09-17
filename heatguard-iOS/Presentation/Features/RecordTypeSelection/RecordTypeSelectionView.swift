@@ -93,7 +93,7 @@ private struct RecordTypeCard: View {
 
                 VStack(alignment: .leading, spacing: 13) {
                     Text(type.title)
-                        .font(HGFont.extraBold(16, relativeTo: .headline))
+                        .font(HGFont.bold(16, relativeTo: .headline))
                         .foregroundStyle(HGColor.primaryText)
 
                     Text(type.description)

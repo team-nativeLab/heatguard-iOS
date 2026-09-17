@@ -71,11 +71,11 @@ struct EmergencyAlertView: View {
                     .font(HGFont.bold(15))
 
                 Text("현장 관리자")
-                    .font(HGFont.extraBold(16, relativeTo: .headline))
+                    .font(HGFont.bold(16, relativeTo: .headline))
 
                 HStack {
                     Text("010 - 1234 - 5678")
-                        .font(HGFont.extraBold(16, relativeTo: .headline))
+                        .font(HGFont.bold(16, relativeTo: .headline))
                         .foregroundStyle(HGColor.primary)
                     Spacer()
                     Image("Phone")
