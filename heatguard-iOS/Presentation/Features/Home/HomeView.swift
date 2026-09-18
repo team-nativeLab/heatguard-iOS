@@ -4,7 +4,9 @@ struct HomeView: View {
     @State private var showsRecordTypes = false
     @State private var showsEmergency = false
     @State private var showsCalling = false
-    @State private var destination: RecordType?
+    @State private var shouldBeginEmergencyCall = false
+    @State private var pendingRecordType: RecordType?
+    @State private var destination: HomeDestination?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -22,11 +24,27 @@ struct HomeView: View {
             HGPrimaryButton(title: "기록하기", height: 48) { showsRecordTypes = true }.padding(.bottom, 10)
         }
         .padding(.horizontal, 27).padding(.top, 24).background(HGColor.appBackground).toolbar(.hidden, for: .navigationBar)
-        .sheet(isPresented: $showsRecordTypes) { RecordTypeSelectionView { destination = $0 } }
-        .sheet(isPresented: $showsEmergency) { EmergencyAlertView { showsEmergency = false; showsCalling = true } }
-        .sheet(isPresented: $showsCalling) { EmergencyCallView() }
+        .sheet(isPresented: $showsRecordTypes, onDismiss: openSelectedRecord) {
+            RecordTypeSelectionView { pendingRecordType = $0 }
+        }
+        .sheet(isPresented: $showsEmergency, onDismiss: beginEmergencyCall) {
+            EmergencyAlertView {
+                shouldBeginEmergencyCall = true
+                showsEmergency = false
+            }
+        }
+        .sheet(isPresented: $showsCalling) {
+            EmergencyCallView(onCancel: { showsCalling = false })
+        }
         .navigationDestination(item: $destination) { type in
-            switch type { case .thermometer: ThermometerRecordView(); case .workPhoto: WorkPhotoView(); case .restPhoto: RestPhotoView() }
+            switch type {
+            case .thermometer:
+                ThermometerRecordView()
+            case .workPhoto:
+                WorkPhotoView()
+            case .restPhoto:
+                RestPhotoView()
+            }
         }
     }
 
@@ -71,6 +89,34 @@ struct HomeView: View {
     }
 
     private func sectionLabel(_ title: String) -> some View { Text(title).font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.primaryText).frame(maxWidth: .infinity, alignment: .leading) }
+
+    private func openSelectedRecord() {
+        guard let pendingRecordType else { return }
+        destination = HomeDestination(recordType: pendingRecordType)
+        self.pendingRecordType = nil
+    }
+
+    private func beginEmergencyCall() {
+        guard shouldBeginEmergencyCall else { return }
+        shouldBeginEmergencyCall = false
+        showsCalling = true
+    }
+}
+
+private enum HomeDestination: Identifiable {
+    case thermometer
+    case workPhoto
+    case restPhoto
+
+    init(recordType: RecordType) {
+        switch recordType {
+        case .thermometer: self = .thermometer
+        case .workPhoto: self = .workPhoto
+        case .restPhoto: self = .restPhoto
+        }
+    }
+
+    var id: Self { self }
 }
 
 private struct HomeMetric: View {

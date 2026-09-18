@@ -2,6 +2,11 @@ import SwiftUI
 
 struct EmergencyCallView: View {
     private let contact = EmergencyContact(name: "현장 관리자", phoneNumber: "010 - 1234 - 5678")
+    let onCancel: () -> Void
+
+    init(onCancel: @escaping () -> Void = {}) {
+        self.onCancel = onCancel
+    }
 
     var body: some View {
         HGStatusPopup(title: "긴급 호출") {
@@ -14,7 +19,7 @@ struct EmergencyCallView: View {
             contactCard
                 .padding(.top, 28)
         } actions: {
-            HGSecondaryButton(title: "호출 취소") {}
+            HGSecondaryButton(title: "호출 취소", action: onCancel)
                 .padding(.horizontal, 28)
         }
     }
