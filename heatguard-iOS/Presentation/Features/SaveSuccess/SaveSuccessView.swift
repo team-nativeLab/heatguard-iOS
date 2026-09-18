@@ -2,13 +2,18 @@ import SwiftUI
 
 struct SaveSuccessView: View {
     let records = [("온도계 기록", "47.5 ℃  ( 습도 55% 체감 40.7℃ )"), ("작업 사진", "2장"), ("휴식 사진", "2장"), ("저장 시간", "2026.07.18 10 : 30")]
+    let onConfirm: () -> Void
+
+    init(onConfirm: @escaping () -> Void = {}) {
+        self.onConfirm = onConfirm
+    }
 
     var body: some View {
         HGStatusPopup(title: "기록 저장") {
             successCard.padding(.top, 52)
             summaryCard.padding(.top, 26)
         } actions: {
-            HGPrimaryButton(title: "확인") {}
+            HGPrimaryButton(title: "확인", action: onConfirm)
                 .padding(.horizontal, 28)
         }
     }

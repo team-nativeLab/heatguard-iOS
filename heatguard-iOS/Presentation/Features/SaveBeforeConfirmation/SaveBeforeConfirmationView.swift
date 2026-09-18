@@ -3,9 +3,11 @@ import SwiftUI
 struct SaveBeforeConfirmationView: View {
     @State private var showsPhotoSelection = false
 
+    let onRetry: () -> Void
     let onSave: () -> Void
 
-    init(onSave: @escaping () -> Void = {}) {
+    init(onRetry: @escaping () -> Void = {}, onSave: @escaping () -> Void = {}) {
+        self.onRetry = onRetry
         self.onSave = onSave
     }
 
@@ -28,8 +30,9 @@ struct SaveBeforeConfirmationView: View {
                     DisabledManualInputCard()
                         .padding(.top, 20)
 
-                    Text("다시하기")
+                    Button("다시하기", action: onRetry)
                         .font(HGFont.bold(20, relativeTo: .title2))
+                        .buttonStyle(.plain)
                         .padding(.top, 17)
 
                     photoSelector
