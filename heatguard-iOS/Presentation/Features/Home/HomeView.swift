@@ -46,11 +46,7 @@ struct HomeView: View {
     }
 
     private var header: some View {
-        HStack {
-            Button {} label: { Image("menu").resizable().scaledToFit().frame(width: 28, height: 28) }.buttonStyle(.plain)
-            Spacer(); Text("폭염가드").font(HGFont.bold(20, relativeTo: .title2)).foregroundStyle(HGColor.primaryText); Spacer()
-            Button {} label: { Image("bell").resizable().scaledToFit().frame(width: 28, height: 28) }.buttonStyle(.plain)
-        }.frame(height: 28)
+        HGScreenHeader()
     }
 
     private var weatherSummary: some View {

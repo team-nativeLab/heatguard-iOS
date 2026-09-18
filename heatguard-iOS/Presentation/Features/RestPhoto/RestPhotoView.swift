@@ -43,16 +43,7 @@ struct RestPhotoView: View {
     }
 
     private var header: some View {
-        HStack {
-            Button(action: {}) { Image("menu").resizable().scaledToFit().frame(width: 28, height: 28) }
-                .buttonStyle(.plain)
-            Spacer()
-            Text("폭염가드").font(HGFont.bold(20, relativeTo: .title2))
-            Spacer()
-            Button(action: {}) { Image("bell").resizable().scaledToFit().frame(width: 28, height: 28) }
-                .buttonStyle(.plain)
-        }
-        .frame(height: 28)
+        HGScreenHeader()
     }
 
     private var restForm: some View {

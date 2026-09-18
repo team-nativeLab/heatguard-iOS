@@ -62,32 +62,7 @@ struct ThermometerRecordView: View {
     }
 
     private var header: some View {
-        HStack {
-            Button(action: onOpenFieldPhoto) {
-                Image("menu")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            Text("폭염가드")
-                .font(HGFont.bold(20, relativeTo: .title2))
-                .foregroundStyle(.black)
-
-            Spacer()
-
-            Button(action: {}) {
-                Image("bell")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-        }
-        .frame(height: 28)
+        HGScreenHeader()
     }
 
     private var temperatureSummaryCard: some View {
@@ -183,7 +158,7 @@ struct ThermometerRecordView: View {
                 .font(HGFont.bold(20, relativeTo: .title2))
                 .foregroundStyle(.black)
 
-            Button(action: {}) {
+            Button(action: onOpenFieldPhoto) {
                 HStack(spacing: 0) {
                     Image("camera")
                         .resizable()
