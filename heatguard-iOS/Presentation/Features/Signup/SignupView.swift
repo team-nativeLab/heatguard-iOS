@@ -47,6 +47,7 @@ struct SignupView: View {
                         title: "이메일",
                         placeholder: "example@email.com",
                         text: $email,
+                        inputType: .email,
                         errorMessage: emailError
                     )
 
@@ -125,6 +126,7 @@ struct SignupView: View {
         title: String,
         placeholder: String,
         text: Binding<String>,
+        inputType: HGTextFieldInputType = .standard,
         isSecure: Bool = false,
         errorMessage: String? = nil
     ) -> some View {
@@ -137,7 +139,8 @@ struct SignupView: View {
             fieldHeight: 44,
             cornerRadius: 11,
             textSize: 13,
-            titleLeadingPadding: 10
+            titleLeadingPadding: 10,
+            inputType: inputType
         )
     }
 

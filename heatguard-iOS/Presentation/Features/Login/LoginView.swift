@@ -35,7 +35,8 @@ struct LoginView: View {
                     HGTextField(
                         title: "이메일",
                         placeholder: "example@email.com",
-                        text: $email
+                        text: $email,
+                        inputType: .email
                     )
 
                     HGTextField(
