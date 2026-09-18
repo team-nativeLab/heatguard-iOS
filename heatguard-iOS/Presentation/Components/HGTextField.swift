@@ -13,7 +13,7 @@ enum HGTextFieldInputType {
     var keyboardType: UIKeyboardType {
         switch self {
         case .standard: .default
-        case .email: .emailAddress
+        case .email: .default
         }
     }
 
