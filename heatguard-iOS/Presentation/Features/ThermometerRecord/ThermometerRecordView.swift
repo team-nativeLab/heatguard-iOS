@@ -10,6 +10,17 @@ struct ThermometerRecordView: View {
     @State private var temperature = "47.5"
     @State private var humidity = "55"
 
+    let onOpenFieldPhoto: () -> Void
+    let onSave: () -> Void
+
+    init(
+        onOpenFieldPhoto: @escaping () -> Void = {},
+        onSave: @escaping () -> Void = {}
+    ) {
+        self.onOpenFieldPhoto = onOpenFieldPhoto
+        self.onSave = onSave
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -40,7 +51,7 @@ struct ThermometerRecordView: View {
 
             Spacer(minLength: 0)
 
-            HGPrimaryButton(title: "기록 저장", height: 48) {}
+            HGPrimaryButton(title: "기록 저장", height: 48, action: onSave)
                 .padding(.horizontal, 4)
                 .padding(.bottom, 4)
         }
@@ -52,7 +63,7 @@ struct ThermometerRecordView: View {
 
     private var header: some View {
         HStack {
-            Button(action: {}) {
+            Button(action: onOpenFieldPhoto) {
                 Image("menu")
                     .resizable()
                     .scaledToFit()

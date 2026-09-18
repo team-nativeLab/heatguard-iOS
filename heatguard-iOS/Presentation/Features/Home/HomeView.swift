@@ -4,9 +4,17 @@ struct HomeView: View {
     @State private var showsRecordTypes = false
     @State private var showsEmergency = false
     @State private var showsCalling = false
-    @State private var destination: RecordType?
+    @State private var shouldBeginEmergencyCall = false
+    @State private var pendingRecordType: RecordType?
+    @State private var flowPath = NavigationPath()
 
     var body: some View {
+        NavigationStack(path: $flowPath) {
+            homeContent
+        }
+    }
+
+    private var homeContent: some View {
         VStack(spacing: 0) {
             header
             weatherSummary.padding(.top, 15)
@@ -22,12 +30,19 @@ struct HomeView: View {
             HGPrimaryButton(title: "기록하기", height: 48) { showsRecordTypes = true }.padding(.bottom, 10)
         }
         .padding(.horizontal, 27).padding(.top, 24).background(HGColor.appBackground).toolbar(.hidden, for: .navigationBar)
-        .sheet(isPresented: $showsRecordTypes) { RecordTypeSelectionView { destination = $0 } }
-        .sheet(isPresented: $showsEmergency) { EmergencyAlertView { showsEmergency = false; showsCalling = true } }
-        .sheet(isPresented: $showsCalling) { EmergencyCallView() }
-        .navigationDestination(item: $destination) { type in
-            switch type { case .thermometer: ThermometerRecordView(); case .workPhoto: WorkPhotoView(); case .restPhoto: RestPhotoView() }
+        .sheet(isPresented: $showsRecordTypes, onDismiss: openSelectedRecord) {
+            RecordTypeSelectionView { pendingRecordType = $0 }
         }
+        .sheet(isPresented: $showsEmergency, onDismiss: beginEmergencyCall) {
+            EmergencyAlertView {
+                shouldBeginEmergencyCall = true
+                showsEmergency = false
+            }
+        }
+        .sheet(isPresented: $showsCalling) {
+            EmergencyCallView(onCancel: { showsCalling = false })
+        }
+        .navigationDestination(for: HomeFlowRoute.self, destination: destinationView)
     }
 
     private var header: some View {
@@ -71,6 +86,75 @@ struct HomeView: View {
     }
 
     private func sectionLabel(_ title: String) -> some View { Text(title).font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.primaryText).frame(maxWidth: .infinity, alignment: .leading) }
+
+    private func openSelectedRecord() {
+        guard let pendingRecordType else { return }
+        flowPath.append(HomeFlowRoute(recordType: pendingRecordType))
+        self.pendingRecordType = nil
+    }
+
+    private func beginEmergencyCall() {
+        guard shouldBeginEmergencyCall else { return }
+        shouldBeginEmergencyCall = false
+        showsCalling = true
+    }
+
+    @ViewBuilder
+    private func destinationView(for route: HomeFlowRoute) -> some View {
+        switch route {
+        case .thermometer:
+            ThermometerRecordView(
+                onOpenFieldPhoto: { flowPath.append(HomeFlowRoute.fieldPhoto) },
+                onSave: { flowPath.append(HomeFlowRoute.saveSuccess) }
+            )
+        case .workPhoto:
+            WorkPhotoView(onSave: { flowPath.append(HomeFlowRoute.saveSuccess) })
+        case .restPhoto:
+            RestPhotoView(onSave: { flowPath.append(HomeFlowRoute.saveSuccess) })
+        case .fieldPhoto:
+            FieldPhotoCaptureView(onSave: { flowPath.append(HomeFlowRoute.saveBeforeConfirmation) })
+        case .saveBeforeConfirmation:
+            SaveBeforeConfirmationView(
+                onRetry: removeCurrentRoute,
+                onSave: { flowPath.append(HomeFlowRoute.saveSuccess) }
+            )
+        case .saveSuccess:
+            SaveSuccessView(onConfirm: returnToHome)
+        case .saveFailure:
+            SaveFailureView(
+                onRetry: removeCurrentRoute,
+                onTemporarySave: returnToHome
+            )
+        }
+    }
+
+    private func removeCurrentRoute() {
+        guard !flowPath.isEmpty else { return }
+        flowPath.removeLast()
+    }
+
+    private func returnToHome() {
+        flowPath = NavigationPath()
+    }
+}
+
+private enum HomeFlowRoute: Hashable {
+    case thermometer
+    case workPhoto
+    case restPhoto
+    case fieldPhoto
+    case saveBeforeConfirmation
+    case saveSuccess
+    case saveFailure
+
+    init(recordType: RecordType) {
+        switch recordType {
+        case .thermometer: self = .thermometer
+        case .workPhoto: self = .workPhoto
+        case .restPhoto: self = .restPhoto
+        }
+    }
+
 }
 
 private struct HomeMetric: View {

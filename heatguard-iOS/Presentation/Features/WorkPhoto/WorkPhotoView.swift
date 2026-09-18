@@ -10,11 +10,16 @@ struct WorkPhotoView: View {
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var capturedImages: [UIImage] = []
     @State private var memo = ""
-    @State private var showsSaveConfirmation = false
     @State private var showsPhotoPicker = false
     @State private var showsCameraPicker = false
     @State private var showsPhotoSourceDialog = false
     @State private var showsCameraUnavailableAlert = false
+
+    let onSave: () -> Void
+
+    init(onSave: @escaping () -> Void = {}) {
+        self.onSave = onSave
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -40,9 +45,7 @@ struct WorkPhotoView: View {
 
             Spacer(minLength: 0)
 
-            HGPrimaryButton(title: "기록 저장", height: 48) {
-                showsSaveConfirmation = true
-            }
+            HGPrimaryButton(title: "기록 저장", height: 48, action: onSave)
             .padding(.horizontal, 4)
             .padding(.bottom, 4)
         }
@@ -50,9 +53,6 @@ struct WorkPhotoView: View {
         .padding(.top, 24)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
-        .alert("기록을 저장했습니다.", isPresented: $showsSaveConfirmation) {
-            Button("확인", role: .cancel) {}
-        }
         .alert("카메라를 사용할 수 없습니다.", isPresented: $showsCameraUnavailableAlert) {
             Button("확인", role: .cancel) {}
         } message: {

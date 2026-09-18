@@ -2,6 +2,16 @@ import SwiftUI
 
 struct SaveFailureView: View {
     private let error = (title: "서버와 연결할 수 없습니다", message: "잠시 후 다시 시도해주세요")
+    let onRetry: () -> Void
+    let onTemporarySave: () -> Void
+
+    init(
+        onRetry: @escaping () -> Void = {},
+        onTemporarySave: @escaping () -> Void = {}
+    ) {
+        self.onRetry = onRetry
+        self.onTemporarySave = onTemporarySave
+    }
 
     var body: some View {
         HGStatusPopup(title: "기록 저장") {
@@ -16,8 +26,8 @@ struct SaveFailureView: View {
             .padding(.horizontal, 25).padding(.top, 26)
         } actions: {
             VStack(spacing: 14) {
-                HGPrimaryButton(title: "다시 시도하기") {}
-                HGSecondaryButton(title: "임시저장 후 나가기") {}
+                HGPrimaryButton(title: "다시 시도하기", action: onRetry)
+                HGSecondaryButton(title: "임시저장 후 나가기", action: onTemporarySave)
             }
             .padding(.horizontal, 28)
         }

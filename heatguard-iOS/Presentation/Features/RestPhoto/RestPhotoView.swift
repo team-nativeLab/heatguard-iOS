@@ -4,7 +4,11 @@ struct RestPhotoView: View {
     private let restPeriod = "13 : 00 ~ 13 : 30 (중간 휴식)"
 
     @State private var memo = ""
-    @State private var showsSaveConfirmation = false
+    let onSave: () -> Void
+
+    init(onSave: @escaping () -> Void = {}) {
+        self.onSave = onSave
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,9 +32,7 @@ struct RestPhotoView: View {
 
             Spacer(minLength: 0)
 
-            HGPrimaryButton(title: "기록 저장", height: 48) {
-                showsSaveConfirmation = true
-            }
+            HGPrimaryButton(title: "기록 저장", height: 48, action: onSave)
             .padding(.horizontal, 4)
             .padding(.bottom, 4)
         }
@@ -38,9 +40,6 @@ struct RestPhotoView: View {
         .padding(.top, 24)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
-        .alert("기록을 저장했습니다.", isPresented: $showsSaveConfirmation) {
-            Button("확인", role: .cancel) {}
-        }
     }
 
     private var header: some View {

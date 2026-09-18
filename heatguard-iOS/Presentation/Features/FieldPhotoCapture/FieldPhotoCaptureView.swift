@@ -3,11 +3,17 @@ import SwiftUI
 struct FieldPhotoCaptureView: View {
     @State private var showsPhotoSelection = false
 
+    let onSave: () -> Void
+
     private let measurements = [
         FieldMeasurement(title: "온도 ( ℃ )", value: "47.5"),
         FieldMeasurement(title: "습도 ( % )", value: "55"),
         FieldMeasurement(title: "체감온도 ( ℃ )", value: "자동 계산")
     ]
+
+    init(onSave: @escaping () -> Void = {}) {
+        self.onSave = onSave
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -42,7 +48,7 @@ struct FieldPhotoCaptureView: View {
 
             Spacer(minLength: 0)
 
-            HGPrimaryButton(title: "저장", height: 48) {}
+            HGPrimaryButton(title: "저장", height: 48, action: onSave)
                 .padding(.horizontal, 4)
                 .padding(.bottom, 4)
         }
