@@ -33,7 +33,7 @@ struct HomeView: View {
     private var header: some View {
         HStack {
             Button {} label: { Image("menu").resizable().scaledToFit().frame(width: 28, height: 28) }.buttonStyle(.plain)
-            Spacer(); Text("폭염가드").font(HGFont.bold(20, relativeTo: .title2)); Spacer()
+            Spacer(); Text("폭염가드").font(HGFont.bold(20, relativeTo: .title2)).foregroundStyle(HGColor.primaryText); Spacer()
             Button {} label: { Image("bell").resizable().scaledToFit().frame(width: 28, height: 28) }.buttonStyle(.plain)
         }.frame(height: 28)
     }
@@ -59,7 +59,7 @@ struct HomeView: View {
             Text("오늘 체크 시간").font(HGFont.bold(14, relativeTo: .subheadline))
             Text("다음 체크까지 57분 · 22:00 예정").font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText).padding(.top, 7)
             HomeTimeline().padding(.top, 19)
-        }.padding(20).frame(maxWidth: .infinity, minHeight: 136, alignment: .leading).background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+        }.foregroundStyle(HGColor.primaryText).padding(20).frame(maxWidth: .infinity, minHeight: 136, alignment: .leading).background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private var contactCard: some View {
@@ -70,7 +70,7 @@ struct HomeView: View {
         }.background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
     }
 
-    private func sectionLabel(_ title: String) -> some View { Text(title).font(HGFont.regular(11, relativeTo: .caption2)).frame(maxWidth: .infinity, alignment: .leading) }
+    private func sectionLabel(_ title: String) -> some View { Text(title).font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.primaryText).frame(maxWidth: .infinity, alignment: .leading) }
 }
 
 private struct HomeMetric: View {
