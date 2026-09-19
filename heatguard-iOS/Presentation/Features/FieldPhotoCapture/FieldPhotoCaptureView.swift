@@ -1,8 +1,6 @@
 import SwiftUI
 
 struct FieldPhotoCaptureView: View {
-    @State private var showsPhotoSelection = false
-
     let onSave: () -> Void
 
     private let measurements = [
@@ -56,38 +54,10 @@ struct FieldPhotoCaptureView: View {
         .padding(.top, 24)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
-        .sheet(isPresented: $showsPhotoSelection) {
-            HGPhotoCaptureSection()
-                .presentationDetents([.medium])
-        }
     }
 
     private var header: some View {
-        HStack {
-            Button(action: {}) {
-                Image("menu")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            Text("폭염가드")
-                .font(HGFont.bold(20, relativeTo: .title2))
-
-            Spacer()
-
-            Button(action: {}) {
-                Image("bell")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-        }
-        .frame(height: 28)
+        HGScreenHeader()
     }
 
     private var photoPreview: some View {
@@ -117,34 +87,7 @@ struct FieldPhotoCaptureView: View {
     }
 
     private var photoSelector: some View {
-        Button {
-            showsPhotoSelection = true
-        } label: {
-            HStack(spacing: 0) {
-                Image("camera")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 42, height: 42)
-                    .padding(.leading, 19)
-
-                Spacer()
-
-                Text("사진 촬영 또는\n앨범에서 선택")
-                    .font(HGFont.semiBold(13, relativeTo: .caption))
-                    .foregroundStyle(HGColor.secondaryText)
-                    .multilineTextAlignment(.leading)
-
-                Spacer()
-            }
-            .frame(maxWidth: .infinity, minHeight: 79)
-            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
-            .overlay {
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(HGColor.inputBorder, lineWidth: 1)
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("현장 사진 선택")
+        HGCompactPhotoSelector()
     }
 }
 

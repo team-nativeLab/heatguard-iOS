@@ -77,7 +77,7 @@ struct HGPhotoCaptureSection: View {
         showsCameraUnavailable = !showsCameraPicker
     }
 
-    private var backgroundColor: Color { Color(red: 231 / 255, green: 242 / 255, blue: 255 / 255) }
-    private var textColor: Color { Color(red: 85 / 255, green: 92 / 255, blue: 120 / 255) }
-    private var countColor: Color { Color(red: 64 / 255, green: 68 / 255, blue: 87 / 255) }
+    private var backgroundColor: Color { HGColor.photoSelectionBackground }
+    private var textColor: Color { HGColor.photoSelectionText }
+    private var countColor: Color { HGColor.photoCountText }
 }
