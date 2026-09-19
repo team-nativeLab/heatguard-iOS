@@ -3,17 +3,10 @@
 //  heatguard-iOS
 //
 
-import PhotosUI
 import SwiftUI
 
 struct WorkPhotoView: View {
-    @State private var selectedPhotos: [PhotosPickerItem] = []
-    @State private var capturedImages: [UIImage] = []
     @State private var memo = ""
-    @State private var showsPhotoPicker = false
-    @State private var showsCameraPicker = false
-    @State private var showsPhotoSourceDialog = false
-    @State private var showsCameraUnavailableAlert = false
 
     let onSave: () -> Void
 
@@ -35,7 +28,7 @@ struct WorkPhotoView: View {
                     .foregroundStyle(.black)
                     .padding(.top, 10)
 
-                photoPicker
+                HGPhotoCaptureSection()
                     .padding(.top, 15)
 
                 memoSection
@@ -53,90 +46,10 @@ struct WorkPhotoView: View {
         .padding(.top, 24)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
-        .alert("카메라를 사용할 수 없습니다.", isPresented: $showsCameraUnavailableAlert) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text("실제 기기에서 카메라 촬영을 사용할 수 있습니다.")
-        }
-        .alert("사진 추가", isPresented: $showsPhotoSourceDialog) {
-            Button("카메라로 촬영") {
-                presentCamera()
-            }
-            Button("앨범에서 선택") {
-                showsPhotoPicker = true
-            }
-            Button("취소", role: .cancel) {}
-        }
-        .photosPicker(
-            isPresented: $showsPhotoPicker,
-            selection: $selectedPhotos,
-            maxSelectionCount: availablePhotoCount,
-            matching: .images
-        )
-        .sheet(isPresented: $showsCameraPicker) {
-            HGCameraPicker { image in
-                capturedImages.append(image)
-            }
-            .ignoresSafeArea()
-        }
     }
 
     private var header: some View {
-        HStack {
-            Button(action: {}) {
-                Image("menu")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            Text("폭염가드")
-                .font(HGFont.bold(20, relativeTo: .title2))
-                .foregroundStyle(.black)
-
-            Spacer()
-
-            Button(action: {}) {
-                Image("bell")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-        }
-        .frame(height: 28)
-    }
-
-    private var photoPicker: some View {
-        Button {
-            showsPhotoSourceDialog = true
-        } label: {
-            VStack(spacing: 0) {
-                Image("camera")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 42, height: 42)
-
-                Text("사진 촬영 또는\n앨범에서 선택")
-                    .font(HGFont.bold(15, relativeTo: .subheadline))
-                    .foregroundStyle(photoText)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 17)
-
-                Text(selectionDescription)
-                    .font(HGFont.bold(15, relativeTo: .subheadline))
-                    .foregroundStyle(Color(red: 64 / 255, green: 68 / 255, blue: 87 / 255))
-                    .padding(.top, 51)
-            }
-            .frame(maxWidth: .infinity, minHeight: 313, maxHeight: 313)
-            .background(photoBackground, in: RoundedRectangle(cornerRadius: 25))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("작업 전 중 사진 선택")
-        .accessibilityValue(selectionDescription)
+        HGScreenHeader()
     }
 
     private var memoSection: some View {
@@ -177,37 +90,6 @@ struct WorkPhotoView: View {
         .padding(.horizontal, 7)
     }
 
-    private var selectionDescription: String {
-        selectedPhotoCount == 0 ? "1 ~ 2장 선택 가능" : "\(selectedPhotoCount) / 2장 선택됨"
-    }
-
-    private var selectedPhotoCount: Int {
-        selectedPhotos.count + capturedImages.count
-    }
-
-    private var availablePhotoCount: Int {
-        max(1, 2 - capturedImages.count)
-    }
-
-    private func presentCamera() {
-        guard selectedPhotoCount < 2 else {
-            return
-        }
-
-        if UIImagePickerController.isSourceTypeAvailable(.camera) {
-            showsCameraPicker = true
-        } else {
-            showsCameraUnavailableAlert = true
-        }
-    }
-
-    private var photoBackground: Color {
-        Color(red: 231 / 255, green: 242 / 255, blue: 255 / 255)
-    }
-
-    private var photoText: Color {
-        Color(red: 85 / 255, green: 92 / 255, blue: 120 / 255)
-    }
 }
 
 #Preview {

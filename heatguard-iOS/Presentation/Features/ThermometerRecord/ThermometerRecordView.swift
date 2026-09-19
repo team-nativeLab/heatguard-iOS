@@ -38,11 +38,8 @@ struct ThermometerRecordView: View {
                 temperatureSummaryCard
                     .padding(.top, 25)
 
-                manualEntryToggle
-                    .padding(.top, 30)
-
                 manualEntryCard
-                    .padding(.top, 11)
+                    .padding(.top, 30)
 
                 photoSection
                     .padding(.top, 26)
@@ -96,60 +93,12 @@ struct ThermometerRecordView: View {
         .shadow(color: Color(red: 222 / 255, green: 222 / 255, blue: 222 / 255).opacity(0.25), radius: 7.3, x: 4, y: 4)
     }
 
-    private var manualEntryToggle: some View {
-        Button {
-            isManualEntryEnabled.toggle()
-        } label: {
-            HStack(spacing: 14) {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(HGColor.surface)
-                    .frame(width: 28, height: 28)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color(red: 225 / 255, green: 225 / 255, blue: 226 / 255), lineWidth: 2)
-                    }
-                    .overlay {
-                        if isManualEntryEnabled {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(HGColor.primary)
-                        }
-                    }
-
-                Text("온도계 데이터 입력")
-                    .font(HGFont.bold(20, relativeTo: .title2))
-                    .foregroundStyle(.black)
-
-                Spacer(minLength: 0)
-
-                Text("( 온도계 미설치 시 체크 )")
-                    .font(HGFont.semiBold(13, relativeTo: .caption))
-                    .foregroundStyle(summaryText)
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("온도계 데이터 입력")
-        .accessibilityValue(isManualEntryEnabled ? "선택됨" : "선택 안 됨")
-    }
-
     private var manualEntryCard: some View {
-        VStack(spacing: 0) {
-            measurementRow(title: "온도 ( ℃ )", text: $temperature, placeholder: "47.5", keyboardType: .decimalPad)
-            Divider()
-                .padding(.leading, 91)
-            measurementRow(title: "습도 ( % )", text: $humidity, placeholder: "55", keyboardType: .numberPad)
-            Divider()
-                .padding(.leading, 91)
-            measurementRow(title: "체감온도 ( ℃ )", value: "자동 계산")
-        }
-        .padding(.vertical, 9)
-        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
-        .overlay {
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(red: 225 / 255, green: 225 / 255, blue: 226 / 255), lineWidth: 1)
-        }
-        .opacity(isManualEntryEnabled ? 1 : 0.32)
-        .disabled(!isManualEntryEnabled)
+        HGManualInputCard(
+            isEnabled: $isManualEntryEnabled,
+            temperature: $temperature,
+            humidity: $humidity
+        )
     }
 
     private var photoSection: some View {
@@ -185,42 +134,6 @@ struct ThermometerRecordView: View {
             .buttonStyle(.plain)
             .accessibilityLabel("현장 사진 선택")
         }
-    }
-
-    private func measurementRow(
-        title: String,
-        text: Binding<String>,
-        placeholder: String,
-        keyboardType: UIKeyboardType
-    ) -> some View {
-        HStack(spacing: 0) {
-            Text(title)
-                .font(HGFont.semiBold(13, relativeTo: .caption))
-                .foregroundStyle(HGColor.secondaryText)
-                .frame(width: 101, alignment: .leading)
-
-            TextField(placeholder, text: text)
-                .font(HGFont.semiBold(13, relativeTo: .caption))
-                .foregroundStyle(HGColor.secondaryText)
-                .keyboardType(keyboardType)
-        }
-        .padding(.horizontal, 20)
-        .frame(height: 36)
-    }
-
-    private func measurementRow(title: String, value: String) -> some View {
-        HStack(spacing: 0) {
-            Text(title)
-                .font(HGFont.semiBold(13, relativeTo: .caption))
-                .foregroundStyle(HGColor.secondaryText)
-                .frame(width: 101, alignment: .leading)
-
-            Text(value)
-                .font(HGFont.semiBold(13, relativeTo: .caption))
-                .foregroundStyle(HGColor.secondaryText)
-        }
-        .padding(.horizontal, 20)
-        .frame(height: 36)
     }
 
     private var summaryText: Color {

@@ -154,19 +154,137 @@ private enum HomeFlowRoute: Hashable {
 }
 
 private struct HomeMetric: View {
-    let icon: String; let title: String; let value: String
-    var body: some View { HStack(spacing: 8) { Image(icon).resizable().scaledToFit().frame(width: 20, height: 20).frame(width: 36, height: 36).background(Color(red: 235/255, green: 240/255, blue: 251/255), in: Circle()); VStack(alignment: .leading, spacing: 2) { Text(title).font(HGFont.regular(10, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText); Text(value).font(HGFont.bold(14, relativeTo: .caption)) } }.frame(maxWidth: .infinity, alignment: .leading) }
+    let icon: String
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(icon)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 20, height: 20)
+                .frame(width: 36, height: 36)
+                .background(
+                    Color(red: 235 / 255, green: 240 / 255, blue: 251 / 255),
+                    in: Circle()
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(HGFont.regular(10, relativeTo: .caption2))
+                    .foregroundStyle(HGColor.secondaryText)
+
+                Text(value)
+                    .font(HGFont.bold(14, relativeTo: .caption))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
 }
 
 private struct HomeActionRow: View {
-    let icon: String; let title: String; let subtitle: String; let action: () -> Void
-    var body: some View { Button(action: action) { HStack(spacing: 12) { Image(icon).resizable().scaledToFit().frame(width: 24, height: 24).frame(width: 44, height: 44).background(Color(red: 237/255, green: 241/255, blue: 251/255), in: RoundedRectangle(cornerRadius: 14)); VStack(alignment: .leading, spacing: 4) { Text(title).font(HGFont.bold(14, relativeTo: .subheadline)); Text(subtitle).font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText) }; Spacer(); Text("›").font(.title3).foregroundStyle(Color(red: 172/255, green: 175/255, blue: 191/255)) }.padding(.horizontal, 16).frame(height: 65) }.buttonStyle(.plain).foregroundStyle(HGColor.primaryText) }
+    let icon: String
+    let title: String
+    let subtitle: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(icon)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 24, height: 24)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        Color(red: 237 / 255, green: 241 / 255, blue: 251 / 255),
+                        in: RoundedRectangle(cornerRadius: 14)
+                    )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(HGFont.bold(14, relativeTo: .subheadline))
+
+                    Text(subtitle)
+                        .font(HGFont.regular(11, relativeTo: .caption2))
+                        .foregroundStyle(HGColor.secondaryText)
+                }
+
+                Spacer()
+
+                Text("›")
+                    .font(.title3)
+                    .foregroundStyle(Color(red: 172 / 255, green: 175 / 255, blue: 191 / 255))
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 65)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(HGColor.primaryText)
+    }
 }
 
 private struct HomeTimeline: View {
     private let times = ["08시", "10시", "12시", "14시", "16시", "18시", "20시", "22시"]
     private let checked = Set([0, 1, 3, 5])
-    var body: some View { VStack(spacing: 7) { GeometryReader { _ in ZStack { Capsule().fill(Color(red: 232/255, green: 235/255, blue: 242/255)).frame(height: 2); HStack { ForEach(times.indices, id: \.self) { index in Circle().fill(checked.contains(index) || index == 6 ? HGColor.primary : HGColor.surface).overlay(Circle().stroke(index == 6 ? HGColor.primary.opacity(0.3) : Color(red: 190/255, green: 195/255, blue: 208/255), lineWidth: index == 6 ? 5 : 1)).frame(width: index == 6 ? 10 : 8, height: index == 6 ? 10 : 8); if index != times.indices.last { Spacer() } } } } }.frame(height: 12); HStack { ForEach(times, id: \.self) { time in Text(time).font(HGFont.regular(9, relativeTo: .caption2)).foregroundStyle(time == "20시" ? HGColor.primary : HGColor.secondaryText); if time != times.last { Spacer() } } } } }
+
+    var body: some View {
+        VStack(spacing: 7) {
+            GeometryReader { _ in
+                ZStack {
+                    Capsule()
+                        .fill(Color(red: 232 / 255, green: 235 / 255, blue: 242 / 255))
+                        .frame(height: 2)
+
+                    HStack {
+                        ForEach(times.indices, id: \.self) { index in
+                            timelinePoint(at: index)
+
+                            if index != times.indices.last {
+                                Spacer()
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(height: 12)
+
+            HStack {
+                ForEach(times, id: \.self) { time in
+                    Text(time)
+                        .font(HGFont.regular(9, relativeTo: .caption2))
+                        .foregroundStyle(time == "20시" ? HGColor.primary : HGColor.secondaryText)
+
+                    if time != times.last {
+                        Spacer()
+                    }
+                }
+            }
+        }
+    }
+
+    private func timelinePoint(at index: Int) -> some View {
+        let isCurrent = index == 6
+        let isChecked = checked.contains(index) || isCurrent
+
+        return Circle()
+            .fill(isChecked ? HGColor.primary : HGColor.surface)
+            .overlay {
+                Circle()
+                    .stroke(
+                        isCurrent
+                            ? HGColor.primary.opacity(0.3)
+                            : Color(red: 190 / 255, green: 195 / 255, blue: 208 / 255),
+                        lineWidth: isCurrent ? 5 : 1
+                    )
+            }
+            .frame(width: isCurrent ? 10 : 8, height: isCurrent ? 10 : 8)
+    }
 }
 
-#Preview { NavigationStack { HomeView() } }
+#Preview {
+    NavigationStack {
+        HomeView()
+    }
+}
