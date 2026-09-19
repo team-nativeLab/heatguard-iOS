@@ -18,12 +18,17 @@ struct SaveFailureView: View {
             statusCard.padding(.top, 52)
             HGPopupCard {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("오류 내용").font(HGFont.bold(15))
-                    Text("\(error.title)\n\(error.message)").font(HGFont.medium(15)).foregroundStyle(HGColor.secondaryText).lineSpacing(8)
+                    Text("오류 내용")
+                        .font(HGFont.bold(15))
+                    Text("\(error.title)\n\(error.message)")
+                        .font(HGFont.medium(15))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .lineSpacing(8)
                 }
                 .frame(maxWidth: .infinity, minHeight: 83, alignment: .leading)
             }
-            .padding(.horizontal, 25).padding(.top, 26)
+            .padding(.horizontal, 25)
+            .padding(.top, 26)
         } actions: {
             VStack(spacing: 14) {
                 HGPrimaryButton(title: "다시 시도하기", action: onRetry)
@@ -36,10 +41,26 @@ struct SaveFailureView: View {
     private var statusCard: some View {
         HGPopupCard {
             VStack(spacing: 0) {
-                ZStack { Circle().fill(Color.red.opacity(0.1)).frame(width: 84, height: 84); Image("Warning").resizable().scaledToFit().frame(width: 59, height: 59) }
-                Text("기록이 저장하지 못했어요").font(HGFont.bold(20, relativeTo: .title2)).padding(.top, 34)
-                Text("네트워크 연결을 확인한 후 다시시도 해주세요").font(HGFont.semiBold(15)).foregroundStyle(HGColor.secondaryText).padding(.top, 15)
-            }.frame(maxWidth: .infinity, minHeight: 178)
-        }.padding(.horizontal, 25)
+                ZStack {
+                    Circle()
+                        .fill(Color.red.opacity(0.1))
+                        .frame(width: 84, height: 84)
+
+                    Image("Warning")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 59, height: 59)
+                }
+                Text("기록이 저장하지 못했어요")
+                    .font(HGFont.bold(20, relativeTo: .title2))
+                    .padding(.top, 34)
+                Text("네트워크 연결을 확인한 후 다시시도 해주세요")
+                    .font(HGFont.semiBold(15))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .padding(.top, 15)
+            }
+            .frame(maxWidth: .infinity, minHeight: 178)
+        }
+        .padding(.horizontal, 25)
     }
 }

@@ -90,7 +90,7 @@ struct ThermometerRecordView: View {
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity, minHeight: 138, maxHeight: 138)
         .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
-        .shadow(color: Color(red: 222 / 255, green: 222 / 255, blue: 222 / 255).opacity(0.25), radius: 7.3, x: 4, y: 4)
+        .shadow(color: HGColor.cardShadow.opacity(0.25), radius: 7.3, x: 4, y: 4)
     }
 
     private var manualEntryCard: some View {
@@ -128,7 +128,7 @@ struct ThermometerRecordView: View {
                 .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
                 .overlay {
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color(red: 234 / 255, green: 234 / 255, blue: 234 / 255), lineWidth: 1)
+                        .stroke(HGColor.inputBorder, lineWidth: 1)
                 }
             }
             .buttonStyle(.plain)
@@ -137,7 +137,7 @@ struct ThermometerRecordView: View {
     }
 
     private var summaryText: Color {
-        Color(red: 85 / 255, green: 92 / 255, blue: 120 / 255)
+        HGColor.summaryText
     }
 }
 

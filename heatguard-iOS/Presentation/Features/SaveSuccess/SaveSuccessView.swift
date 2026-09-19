@@ -27,7 +27,7 @@ struct SaveSuccessView: View {
         VStack(spacing: 0) {
             ZStack {
                 Circle()
-                    .fill(Color(red: 226 / 255, green: 246 / 255, blue: 235 / 255))
+                    .fill(HGColor.successBackground)
                     .frame(width: 84, height: 84)
 
                 Image("SaveSuccessCheck")
