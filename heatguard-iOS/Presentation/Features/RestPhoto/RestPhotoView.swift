@@ -56,36 +56,16 @@ struct RestPhotoView: View {
                 .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
                 .overlay { RoundedRectangle(cornerRadius: 12).stroke(HGColor.inputBorder, lineWidth: 1) }
                 .padding(.top, 12)
-            HStack(spacing: 8) {
-                Text("메모").font(HGFont.semiBold(16))
-                Text("(선택)").font(HGFont.medium(13, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
-            }
+            HGOptionalMemoSection(
+                placeholder: "휴식 관련 메모를 입력해주세요",
+                height: 74,
+                text: $memo
+            )
             .padding(.top, 25)
-            memoEditor.padding(.top, 12)
         }
         .padding(.horizontal, 7)
     }
 
-    private var memoEditor: some View {
-        TextEditor(text: $memo)
-            .font(HGFont.medium(13, relativeTo: .caption))
-            .scrollContentBackground(.hidden)
-            .padding(.horizontal, 13)
-            .padding(.vertical, 8)
-            .frame(height: 74)
-            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
-            .overlay(alignment: .topLeading) {
-                if memo.isEmpty {
-                    Text("휴식 관련 메모를 입력해주세요")
-                        .font(HGFont.medium(13, relativeTo: .caption))
-                        .foregroundStyle(HGColor.secondaryText)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 14)
-                        .allowsHitTesting(false)
-                }
-            }
-            .overlay { RoundedRectangle(cornerRadius: 12).stroke(HGColor.inputBorder, lineWidth: 1) }
-    }
 }
 
 #Preview { NavigationStack { RestPhotoView() } }
