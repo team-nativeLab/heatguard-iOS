@@ -9,6 +9,10 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var showsHome = false
+    @State private var isSubmitting = false
+    @State private var requestError: String?
+
+    private let authenticationService = HGAuthenticationService()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -53,10 +57,21 @@ struct LoginView: View {
 
             Spacer(minLength: 24)
 
-            HGPrimaryButton(title: "로그인", height: 42) {
-                showsHome = true
+            HGPrimaryButton(
+                title: isSubmitting ? "로그인 중..." : "로그인",
+                isEnabled: !isSubmitting,
+                height: 42
+            ) {
+                login()
             }
                 .padding(.horizontal, 40)
+
+            if let requestError {
+                Text(requestError)
+                    .font(HGFont.regular(12, relativeTo: .caption))
+                    .foregroundStyle(HGColor.error)
+                    .padding(.top, 8)
+            }
 
             HStack(spacing: 24) {
                 Text("아직 계정이 없으신가요?")
@@ -76,6 +91,28 @@ struct LoginView: View {
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(isPresented: $showsHome) {
             HomeView()
+        }
+    }
+
+    private func login() {
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedEmail.isEmpty, !password.isEmpty else {
+            requestError = "이메일과 비밀번호를 입력해주세요."
+            return
+        }
+
+        isSubmitting = true
+        requestError = nil
+
+        Task {
+            defer { isSubmitting = false }
+
+            do {
+                _ = try await authenticationService.login(email: trimmedEmail, password: password)
+                showsHome = true
+            } catch {
+                requestError = error.localizedDescription
+            }
         }
     }
 }

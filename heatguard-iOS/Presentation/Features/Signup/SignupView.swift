@@ -10,11 +10,17 @@ struct SignupView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var companyName = ""
+    @State private var siteName = ""
     @State private var name = ""
     @State private var email = ""
     @State private var password = ""
     @State private var passwordConfirmation = ""
     @State private var hasAttemptedSignup = false
+    @State private var isSubmitting = false
+    @State private var requestError: String?
+    @State private var showsSignupSuccess = false
+
+    private let authenticationService = HGAuthenticationService()
 
     var body: some View {
         ScrollView {
@@ -34,6 +40,13 @@ struct SignupView: View {
                         placeholder: "회사명을 입력해주세요",
                         text: $companyName,
                         errorMessage: companyNameError
+                    )
+
+                    signupField(
+                        title: "현장명",
+                        placeholder: "현장명을 입력해주세요",
+                        text: $siteName,
+                        errorMessage: siteNameError
                     )
 
                     signupField(
@@ -96,14 +109,32 @@ struct SignupView: View {
                 }
             }
         }
+        .alert("회원가입", isPresented: $showsSignupSuccess) {
+            Button("로그인하기") {
+                dismiss()
+            }
+        } message: {
+            Text("회원가입이 완료됐습니다. 로그인해주세요.")
+        }
     }
 
     private var bottomAction: some View {
         VStack(spacing: 0) {
-            HGPrimaryButton(title: "회원가입", height: 42) {
+            HGPrimaryButton(
+                title: isSubmitting ? "회원가입 중..." : "회원가입",
+                isEnabled: !isSubmitting,
+                height: 42
+            ) {
                 validateSignup()
             }
             .padding(.horizontal, 40)
+
+            if let requestError {
+                Text(requestError)
+                    .font(HGFont.regular(12, relativeTo: .caption))
+                    .foregroundStyle(HGColor.error)
+                    .padding(.top, 8)
+            }
 
             HStack(spacing: 21) {
                 Text("이미 계정이 있으신가요?")
@@ -152,6 +183,10 @@ struct SignupView: View {
         errorMessage(for: name, emptyMessage: "이름을 입력해주세요.")
     }
 
+    private var siteNameError: String? {
+        errorMessage(for: siteName, emptyMessage: "현장명을 입력해주세요.")
+    }
+
     private var emailError: String? {
         guard hasAttemptedSignup else { return nil }
         guard !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -191,6 +226,43 @@ struct SignupView: View {
     private func validateSignup() {
         hasAttemptedSignup = true
         dismissKeyboard()
+
+        guard
+            companyNameError == nil,
+            siteNameError == nil,
+            nameError == nil,
+            emailError == nil,
+            passwordError == nil,
+            passwordConfirmationError == nil
+        else {
+            return
+        }
+
+        submitSignup()
+    }
+
+    private func submitSignup() {
+        isSubmitting = true
+        requestError = nil
+
+        let request = SiteRegistrationRequest(
+            companyName: companyName.trimmingCharacters(in: .whitespacesAndNewlines),
+            managerName: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            siteName: siteName.trimmingCharacters(in: .whitespacesAndNewlines),
+            email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+            password: password
+        )
+
+        Task {
+            defer { isSubmitting = false }
+
+            do {
+                try await authenticationService.register(request)
+                showsSignupSuccess = true
+            } catch {
+                requestError = error.localizedDescription
+            }
+        }
     }
 
     private func dismissKeyboard() {
