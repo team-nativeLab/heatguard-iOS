@@ -7,6 +7,8 @@ struct HomeView: View {
     @State private var shouldBeginEmergencyCall = false
     @State private var pendingRecordType: RecordType?
     @State private var flowPath = NavigationPath()
+    @State private var dashboard = HomeDashboard.unavailable
+    @State private var dashboardError: String?
 
     var body: some View {
         NavigationStack(path: $flowPath) {
@@ -65,6 +67,17 @@ struct HomeView: View {
             EmergencyCallView(onCancel: { showsCalling = false })
         }
         .navigationDestination(for: HomeFlowRoute.self, destination: destinationView)
+        .task {
+            await loadDashboard()
+        }
+        .alert("홈 데이터를 불러오지 못했습니다.", isPresented: dashboardErrorAlert) {
+            Button("다시 시도") {
+                Task { await loadDashboard() }
+            }
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(dashboardError ?? "")
+        }
     }
 
     private var header: some View {
@@ -75,7 +88,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("폭염 주의 단계")
+                    Text(dashboard.weather.heatLevelTitle)
                         .font(HGFont.bold(10, relativeTo: .caption2))
                         .foregroundStyle(Color.orange)
                         .padding(.horizontal, 10)
@@ -87,10 +100,10 @@ struct HomeView: View {
                         .padding(.top, 16)
 
                     HStack(spacing: 8) {
-                        Text("47.5°C")
+                        Text(dashboard.weather.temperatureText)
                             .font(HGFont.bold(40, relativeTo: .largeTitle))
 
-                        Text("▲ +3.2°C")
+                        Text("현장 기준")
                             .font(HGFont.bold(9, relativeTo: .caption2))
                             .foregroundStyle(HGColor.error)
                             .padding(.horizontal, 7)
@@ -98,18 +111,18 @@ struct HomeView: View {
                             .background(Color(red: 1, green: 221 / 255, blue: 226 / 255), in: Capsule())
                     }
 
-                    Text("습도 55% · 체감온도 40.5°C")
+                    Text("습도 \(dashboard.weather.humidityText) · 체감온도 \(dashboard.weather.apparentTemperatureText)")
                         .font(HGFont.regular(12, relativeTo: .caption))
                         .padding(.top, 8)
                 }
                 Spacer(); Image("WeatherPartlyCloudy").resizable().scaledToFit().frame(width: 145, height: 120).offset(x: 9, y: 2)
             }
             HStack(spacing: 0) {
-                HomeMetric(icon: "HomeHumidity", title: "습도", value: "55%")
+                HomeMetric(icon: "HomeHumidity", title: "습도", value: dashboard.weather.humidityText)
                 Divider().frame(height: 24)
-                HomeMetric(icon: "HomeFeelsLike", title: "체감온도", value: "40.5°C")
+                HomeMetric(icon: "HomeFeelsLike", title: "체감온도", value: dashboard.weather.apparentTemperatureText)
                 Divider().frame(height: 24)
-                HomeMetric(icon: "HomeWeather", title: "날씨", value: "맑음")
+                HomeMetric(icon: "HomeWeather", title: "날씨", value: dashboard.weather.weatherStatusText)
             }
             .padding(.horizontal, 18)
             .frame(height: 78)
@@ -123,7 +136,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 0) {
             Text("오늘 체크 시간")
                 .font(HGFont.bold(14, relativeTo: .subheadline))
-            Text("다음 체크까지 57분 · 22:00 예정")
+            Text(dashboard.recordStatusText)
                 .font(HGFont.regular(11, relativeTo: .caption2))
                 .foregroundStyle(HGColor.secondaryText)
                 .padding(.top, 7)
@@ -210,6 +223,22 @@ struct HomeView: View {
 
     private func returnToHome() {
         flowPath = NavigationPath()
+    }
+
+    private var dashboardErrorAlert: Binding<Bool> {
+        Binding(
+            get: { dashboardError != nil },
+            set: { if !$0 { dashboardError = nil } }
+        )
+    }
+
+    private func loadDashboard() async {
+        do {
+            dashboard = try await HGDashboardService().fetchHomeDashboard()
+            dashboardError = nil
+        } catch {
+            dashboardError = error.localizedDescription
+        }
     }
 }
 

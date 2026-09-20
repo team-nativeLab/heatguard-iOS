@@ -35,15 +35,47 @@ struct HGAPIClient {
         path: String,
         requiresAuthentication: Bool = false
     ) async throws -> Response {
+        let body = try JSONEncoder().encode(requestBody)
+        return try await request(
+            method: method,
+            path: path,
+            body: body,
+            requiresAuthentication: requiresAuthentication
+        )
+    }
+
+    func get<Response: Decodable>(
+        path: String,
+        requiresAuthentication: Bool = false
+    ) async throws -> Response {
+        try await request(
+            method: "GET",
+            path: path,
+            requiresAuthentication: requiresAuthentication
+        )
+    }
+
+    private func request<Response: Decodable>(
+        method: String,
+        path: String,
+        body: Data? = nil,
+        requiresAuthentication: Bool
+    ) async throws -> Response {
         let baseURL = try HGAPIConfiguration.baseURL()
         let url = baseURL.appending(path: path)
         var request = URLRequest(url: url)
         request.httpMethod = method
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.httpBody = try JSONEncoder().encode(requestBody)
+        request.httpBody = body
 
-        if requiresAuthentication, let token = try tokenStore.load() {
+        if body != nil {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+
+        if requiresAuthentication {
+            guard let token = try tokenStore.load() else {
+                throw HGAPIError.authenticationRequired
+            }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -79,6 +111,7 @@ struct HGAPIErrorDetail: Decodable {
 
 enum HGAPIError: LocalizedError {
     case configuration(String)
+    case authenticationRequired
     case invalidResponse
     case server(message: String, statusCode: Int)
 
@@ -86,6 +119,8 @@ enum HGAPIError: LocalizedError {
         switch self {
         case let .configuration(message), let .server(message, _):
             return message
+        case .authenticationRequired:
+            return "로그인이 필요합니다."
         case .invalidResponse:
             return "서버 응답을 처리하지 못했습니다."
         }
