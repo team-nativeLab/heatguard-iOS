@@ -10,6 +10,7 @@ struct HomeView: View {
     @State private var dashboard = HomeDashboard.unavailable
     @State private var dashboardError: String?
     @State private var emergencyError: String?
+    @State private var checklist = HGChecklistSummary(times: [], checkedCount: 0, totalCount: 0)
 
     var body: some View {
         NavigationStack(path: $flowPath) {
@@ -70,6 +71,7 @@ struct HomeView: View {
         .navigationDestination(for: HomeFlowRoute.self, destination: destinationView)
         .task {
             await loadDashboard()
+            await loadChecklist()
         }
         .alert("홈 데이터를 불러오지 못했습니다.", isPresented: dashboardErrorAlert) {
             Button("다시 시도") {
@@ -140,11 +142,11 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 0) {
             Text("오늘 체크 시간")
                 .font(HGFont.bold(14, relativeTo: .subheadline))
-            Text(dashboard.recordStatusText)
+            Text(checklist.times.isEmpty ? dashboard.recordStatusText : checklist.statusText)
                 .font(HGFont.regular(11, relativeTo: .caption2))
                 .foregroundStyle(HGColor.secondaryText)
                 .padding(.top, 7)
-            HomeTimeline()
+            HomeTimeline(times: checklist.times)
                 .padding(.top, 19)
         }
         .foregroundStyle(HGColor.primaryText)
@@ -254,6 +256,10 @@ struct HomeView: View {
             dashboardError = error.localizedDescription
         }
     }
+
+    private func loadChecklist() async {
+        checklist = (try? await HGChecklistService().fetch()) ?? checklist
+    }
 }
 
 private enum HomeFlowRoute: Hashable {
@@ -348,7 +354,7 @@ private struct HomeActionRow: View {
 }
 
 private struct HomeTimeline: View {
-    private let times = ["08시", "10시", "12시", "14시", "16시", "18시", "20시", "22시"]
+    let times: [String]
     private let checked = Set([0, 1, 3, 5])
 
     var body: some View {
@@ -376,7 +382,7 @@ private struct HomeTimeline: View {
                 ForEach(times, id: \.self) { time in
                     Text(time)
                         .font(HGFont.regular(9, relativeTo: .caption2))
-                        .foregroundStyle(time == "20시" ? HGColor.primary : HGColor.secondaryText)
+                    .foregroundStyle(HGColor.secondaryText)
 
                     if time != times.last {
                         Spacer()
