@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct FieldPhotoCaptureView: View {
+    @State private var photos: [UIImage] = []
+    @State private var isSaving = false
+    @State private var saveError: String?
+    let draft: HGRecordDraft
     let onSave: () -> Void
 
     private let measurements = [
@@ -9,7 +13,8 @@ struct FieldPhotoCaptureView: View {
         FieldMeasurement(title: "체감온도 ( ℃ )", value: "자동 계산")
     ]
 
-    init(onSave: @escaping () -> Void = {}) {
+    init(draft: HGRecordDraft = HGRecordDraft(type: .thermometer, memo: ""), onSave: @escaping () -> Void = {}) {
+        self.draft = draft
         self.onSave = onSave
     }
 
@@ -46,7 +51,7 @@ struct FieldPhotoCaptureView: View {
 
             Spacer(minLength: 0)
 
-            HGPrimaryButton(title: "저장", height: 48, action: onSave)
+            HGPrimaryButton(title: isSaving ? "저장 중..." : "저장", isEnabled: !isSaving, height: 48, action: saveRecord)
                 .padding(.horizontal, 4)
                 .padding(.bottom, 4)
         }
@@ -54,6 +59,7 @@ struct FieldPhotoCaptureView: View {
         .padding(.top, 24)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
+        .alert("기록을 저장하지 못했습니다.", isPresented: saveErrorAlert) { Button("확인", role: .cancel) {} } message: { Text(saveError ?? "") }
     }
 
     private var header: some View {
@@ -87,7 +93,18 @@ struct FieldPhotoCaptureView: View {
     }
 
     private var photoSelector: some View {
-        HGCompactPhotoSelector()
+        HGCompactPhotoSelector(images: $photos)
+    }
+
+    private var saveErrorAlert: Binding<Bool> { Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } }) }
+
+    private func saveRecord() {
+        isSaving = true
+        Task {
+            defer { isSaving = false }
+            do { try await HGRecordUploadService().save(draft, images: photos); onSave() }
+            catch { saveError = error.localizedDescription }
+        }
     }
 }
 

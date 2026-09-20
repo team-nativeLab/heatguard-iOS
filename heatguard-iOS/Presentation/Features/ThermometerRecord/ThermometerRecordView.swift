@@ -10,15 +10,12 @@ struct ThermometerRecordView: View {
     @State private var temperature = "47.5"
     @State private var humidity = "55"
 
-    let onOpenFieldPhoto: () -> Void
-    let onSave: () -> Void
+    let onContinue: (HGRecordDraft) -> Void
 
     init(
-        onOpenFieldPhoto: @escaping () -> Void = {},
-        onSave: @escaping () -> Void = {}
+        onContinue: @escaping (HGRecordDraft) -> Void = { _ in }
     ) {
-        self.onOpenFieldPhoto = onOpenFieldPhoto
-        self.onSave = onSave
+        self.onContinue = onContinue
     }
 
     var body: some View {
@@ -48,7 +45,7 @@ struct ThermometerRecordView: View {
 
             Spacer(minLength: 0)
 
-            HGPrimaryButton(title: "기록 저장", height: 48, action: onSave)
+            HGPrimaryButton(title: "기록 저장", height: 48, action: continueToPhoto)
                 .padding(.horizontal, 4)
                 .padding(.bottom, 4)
         }
@@ -107,7 +104,7 @@ struct ThermometerRecordView: View {
                 .font(HGFont.bold(20, relativeTo: .title2))
                 .foregroundStyle(.black)
 
-            Button(action: onOpenFieldPhoto) {
+            Button(action: continueToPhoto) {
                 HStack(spacing: 0) {
                     Image("camera")
                         .resizable()
@@ -138,6 +135,14 @@ struct ThermometerRecordView: View {
 
     private var summaryText: Color {
         HGColor.summaryText
+    }
+
+    private func continueToPhoto() {
+        guard
+            let temperature = Double(temperature),
+            let humidity = Double(humidity)
+        else { return }
+        onContinue(HGRecordDraft(type: .thermometer, memo: "", temperature: temperature, humidity: humidity))
     }
 }
 

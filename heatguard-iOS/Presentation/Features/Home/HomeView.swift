@@ -192,15 +192,14 @@ struct HomeView: View {
         switch route {
         case .thermometer:
             ThermometerRecordView(
-                onOpenFieldPhoto: { flowPath.append(HomeFlowRoute.fieldPhoto) },
-                onSave: { flowPath.append(HomeFlowRoute.saveSuccess) }
+                onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) }
             )
         case .workPhoto:
             WorkPhotoView(onSave: { flowPath.append(HomeFlowRoute.saveSuccess) })
         case .restPhoto:
             RestPhotoView(onSave: { flowPath.append(HomeFlowRoute.saveSuccess) })
-        case .fieldPhoto:
-            FieldPhotoCaptureView(onSave: { flowPath.append(HomeFlowRoute.saveBeforeConfirmation) })
+        case let .fieldPhoto(draft):
+            FieldPhotoCaptureView(draft: draft, onSave: { flowPath.append(HomeFlowRoute.saveSuccess) })
         case .saveBeforeConfirmation:
             SaveBeforeConfirmationView(
                 onRetry: removeCurrentRoute,
@@ -246,7 +245,7 @@ private enum HomeFlowRoute: Hashable {
     case thermometer
     case workPhoto
     case restPhoto
-    case fieldPhoto
+    case fieldPhoto(HGRecordDraft)
     case saveBeforeConfirmation
     case saveSuccess
     case saveFailure
