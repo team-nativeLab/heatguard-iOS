@@ -33,14 +33,16 @@ struct HGAPIClient {
         _ requestBody: Request,
         method: String,
         path: String,
-        requiresAuthentication: Bool = false
+        requiresAuthentication: Bool = false,
+        headers: [String: String] = [:]
     ) async throws -> Response {
         let body = try JSONEncoder().encode(requestBody)
         return try await request(
             method: method,
             path: path,
             body: body,
-            requiresAuthentication: requiresAuthentication
+            requiresAuthentication: requiresAuthentication,
+            headers: headers
         )
     }
 
@@ -59,7 +61,8 @@ struct HGAPIClient {
         method: String,
         path: String,
         body: Data? = nil,
-        requiresAuthentication: Bool
+        requiresAuthentication: Bool,
+        headers: [String: String] = [:]
     ) async throws -> Response {
         let baseURL = try HGAPIConfiguration.baseURL()
         let url = baseURL.appending(path: path)
@@ -67,6 +70,7 @@ struct HGAPIClient {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.httpBody = body
+        headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
 
         if body != nil {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")

@@ -9,6 +9,7 @@ struct HomeView: View {
     @State private var flowPath = NavigationPath()
     @State private var dashboard = HomeDashboard.unavailable
     @State private var dashboardError: String?
+    @State private var emergencyError: String?
 
     var body: some View {
         NavigationStack(path: $flowPath) {
@@ -78,6 +79,9 @@ struct HomeView: View {
         } message: {
             Text(dashboardError ?? "")
         }
+        .alert("긴급 호출에 실패했습니다.", isPresented: emergencyErrorAlert) {
+            Button("확인", role: .cancel) {}
+        } message: { Text(emergencyError ?? "") }
     }
 
     private var header: some View {
@@ -184,7 +188,14 @@ struct HomeView: View {
     private func beginEmergencyCall() {
         guard shouldBeginEmergencyCall else { return }
         shouldBeginEmergencyCall = false
-        showsCalling = true
+        Task {
+            do {
+                _ = try await HGEmergencyCallService().createCall()
+                showsCalling = true
+            } catch {
+                emergencyError = error.localizedDescription
+            }
+        }
     }
 
     @ViewBuilder
@@ -229,6 +240,10 @@ struct HomeView: View {
             get: { dashboardError != nil },
             set: { if !$0 { dashboardError = nil } }
         )
+    }
+
+    private var emergencyErrorAlert: Binding<Bool> {
+        Binding(get: { emergencyError != nil }, set: { if !$0 { emergencyError = nil } })
     }
 
     private func loadDashboard() async {
