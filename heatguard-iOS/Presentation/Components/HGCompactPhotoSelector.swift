@@ -3,6 +3,11 @@ import SwiftUI
 /// 현장 사진 화면에서 사용하는 한 줄 형태의 사진 입력 컴포넌트입니다.
 struct HGCompactPhotoSelector: View {
     @State private var showsPhotoSelection = false
+    @Binding private var images: [UIImage]
+
+    init(images: Binding<[UIImage]> = .constant([])) {
+        _images = images
+    }
 
     var body: some View {
         Button {
@@ -34,7 +39,7 @@ struct HGCompactPhotoSelector: View {
         .buttonStyle(.plain)
         .accessibilityLabel("현장 사진 선택")
         .sheet(isPresented: $showsPhotoSelection) {
-            HGPhotoCaptureSection()
+            HGPhotoCaptureSection(images: $images)
                 .presentationDetents([.medium])
         }
     }

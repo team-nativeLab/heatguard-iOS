@@ -44,7 +44,9 @@ struct HGRecordUploadService {
                 type: draft.type.rawValue,
                 photoKeys: uploadResponse.uploads.map(\.objectKey),
                 memo: draft.memo.nilIfEmpty,
-                measuredAt: ISO8601DateFormatter().string(from: draft.measuredAt)
+                measuredAt: ISO8601DateFormatter().string(from: draft.measuredAt),
+                temperature: draft.temperature,
+                humidity: draft.humidity
             ),
             method: "POST",
             path: "/api/v1/t/\(teamToken)/records"
@@ -94,19 +96,24 @@ struct HGRecordUploadService {
     }
 }
 
-struct HGRecordDraft {
+struct HGRecordDraft: Hashable {
     let type: HGRecordType
     let memo: String
     let measuredAt: Date
+    let temperature: Double?
+    let humidity: Double?
 
-    init(type: HGRecordType, memo: String, measuredAt: Date = .now) {
+    init(type: HGRecordType, memo: String, measuredAt: Date = .now, temperature: Double? = nil, humidity: Double? = nil) {
         self.type = type
         self.memo = memo
         self.measuredAt = measuredAt
+        self.temperature = temperature
+        self.humidity = humidity
     }
 }
 
-enum HGRecordType: String {
+enum HGRecordType: String, Hashable {
+    case thermometer = "THERMOMETER"
     case work = "WORK"
     case rest = "REST"
 }
@@ -170,6 +177,8 @@ private struct HGRecordSaveRequest: Encodable {
     let photoKeys: [String]
     let memo: String?
     let measuredAt: String
+    let temperature: Double?
+    let humidity: Double?
 }
 
 private struct HGRecordSaveResponse: Decodable {
