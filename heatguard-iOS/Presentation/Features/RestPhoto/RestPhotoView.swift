@@ -4,6 +4,9 @@ struct RestPhotoView: View {
     private let restPeriod = "13 : 00 ~ 13 : 30 (중간 휴식)"
 
     @State private var memo = ""
+    @State private var photos: [UIImage] = []
+    @State private var isSaving = false
+    @State private var saveError: String?
     let onSave: () -> Void
 
     init(onSave: @escaping () -> Void = {}) {
@@ -22,7 +25,7 @@ struct RestPhotoView: View {
                     .font(HGFont.regular(14, relativeTo: .subheadline))
                     .padding(.top, 10)
 
-                HGPhotoCaptureSection()
+                HGPhotoCaptureSection(images: $photos)
                     .padding(.top, 34)
 
                 restForm
@@ -32,7 +35,12 @@ struct RestPhotoView: View {
 
             Spacer(minLength: 0)
 
-            HGPrimaryButton(title: "기록 저장", height: 48, action: onSave)
+            HGPrimaryButton(
+                title: isSaving ? "저장 중..." : "기록 저장",
+                isEnabled: !isSaving,
+                height: 48,
+                action: saveRecord
+            )
             .padding(.horizontal, 4)
             .padding(.bottom, 4)
         }
@@ -40,6 +48,11 @@ struct RestPhotoView: View {
         .padding(.top, 24)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
+        .alert("기록을 저장하지 못했습니다.", isPresented: saveErrorAlert) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(saveError ?? "")
+        }
     }
 
     private var header: some View {
@@ -64,6 +77,26 @@ struct RestPhotoView: View {
             .padding(.top, 25)
         }
         .padding(.horizontal, 7)
+    }
+
+    private var saveErrorAlert: Binding<Bool> {
+        Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })
+    }
+
+    private func saveRecord() {
+        isSaving = true
+        Task {
+            defer { isSaving = false }
+            do {
+                try await HGRecordUploadService().save(
+                    HGRecordDraft(type: .rest, memo: memo),
+                    images: photos
+                )
+                onSave()
+            } catch {
+                saveError = error.localizedDescription
+            }
+        }
     }
 
 }
