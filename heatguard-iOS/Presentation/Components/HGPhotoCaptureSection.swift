@@ -6,11 +6,15 @@ struct HGPhotoCaptureSection: View {
     private let maximumPhotoCount = 2
 
     @State private var selectedPhotos: [PhotosPickerItem] = []
-    @State private var capturedImages: [UIImage] = []
     @State private var showsSourceDialog = false
     @State private var showsPhotoPicker = false
     @State private var showsCameraPicker = false
     @State private var showsCameraUnavailable = false
+    @Binding private var images: [UIImage]
+
+    init(images: Binding<[UIImage]> = .constant([])) {
+        _images = images
+    }
 
     var body: some View {
         Button {
@@ -32,9 +36,13 @@ struct HGPhotoCaptureSection: View {
             maxSelectionCount: availablePhotoCount,
             matching: .images
         )
+        .onChange(of: selectedPhotos) { _, newItems in
+            Task { await importPhotos(newItems) }
+        }
         .sheet(isPresented: $showsCameraPicker) {
             HGCameraPicker { image in
-                capturedImages.append(image)
+                guard images.count < maximumPhotoCount else { return }
+                images.append(image)
             }
             .ignoresSafeArea()
         }
@@ -67,8 +75,8 @@ struct HGPhotoCaptureSection: View {
         .background(backgroundColor, in: RoundedRectangle(cornerRadius: 25))
     }
 
-    private var selectedPhotoCount: Int { selectedPhotos.count + capturedImages.count }
-    private var availablePhotoCount: Int { max(1, maximumPhotoCount - capturedImages.count) }
+    private var selectedPhotoCount: Int { images.count }
+    private var availablePhotoCount: Int { max(1, maximumPhotoCount - images.count) }
     private var selectionDescription: String { selectedPhotoCount == 0 ? "1 ~ 2장 선택 가능" : "\(selectedPhotoCount) / 2장 선택됨" }
 
     private func presentCamera() {
@@ -80,4 +88,22 @@ struct HGPhotoCaptureSection: View {
     private var backgroundColor: Color { HGColor.photoSelectionBackground }
     private var textColor: Color { HGColor.photoSelectionText }
     private var countColor: Color { HGColor.photoCountText }
+
+    private func importPhotos(_ items: [PhotosPickerItem]) async {
+        let availableSlots = maximumPhotoCount - images.count
+        guard availableSlots > 0 else { return }
+
+        var importedImages: [UIImage] = []
+        for item in items.prefix(availableSlots) {
+            guard
+                let data = try? await item.loadTransferable(type: Data.self),
+                let image = UIImage(data: data)
+            else {
+                continue
+            }
+            importedImages.append(image)
+        }
+        images.append(contentsOf: importedImages)
+        selectedPhotos = []
+    }
 }
