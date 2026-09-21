@@ -22,6 +22,7 @@ struct HGDashboardService {
 private struct WorkerHomeDashboardResponse: Decodable {
     let weather: WorkerHomeWeather?
     let heatLevel: Int
+    let checkTimes: [String]
     let checklistSummary: WorkerChecklistSummary
     let activeEmergencyCall: WorkerEmergencyCall?
 }
@@ -43,6 +44,7 @@ struct HomeDashboard: Equatable {
     let weather: HomeWeather
     let todayRecordCount: Int
     let activeEmergencyCount: Int
+    let checklist: HGChecklistSummary
 
     fileprivate init(response: WorkerHomeDashboardResponse) {
         weather = HomeWeather(
@@ -53,6 +55,11 @@ struct HomeDashboard: Equatable {
         )
         todayRecordCount = response.checklistSummary.completed
         activeEmergencyCount = response.activeEmergencyCall == nil ? 0 : 1
+        checklist = HGChecklistSummary(
+            times: response.checkTimes,
+            checkedCount: response.checklistSummary.completed,
+            totalCount: response.checklistSummary.total
+        )
     }
 
     static let unavailable = HomeDashboard(
@@ -63,17 +70,20 @@ struct HomeDashboard: Equatable {
             heatLevel: 0
         ),
         todayRecordCount: 0,
-        activeEmergencyCount: 0
+        activeEmergencyCount: 0,
+        checklist: HGChecklistSummary(times: [], checkedCount: 0, totalCount: 0)
     )
 
     private init(
         weather: HomeWeather,
         todayRecordCount: Int,
-        activeEmergencyCount: Int
+        activeEmergencyCount: Int,
+        checklist: HGChecklistSummary
     ) {
         self.weather = weather
         self.todayRecordCount = todayRecordCount
         self.activeEmergencyCount = activeEmergencyCount
+        self.checklist = checklist
     }
 
     var recordStatusText: String {

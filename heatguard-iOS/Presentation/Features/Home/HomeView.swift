@@ -73,7 +73,6 @@ struct HomeView: View {
         .navigationDestination(isPresented: $showsRecordHistory) { RecordHistoryView() }
         .task {
             await loadDashboard()
-            await loadChecklist()
             await recoverEmergencyCall()
         }
         .alert("홈 데이터를 불러오지 못했습니다.", isPresented: dashboardErrorAlert) {
@@ -259,15 +258,13 @@ struct HomeView: View {
 
     private func loadDashboard() async {
         do {
-            dashboard = try await HGDashboardService().fetchHomeDashboard()
+            let loadedDashboard = try await HGDashboardService().fetchHomeDashboard()
+            dashboard = loadedDashboard
+            checklist = loadedDashboard.checklist
             dashboardError = nil
         } catch {
             dashboardError = error.localizedDescription
         }
-    }
-
-    private func loadChecklist() async {
-        checklist = (try? await HGChecklistService().fetch()) ?? checklist
     }
 }
 
