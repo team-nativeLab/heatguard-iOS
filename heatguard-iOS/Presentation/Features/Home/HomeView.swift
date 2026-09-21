@@ -11,6 +11,7 @@ struct HomeView: View {
     @State private var dashboardError: String?
     @State private var emergencyError: String?
     @State private var checklist = HGChecklistSummary(times: [], checkedCount: 0, totalCount: 0)
+    @State private var showsRecordHistory = false
 
     var body: some View {
         NavigationStack(path: $flowPath) {
@@ -43,7 +44,7 @@ struct HomeView: View {
                     icon: "HomeHistory",
                     title: "기록 내역",
                     subtitle: "지금까지의 기록을 확인하세요"
-                ) {}
+                ) { showsRecordHistory = true }
             }
             .padding(.top, 8)
             Spacer(minLength: 8)
@@ -69,6 +70,7 @@ struct HomeView: View {
             EmergencyCallView(onCancel: { showsCalling = false })
         }
         .navigationDestination(for: HomeFlowRoute.self, destination: destinationView)
+        .navigationDestination(isPresented: $showsRecordHistory) { RecordHistoryView() }
         .task {
             await loadDashboard()
             await loadChecklist()
