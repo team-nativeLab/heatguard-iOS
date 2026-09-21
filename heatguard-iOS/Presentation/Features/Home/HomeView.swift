@@ -74,6 +74,7 @@ struct HomeView: View {
         .task {
             await loadDashboard()
             await loadChecklist()
+            await recoverEmergencyCall()
         }
         .alert("홈 데이터를 불러오지 못했습니다.", isPresented: dashboardErrorAlert) {
             Button("다시 시도") {
@@ -200,6 +201,12 @@ struct HomeView: View {
                 emergencyError = error.localizedDescription
             }
         }
+    }
+
+    @MainActor
+    private func recoverEmergencyCall() async {
+        guard (try? await HGEmergencyCallService().currentCall()) != nil else { return }
+        showsCalling = true
     }
 
     @ViewBuilder
