@@ -36,6 +36,11 @@ struct HGAuthenticationService {
             expiresAt: response.expiresAt
         )
     }
+
+    func logout() async throws {
+        try await client.sendVoid(method: "POST", path: "/api/v1/auth/site/logout", requiresAuthentication: true)
+        try tokenStore.clear()
+    }
 }
 
 struct SiteRegistrationRequest: Encodable {
@@ -142,6 +147,8 @@ final class HGAuthTokenStore {
 
         return token
     }
+
+    func clear() throws { try delete() }
 
     private func delete() throws {
         let query: [String: Any] = [
