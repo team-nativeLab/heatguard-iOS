@@ -2,52 +2,57 @@ import Foundation
 
 struct HGDashboardService {
     private let client: HGAPIClient
+    private let teamAccessService: HGTeamAccessService
 
-    init(client: HGAPIClient = HGAPIClient()) {
+    init(
+        client: HGAPIClient = HGAPIClient(),
+        teamAccessService: HGTeamAccessService = HGTeamAccessService()
+    ) {
         self.client = client
+        self.teamAccessService = teamAccessService
     }
 
     func fetchHomeDashboard() async throws -> HomeDashboard {
-        let response: SiteDashboardResponse = try await client.get(
-            path: "/api/v1/site/dashboard",
-            requiresAuthentication: true
-        )
+        let token = try await teamAccessService.token()
+        let response: WorkerHomeDashboardResponse = try await client.get(path: "/api/v1/t/\(token)")
         return HomeDashboard(response: response)
     }
 }
 
-private struct SiteDashboardResponse: Decodable {
-    let summary: SiteDashboardSummary
-    let weather: SiteDashboardWeather?
+private struct WorkerHomeDashboardResponse: Decodable {
+    let weather: WorkerHomeWeather?
     let heatLevel: Int
+    let checklistSummary: WorkerChecklistSummary
+    let activeEmergencyCall: WorkerEmergencyCall?
 }
 
-private struct SiteDashboardSummary: Decodable {
-    let todayRecordCount: Int
-    let activeEmergencyCount: Int
-}
-
-private struct SiteDashboardWeather: Decodable {
+private struct WorkerHomeWeather: Decodable {
     let temperature: Double?
     let humidity: Double?
     let apparentTemperature: Double?
-    let observedAt: String?
 }
+
+private struct WorkerChecklistSummary: Decodable {
+    let total: Int
+    let completed: Int
+}
+
+private struct WorkerEmergencyCall: Decodable {}
 
 struct HomeDashboard: Equatable {
     let weather: HomeWeather
     let todayRecordCount: Int
     let activeEmergencyCount: Int
 
-    fileprivate init(response: SiteDashboardResponse) {
+    fileprivate init(response: WorkerHomeDashboardResponse) {
         weather = HomeWeather(
             temperature: response.weather?.temperature,
             humidity: response.weather?.humidity,
             apparentTemperature: response.weather?.apparentTemperature,
             heatLevel: response.heatLevel
         )
-        todayRecordCount = response.summary.todayRecordCount
-        activeEmergencyCount = response.summary.activeEmergencyCount
+        todayRecordCount = response.checklistSummary.completed
+        activeEmergencyCount = response.activeEmergencyCall == nil ? 0 : 1
     }
 
     static let unavailable = HomeDashboard(
