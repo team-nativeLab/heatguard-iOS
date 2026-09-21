@@ -7,6 +7,10 @@ struct HGRecordHistoryService {
         let response: HGRecordHistoryResponse = try await client.get(path: "/api/v1/site/records", requiresAuthentication: true)
         return response.items
     }
+
+    func fetchDetail(id: String) async throws -> HGRecordDetail {
+        try await client.get(path: "/api/v1/site/records/\(id)", requiresAuthentication: true)
+    }
 }
 
 struct HGRecordHistoryItem: Decodable, Identifiable {
@@ -23,3 +27,14 @@ struct HGRecordHistoryItem: Decodable, Identifiable {
 }
 
 private struct HGRecordHistoryResponse: Decodable { let items: [HGRecordHistoryItem] }
+
+struct HGRecordDetail: Decodable {
+    let type: String
+    let temperature: Double?
+    let humidity: Double?
+    let apparentTemperature: Double?
+    let memo: String?
+    let measuredAt: String
+    let photoURLs: [String]
+    enum CodingKeys: String, CodingKey { case type, temperature, humidity, apparentTemperature, memo, measuredAt, photoURLs = "photoUrls" }
+}
