@@ -9,8 +9,12 @@ struct ThermometerRecordView: View {
     @State private var isManualEntryEnabled = false
     @State private var temperature = "47.5"
     @State private var humidity = "55"
+    @State private var apparentTemperature = 40.5
+    @State private var isSavingManualWeather = false
+    @State private var errorMessage: String?
 
     let onContinue: (HGRecordDraft) -> Void
+    private let manualWeatherService = HGManualWeatherService()
 
     init(
         onContinue: @escaping (HGRecordDraft) -> Void = { _ in }
@@ -45,14 +49,25 @@ struct ThermometerRecordView: View {
 
             Spacer(minLength: 0)
 
-            HGPrimaryButton(title: "기록 저장", height: 48, action: continueToPhoto)
+            HGPrimaryButton(
+                title: isSavingManualWeather ? "저장 중..." : "기록 저장",
+                height: 48,
+                action: continueToPhoto
+            )
                 .padding(.horizontal, 4)
                 .padding(.bottom, 4)
+                .disabled(isSavingManualWeather)
         }
         .padding(.horizontal, 25)
         .padding(.top, 24)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
+        .task { await loadManualWeather() }
+        .alert("수동 날씨 저장 실패", isPresented: errorAlert) {
+            Button("확인", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "서버와 통신하지 못했습니다.")
+        }
     }
 
     private var header: some View {
@@ -71,12 +86,12 @@ struct ThermometerRecordView: View {
                     .font(HGFont.semiBold(13, relativeTo: .caption))
                     .foregroundStyle(summaryText)
 
-                Text("47.5 °C")
+                Text("\(temperature) °C")
                     .font(HGFont.bold(32, relativeTo: .largeTitle))
                     .foregroundStyle(.black)
                     .padding(.top, 9)
 
-                Text("습도 55% · 체감 40.5 °C")
+                Text("습도 \(humidity)% · 체감 \(apparentTemperature.formatted(.number.precision(.fractionLength(1)))) °C")
                     .font(HGFont.semiBold(13, relativeTo: .caption))
                     .foregroundStyle(summaryText)
                     .padding(.top, 14)
@@ -139,10 +154,50 @@ struct ThermometerRecordView: View {
 
     private func continueToPhoto() {
         guard
-            let temperature = Double(temperature),
-            let humidity = Double(humidity)
+            let inputTemperature = Double(temperature),
+            let inputHumidity = Double(humidity)
         else { return }
+
+        Task {
+            if isManualEntryEnabled {
+                await saveManualWeather(temperature: inputTemperature, humidity: inputHumidity)
+            } else {
+                continueWithRecord(temperature: inputTemperature, humidity: inputHumidity)
+            }
+        }
+    }
+
+    @MainActor
+    private func loadManualWeather() async {
+        guard let weather = try? await manualWeatherService.fetch() else { return }
+        temperature = weather.temperature.formatted()
+        humidity = weather.humidity.formatted()
+        apparentTemperature = weather.apparentTemperature ?? apparentTemperature
+    }
+
+    @MainActor
+    private func saveManualWeather(temperature: Double, humidity: Double) async {
+        isSavingManualWeather = true
+        defer { isSavingManualWeather = false }
+
+        do {
+            let weather = try await manualWeatherService.save(temperature: temperature, humidity: humidity)
+            apparentTemperature = weather.apparentTemperature ?? apparentTemperature
+            continueWithRecord(temperature: temperature, humidity: humidity)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func continueWithRecord(temperature: Double, humidity: Double) {
         onContinue(HGRecordDraft(type: .thermometer, memo: "", temperature: temperature, humidity: humidity))
+    }
+
+    private var errorAlert: Binding<Bool> {
+        Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )
     }
 }
 
