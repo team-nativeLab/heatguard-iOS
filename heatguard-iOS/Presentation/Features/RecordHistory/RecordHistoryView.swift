@@ -6,11 +6,11 @@ struct RecordHistoryView: View {
 
     var body: some View {
         List(records) { record in
-            VStack(alignment: .leading, spacing: 5) {
+            NavigationLink { RecordDetailView(recordID: record.id) } label: { VStack(alignment: .leading, spacing: 5) {
                 Text(record.title).font(HGFont.bold(15))
                 Text(record.detail)
                     .font(HGFont.regular(12)).foregroundStyle(HGColor.secondaryText)
-            }
+            } }
         }
         .navigationTitle("기록 내역")
         .task {
