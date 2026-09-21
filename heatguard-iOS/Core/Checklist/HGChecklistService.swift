@@ -4,10 +4,10 @@ struct HGChecklistService {
     private let client = HGAPIClient()
 
     func fetch() async throws -> HGChecklistSummary {
-        let times: HGCheckTimesResponse = try await client.get(path: "/api/v1/site/check-times", requiresAuthentication: true)
-        guard let token = try HGTeamAccessTokenStore.shared.load() else { throw HGAPIError.authenticationRequired }
+        let token = try await HGTeamAccessService().token()
+        let home: HGWorkerHomeChecklistResponse = try await client.get(path: "/api/v1/t/\(token)")
         let checklist: HGChecklistResponse = try await client.get(path: "/api/v1/t/\(token)/checklist")
-        return HGChecklistSummary(times: times.times, checkedCount: checklist.items.filter(\.checked).count, totalCount: checklist.items.count)
+        return HGChecklistSummary(times: home.checkTimes, checkedCount: checklist.items.filter(\.checked).count, totalCount: checklist.items.count)
     }
 
     func fetchItems() async throws -> [HGChecklistItem] {
@@ -33,7 +33,7 @@ struct HGChecklistSummary: Equatable {
     var statusText: String { "체크리스트 \(checkedCount) / \(totalCount) 완료" }
 }
 
-private struct HGCheckTimesResponse: Decodable { let times: [String] }
+private struct HGWorkerHomeChecklistResponse: Decodable { let checkTimes: [String] }
 private struct HGChecklistResponse: Decodable { let items: [HGChecklistItem] }
 struct HGChecklistItem: Decodable, Identifiable, Equatable {
     let id: String
