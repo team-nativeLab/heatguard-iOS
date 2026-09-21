@@ -57,6 +57,20 @@ struct HGAPIClient {
         )
     }
 
+    func sendVoid(method: String, path: String, requiresAuthentication: Bool = false) async throws {
+        let baseURL = try HGAPIConfiguration.baseURL()
+        var request = URLRequest(url: baseURL.appending(path: path))
+        request.httpMethod = method
+        if requiresAuthentication {
+            guard let token = try tokenStore.load() else { throw HGAPIError.authenticationRequired }
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let (_, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, (200 ... 299).contains(httpResponse.statusCode) else {
+            throw HGAPIError.invalidResponse
+        }
+    }
+
     private func request<Response: Decodable>(
         method: String,
         path: String,
