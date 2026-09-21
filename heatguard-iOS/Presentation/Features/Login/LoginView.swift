@@ -8,11 +8,15 @@ import SwiftUI
 struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
-    @State private var showsHome = false
     @State private var isSubmitting = false
     @State private var requestError: String?
 
     private let authenticationService = HGAuthenticationService()
+    private let onAuthenticated: (SiteSession) -> Void
+
+    init(onAuthenticated: @escaping (SiteSession) -> Void = { _ in }) {
+        self.onAuthenticated = onAuthenticated
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -89,9 +93,6 @@ struct LoginView: View {
         }
         .background(HGColor.surface)
         .toolbar(.hidden, for: .navigationBar)
-        .navigationDestination(isPresented: $showsHome) {
-            HomeView()
-        }
     }
 
     private func login() {
@@ -108,8 +109,8 @@ struct LoginView: View {
             defer { isSubmitting = false }
 
             do {
-                _ = try await authenticationService.login(email: trimmedEmail, password: password)
-                showsHome = true
+                let session = try await authenticationService.login(email: trimmedEmail, password: password)
+                onAuthenticated(session)
             } catch {
                 requestError = error.localizedDescription
             }

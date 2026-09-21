@@ -37,6 +37,21 @@ struct HGAuthenticationService {
         )
     }
 
+    func restoreSession() async throws -> SiteSession? {
+        guard try tokenStore.load() != nil else { return nil }
+
+        let response: SiteSessionRestoreResponse = try await client.get(
+            path: "/api/v1/auth/site/me",
+            requiresAuthentication: true
+        )
+        return SiteSession(
+            userID: response.userID,
+            name: response.name,
+            siteID: response.scopeID,
+            expiresAt: response.expiresAt
+        )
+    }
+
     func logout() async throws {
         try await client.sendVoid(method: "POST", path: "/api/v1/auth/site/logout", requiresAuthentication: true)
         try tokenStore.clear()
@@ -91,6 +106,20 @@ private struct SiteUser: Decodable {
     enum CodingKeys: String, CodingKey {
         case userID = "userId"
         case name
+    }
+}
+
+private struct SiteSessionRestoreResponse: Decodable {
+    let userID: String
+    let name: String
+    let scopeID: String
+    let expiresAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case userID = "userId"
+        case name
+        case scopeID = "scopeId"
+        case expiresAt
     }
 }
 
