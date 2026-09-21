@@ -9,11 +9,32 @@ import SwiftUI
 
 @main
 struct heatguard_iOSApp: App {
+    @State private var isRestoringSession = true
+    @State private var isAuthenticated = false
+
     var body: some Scene {
         WindowGroup {
             NavigationStack {
-                LoginView()
+                rootView
             }
+            .task { await restoreSession() }
         }
+    }
+
+    @ViewBuilder
+    private var rootView: some View {
+        if isRestoringSession {
+            ProgressView()
+        } else if isAuthenticated {
+            HomeView()
+        } else {
+            LoginView { _ in isAuthenticated = true }
+        }
+    }
+
+    @MainActor
+    private func restoreSession() async {
+        isAuthenticated = (try? await HGAuthenticationService().restoreSession()) != nil
+        isRestoringSession = false
     }
 }
