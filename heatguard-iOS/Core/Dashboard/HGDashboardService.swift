@@ -2,19 +2,16 @@ import Foundation
 
 struct HGDashboardService {
     private let client: HGAPIClient
-    private let teamAccessService: HGTeamAccessService
 
-    init(
-        client: HGAPIClient = HGAPIClient(),
-        teamAccessService: HGTeamAccessService = HGTeamAccessService()
-    ) {
+    init(client: HGAPIClient = HGAPIClient()) {
         self.client = client
-        self.teamAccessService = teamAccessService
     }
 
     func fetchHomeDashboard() async throws -> HomeDashboard {
-        let token = try await teamAccessService.token()
-        let response: WorkerHomeDashboardResponse = try await client.get(path: "/api/v1/t/\(token)")
+        let response: WorkerHomeDashboardResponse = try await client.get(
+            path: "/api/v1/team",
+            requiresAuthentication: true
+        )
         return HomeDashboard(response: response)
     }
 }

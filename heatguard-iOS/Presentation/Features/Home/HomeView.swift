@@ -11,7 +11,7 @@ struct HomeView: View {
     @State private var dashboardError: String?
     @State private var emergencyError: String?
     @State private var checklist = HGChecklistSummary(times: [], checkedCount: 0, totalCount: 0)
-    @State private var showsRecordHistory = false
+    @State private var recordHistoryNotice: String?
 
     var body: some View {
         NavigationStack(path: $flowPath) {
@@ -43,8 +43,8 @@ struct HomeView: View {
                 HomeActionRow(
                     icon: "HomeHistory",
                     title: "기록 내역",
-                    subtitle: "지금까지의 기록을 확인하세요"
-                ) { showsRecordHistory = true }
+                    subtitle: "서버 연동 준비 중"
+                ) { recordHistoryNotice = "기록 내역은 서버 준비 후 확인할 수 있습니다." }
             }
             .padding(.top, 8)
             Spacer(minLength: 8)
@@ -70,7 +70,6 @@ struct HomeView: View {
             EmergencyCallView(onCancel: { showsCalling = false })
         }
         .navigationDestination(for: HomeFlowRoute.self, destination: destinationView)
-        .navigationDestination(isPresented: $showsRecordHistory) { RecordHistoryView() }
         .task {
             await loadDashboard()
             await recoverEmergencyCall()
@@ -86,6 +85,9 @@ struct HomeView: View {
         .alert("긴급 호출에 실패했습니다.", isPresented: emergencyErrorAlert) {
             Button("확인", role: .cancel) {}
         } message: { Text(emergencyError ?? "") }
+        .alert("기록 내역 준비 중", isPresented: recordHistoryNoticeAlert) {
+            Button("확인", role: .cancel) {}
+        } message: { Text(recordHistoryNotice ?? "") }
     }
 
     private var header: some View {
@@ -254,6 +256,10 @@ struct HomeView: View {
 
     private var emergencyErrorAlert: Binding<Bool> {
         Binding(get: { emergencyError != nil }, set: { if !$0 { emergencyError = nil } })
+    }
+
+    private var recordHistoryNoticeAlert: Binding<Bool> {
+        Binding(get: { recordHistoryNotice != nil }, set: { if !$0 { recordHistoryNotice = nil } })
     }
 
     private func loadDashboard() async {

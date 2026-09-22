@@ -1,24 +1,19 @@
 import Foundation
-import Security
 import UIKit
 
 struct HGRecordUploadService {
     private let client: HGAPIClient
     private let session: URLSession
-    private let teamTokenStore: HGTeamAccessTokenStore
 
     init(
         client: HGAPIClient = HGAPIClient(),
-        session: URLSession = .shared,
-        teamTokenStore: HGTeamAccessTokenStore = .shared
+        session: URLSession = .shared
     ) {
         self.client = client
         self.session = session
-        self.teamTokenStore = teamTokenStore
     }
 
     func save(_ draft: HGRecordDraft, images: [UIImage]) async throws {
-        let teamToken = try await recordAccessToken()
         let photos = try images.map(HGUploadPhoto.init)
         guard (1 ... 2).contains(photos.count) else {
             throw HGRecordUploadError.photoCount
@@ -31,7 +26,8 @@ struct HGRecordUploadService {
                 }
             ),
             method: "POST",
-            path: "/api/v1/t/\(teamToken)/uploads"
+            path: "/api/v1/team/uploads",
+            requiresAuthentication: true
         )
         guard uploadResponse.uploads.count == photos.count else {
             throw HGRecordUploadError.uploadPreparation
@@ -49,12 +45,9 @@ struct HGRecordUploadService {
                 humidity: draft.humidity
             ),
             method: "POST",
-            path: "/api/v1/t/\(teamToken)/records"
+            path: "/api/v1/team/records",
+            requiresAuthentication: true
         )
-    }
-
-    private func recordAccessToken() async throws -> String {
-        try await HGTeamAccessService(client: client, teamTokenStore: teamTokenStore).token()
     }
 
     private func upload(_ photos: [HGUploadPhoto], to destinations: [HGUploadDestination]) async throws {
@@ -169,63 +162,6 @@ enum HGRecordUploadError: LocalizedError {
         case .photoEncoding: "선택한 사진을 처리하지 못했습니다."
         case .uploadPreparation: "사진 업로드를 준비하지 못했습니다."
         case .uploadFailed: "사진 업로드에 실패했습니다."
-        }
-    }
-}
-
-final class HGTeamAccessTokenStore {
-    static let shared = HGTeamAccessTokenStore()
-
-    private let service = "aa.heatguard-iOS"
-    private let account = "team-access-token"
-
-    private init() {}
-
-    func save(_ token: String) throws {
-        try delete()
-        let item: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecValueData as String: Data(token.utf8)
-        ]
-        guard SecItemAdd(item as CFDictionary, nil) == errSecSuccess else {
-            throw HGAPIError.configuration("팀 접근 정보를 저장하지 못했습니다.")
-        }
-    }
-
-    func load() throws -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        if status == errSecItemNotFound {
-            return nil
-        }
-        guard
-            status == errSecSuccess,
-            let data = result as? Data,
-            let token = String(data: data, encoding: .utf8)
-        else {
-            throw HGAPIError.configuration("팀 접근 정보를 불러오지 못했습니다.")
-        }
-        return token
-    }
-
-    private func delete() throws {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account
-        ]
-        let status = SecItemDelete(query as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw HGAPIError.configuration("기존 팀 접근 정보를 정리하지 못했습니다.")
         }
     }
 }
