@@ -26,11 +26,11 @@ struct HGManualWeatherService {
 }
 
 struct HGManualWeather: Decodable {
-    let temperature: Double
-    let humidity: Double
+    let temperature: Double?
+    let humidity: Double?
     let apparentTemperature: Double?
-    let heatLevel: String?
-    let observedAt: String
+    let heatLevel: Int?
+    let observedAt: String?
 }
 
 private struct HGManualWeatherRequest: Encodable {
