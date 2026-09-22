@@ -170,8 +170,12 @@ struct ThermometerRecordView: View {
     @MainActor
     private func loadManualWeather() async {
         guard let weather = try? await manualWeatherService.fetch() else { return }
-        temperature = weather.temperature.formatted()
-        humidity = weather.humidity.formatted()
+        if let temperature = weather.temperature {
+            self.temperature = temperature.formatted()
+        }
+        if let humidity = weather.humidity {
+            self.humidity = humidity.formatted()
+        }
         apparentTemperature = weather.apparentTemperature ?? apparentTemperature
     }
 
