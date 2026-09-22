@@ -4,24 +4,31 @@ struct HGChecklistService {
     private let client = HGAPIClient()
 
     func fetch() async throws -> HGChecklistSummary {
-        let token = try await HGTeamAccessService().token()
-        let home: HGWorkerHomeChecklistResponse = try await client.get(path: "/api/v1/t/\(token)")
-        let checklist: HGChecklistResponse = try await client.get(path: "/api/v1/t/\(token)/checklist")
+        let home: HGWorkerHomeChecklistResponse = try await client.get(
+            path: "/api/v1/team",
+            requiresAuthentication: true
+        )
+        let checklist: HGChecklistResponse = try await client.get(
+            path: "/api/v1/team/checklist",
+            requiresAuthentication: true
+        )
         return HGChecklistSummary(times: home.checkTimes, checkedCount: checklist.items.filter(\.checked).count, totalCount: checklist.items.count)
     }
 
     func fetchItems() async throws -> [HGChecklistItem] {
-        guard let token = try HGTeamAccessTokenStore.shared.load() else { throw HGAPIError.authenticationRequired }
-        let response: HGChecklistResponse = try await client.get(path: "/api/v1/t/\(token)/checklist")
+        let response: HGChecklistResponse = try await client.get(
+            path: "/api/v1/team/checklist",
+            requiresAuthentication: true
+        )
         return response.items
     }
 
     func update(itemID: String, isChecked: Bool) async throws -> HGChecklistItem {
-        guard let token = try HGTeamAccessTokenStore.shared.load() else { throw HGAPIError.authenticationRequired }
         return try await client.send(
             HGChecklistUpdateRequest(checked: isChecked),
             method: "PUT",
-            path: "/api/v1/t/\(token)/checklist/items/\(itemID)"
+            path: "/api/v1/team/checklist/items/\(itemID)",
+            requiresAuthentication: true
         )
     }
 }

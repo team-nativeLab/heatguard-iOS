@@ -12,9 +12,9 @@ struct LoginView: View {
     @State private var requestError: String?
 
     private let authenticationService = HGAuthenticationService()
-    private let onAuthenticated: (SiteSession) -> Void
+    private let onAuthenticated: (TeamSession) -> Void
 
-    init(onAuthenticated: @escaping (SiteSession) -> Void = { _ in }) {
+    init(onAuthenticated: @escaping (TeamSession) -> Void = { _ in }) {
         self.onAuthenticated = onAuthenticated
     }
 
@@ -77,19 +77,11 @@ struct LoginView: View {
                     .padding(.top, 8)
             }
 
-            HStack(spacing: 24) {
-                Text("아직 계정이 없으신가요?")
-                    .font(HGFont.regular(14))
-                    .foregroundStyle(HGColor.secondaryText)
-
-                NavigationLink("회원가입") {
-                    SignupView()
-                }
-                    .font(HGFont.bold(14))
-                    .foregroundStyle(HGColor.primary)
-            }
-            .padding(.top, 14)
-            .padding(.bottom, 10)
+            Text("계정 생성과 재설정은 현장관리자에게 문의해주세요")
+                .font(HGFont.regular(12, relativeTo: .caption))
+                .foregroundStyle(HGColor.secondaryText)
+                .padding(.top, 14)
+                .padding(.bottom, 10)
         }
         .background(HGColor.surface)
         .toolbar(.hidden, for: .navigationBar)

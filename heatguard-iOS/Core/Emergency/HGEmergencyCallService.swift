@@ -2,33 +2,28 @@ import Foundation
 
 struct HGEmergencyCallService {
     private let client: HGAPIClient
-    private let teamTokenStore: HGTeamAccessTokenStore
 
-    init(client: HGAPIClient = HGAPIClient(), teamTokenStore: HGTeamAccessTokenStore = .shared) {
+    init(client: HGAPIClient = HGAPIClient()) {
         self.client = client
-        self.teamTokenStore = teamTokenStore
     }
 
     func createCall(message: String? = nil) async throws -> HGEmergencyCall {
-        let token = try teamToken()
         let response: HGEmergencyCallResponse = try await client.send(
             HGEmergencyCallRequest(message: message, clientOccurredAt: ISO8601DateFormatter().string(from: .now)),
             method: "POST",
-            path: "/api/v1/t/\(token)/emergency-calls",
+            path: "/api/v1/team/emergency-calls",
+            requiresAuthentication: true,
             headers: ["Idempotency-Key": UUID().uuidString]
         )
         return HGEmergencyCall(response: response)
     }
 
     func currentCall() async throws -> HGEmergencyCall? {
-        let token = try teamToken()
-        let response: HGEmergencyCallResponse = try await client.get(path: "/api/v1/t/\(token)/emergency-calls/current")
+        let response: HGEmergencyCallResponse = try await client.get(
+            path: "/api/v1/team/emergency-calls/current",
+            requiresAuthentication: true
+        )
         return response.status == "NONE" ? nil : HGEmergencyCall(response: response)
-    }
-
-    private func teamToken() throws -> String {
-        guard let token = try teamTokenStore.load() else { throw HGAPIError.authenticationRequired }
-        return token
     }
 }
 

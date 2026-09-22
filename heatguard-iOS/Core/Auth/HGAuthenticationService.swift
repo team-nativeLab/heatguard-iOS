@@ -13,128 +13,69 @@ struct HGAuthenticationService {
         self.tokenStore = tokenStore
     }
 
-    func register(_ request: SiteRegistrationRequest) async throws {
-        let _: SiteRegistrationResponse = try await client.send(
-            request,
+    func login(email: String, password: String) async throws -> TeamSession {
+        let response: TeamLoginResponse = try await client.send(
+            TeamLoginRequest(email: email, password: password),
             method: "POST",
-            path: "/api/v1/auth/site/register"
-        )
-    }
-
-    func login(email: String, password: String) async throws -> SiteSession {
-        let response: SiteLoginResponse = try await client.send(
-            SiteLoginRequest(email: email, password: password),
-            method: "POST",
-            path: "/api/v1/auth/site/login"
+            path: "/api/v1/auth/team/login"
         )
         try tokenStore.save(response.accessToken)
-
-        return SiteSession(
-            userID: response.user.userID,
-            name: response.user.name,
-            siteID: response.siteID,
-            expiresAt: response.expiresAt
-        )
+        return TeamSession()
     }
 
-    func restoreSession() async throws -> SiteSession? {
+    func restoreSession() async throws -> TeamSession? {
         guard try tokenStore.load() != nil else { return nil }
 
-        let response: SiteSessionRestoreResponse = try await client.get(
-            path: "/api/v1/auth/site/me",
+        let _: TeamSessionResponse = try await client.get(
+            path: "/api/v1/auth/team/me",
             requiresAuthentication: true
         )
-        return SiteSession(
-            userID: response.userID,
-            name: response.name,
-            siteID: response.scopeID,
-            expiresAt: response.expiresAt
-        )
+        return TeamSession()
     }
 
     func logout() async throws {
-        try await client.sendVoid(method: "POST", path: "/api/v1/auth/site/logout", requiresAuthentication: true)
+        try await client.sendVoid(method: "POST", path: "/api/v1/auth/team/logout", requiresAuthentication: true)
         try tokenStore.clear()
     }
 }
 
-struct SiteRegistrationRequest: Encodable {
-    let companyName: String
-    let managerName: String
-    let siteName: String
+private struct TeamLoginRequest: Encodable {
     let email: String
     let password: String
 }
 
-private struct SiteRegistrationResponse: Decodable {
-    let userID: String
-    let siteID: String
-    let defaultTeamID: String
-    let createdAt: String
-
-    enum CodingKeys: String, CodingKey {
-        case userID = "userId"
-        case siteID = "siteId"
-        case defaultTeamID = "defaultTeamId"
-        case createdAt
-    }
-}
-
-private struct SiteLoginRequest: Encodable {
-    let email: String
-    let password: String
-}
-
-private struct SiteLoginResponse: Decodable {
-    let user: SiteUser
-    let siteID: String
-    let expiresAt: String
+private struct TeamLoginResponse: Decodable {
     let accessToken: String
 
-    enum CodingKeys: String, CodingKey {
-        case user
-        case siteID = "siteId"
-        case expiresAt
+    private enum CodingKeys: String, CodingKey {
         case accessToken
+        case token
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let accessToken = try container.decodeIfPresent(String.self, forKey: .accessToken) {
+            self.accessToken = accessToken
+        } else if let token = try container.decodeIfPresent(String.self, forKey: .token) {
+            self.accessToken = token
+        } else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.accessToken,
+                .init(codingPath: decoder.codingPath, debugDescription: "로그인 토큰이 없습니다.")
+            )
+        }
     }
 }
 
-private struct SiteUser: Decodable {
-    let userID: String
-    let name: String
+private struct TeamSessionResponse: Decodable {}
 
-    enum CodingKeys: String, CodingKey {
-        case userID = "userId"
-        case name
-    }
-}
-
-private struct SiteSessionRestoreResponse: Decodable {
-    let userID: String
-    let name: String
-    let scopeID: String
-    let expiresAt: String
-
-    enum CodingKeys: String, CodingKey {
-        case userID = "userId"
-        case name
-        case scopeID = "scopeId"
-        case expiresAt
-    }
-}
-
-struct SiteSession: Equatable {
-    let userID: String
-    let name: String
-    let siteID: String
-    let expiresAt: String
-}
+struct TeamSession: Equatable {}
 
 final class HGAuthTokenStore {
     static let shared = HGAuthTokenStore()
 
     private let service = "aa.heatguard-iOS"
-    private let account = "site-access-token"
+    private let account = "team-session-access-token"
 
     private init() {}
 
