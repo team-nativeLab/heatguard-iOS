@@ -83,7 +83,7 @@ struct HGRecordDraft: Hashable {
     }
 }
 
-enum HGRecordType: String, Hashable {
+enum HGRecordType: String, Hashable, Decodable {
     case thermometer = "THERMOMETER"
     case work = "WORK"
     case rest = "REST"
