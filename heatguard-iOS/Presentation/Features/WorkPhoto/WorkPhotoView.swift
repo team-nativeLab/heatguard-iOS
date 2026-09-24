@@ -11,13 +11,16 @@ struct WorkPhotoView: View {
     @State private var isSaving = false
     let onSave: (HGRecordSaveResult) -> Void
     let onFailure: (String) -> Void
+    let onPhotoRequired: (HGRecordDraft) -> Void
 
     init(
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
-        onFailure: @escaping (String) -> Void = { _ in }
+        onFailure: @escaping (String) -> Void = { _ in },
+        onPhotoRequired: @escaping (HGRecordDraft) -> Void = { _ in }
     ) {
         self.onSave = onSave
         self.onFailure = onFailure
+        self.onPhotoRequired = onPhotoRequired
     }
 
     var body: some View {
@@ -75,12 +78,18 @@ struct WorkPhotoView: View {
 
     private func saveRecord() {
         UIApplication.shared.dismissKeyboard()
+        let draft = HGRecordDraft(type: .work, memo: memo)
+        guard !photos.isEmpty else {
+            onPhotoRequired(draft)
+            return
+        }
+
         isSaving = true
         Task {
             defer { isSaving = false }
             do {
                 let result = try await HGRecordUploadService().save(
-                    HGRecordDraft(type: .work, memo: memo),
+                    draft,
                     images: photos
                 )
                 onSave(result)

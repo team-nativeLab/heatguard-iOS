@@ -6,15 +6,18 @@ struct FieldPhotoCaptureView: View {
     let draft: HGRecordDraft
     let onSave: (HGRecordSaveResult) -> Void
     let onFailure: (String) -> Void
+    let onPhotoRequired: (HGRecordDraft) -> Void
 
     init(
         draft: HGRecordDraft = HGRecordDraft(type: .thermometer, memo: ""),
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
-        onFailure: @escaping (String) -> Void = { _ in }
+        onFailure: @escaping (String) -> Void = { _ in },
+        onPhotoRequired: @escaping (HGRecordDraft) -> Void = { _ in }
     ) {
         self.draft = draft
         self.onSave = onSave
         self.onFailure = onFailure
+        self.onPhotoRequired = onPhotoRequired
     }
 
     var body: some View {
@@ -108,6 +111,11 @@ struct FieldPhotoCaptureView: View {
     }
 
     private func saveRecord() {
+        guard !photos.isEmpty else {
+            onPhotoRequired(draft)
+            return
+        }
+
         isSaving = true
         Task {
             defer { isSaving = false }

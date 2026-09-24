@@ -216,15 +216,30 @@ struct HomeView: View {
                 onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) }
             )
         case .workPhoto:
-            WorkPhotoView(onSave: showSaveSuccess, onFailure: showSaveFailure)
+            WorkPhotoView(
+                onSave: showSaveSuccess,
+                onFailure: showSaveFailure,
+                onPhotoRequired: showPhotoRequired
+            )
         case .restPhoto:
-            RestPhotoView(onSave: showSaveSuccess, onFailure: showSaveFailure)
+            RestPhotoView(
+                onSave: showSaveSuccess,
+                onFailure: showSaveFailure,
+                onPhotoRequired: showPhotoRequired
+            )
         case let .fieldPhoto(draft):
-            FieldPhotoCaptureView(draft: draft, onSave: showSaveSuccess, onFailure: showSaveFailure)
-        case .saveBeforeConfirmation:
+            FieldPhotoCaptureView(
+                draft: draft,
+                onSave: showSaveSuccess,
+                onFailure: showSaveFailure,
+                onPhotoRequired: showPhotoRequired
+            )
+        case let .saveBeforeConfirmation(draft):
             SaveBeforeConfirmationView(
+                draft: draft,
                 onRetry: removeCurrentRoute,
-                onSave: removeCurrentRoute
+                onSave: showSaveSuccess,
+                onFailure: showSaveFailure
             )
         case let .saveSuccess(result):
             SaveSuccessView(result: result, onConfirm: returnToHome)
@@ -260,6 +275,10 @@ struct HomeView: View {
         flowPath.append(HomeFlowRoute.saveFailure(errorMessage))
     }
 
+    private func showPhotoRequired(_ draft: HGRecordDraft) {
+        flowPath.append(HomeFlowRoute.saveBeforeConfirmation(draft))
+    }
+
     private var dashboardErrorAlert: Binding<Bool> {
         Binding(
             get: { dashboardError != nil },
@@ -288,7 +307,7 @@ private enum HomeFlowRoute: Hashable {
     case workPhoto
     case restPhoto
     case fieldPhoto(HGRecordDraft)
-    case saveBeforeConfirmation
+    case saveBeforeConfirmation(HGRecordDraft)
     case saveSuccess(HGRecordSaveResult)
     case saveFailure(String)
     case recordHistory

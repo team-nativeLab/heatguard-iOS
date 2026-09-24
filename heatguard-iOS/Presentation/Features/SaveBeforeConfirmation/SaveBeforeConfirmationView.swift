@@ -1,12 +1,24 @@
 import SwiftUI
 
 struct SaveBeforeConfirmationView: View {
-    let onRetry: () -> Void
-    let onSave: () -> Void
+    @State private var photos: [UIImage] = []
+    @State private var isSaving = false
 
-    init(onRetry: @escaping () -> Void = {}, onSave: @escaping () -> Void = {}) {
+    let draft: HGRecordDraft
+    let onRetry: () -> Void
+    let onSave: (HGRecordSaveResult) -> Void
+    let onFailure: (String) -> Void
+
+    init(
+        draft: HGRecordDraft,
+        onRetry: @escaping () -> Void = {},
+        onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
+        onFailure: @escaping (String) -> Void = { _ in }
+    ) {
+        self.draft = draft
         self.onRetry = onRetry
         self.onSave = onSave
+        self.onFailure = onFailure
     }
 
     var body: some View {
@@ -25,8 +37,10 @@ struct SaveBeforeConfirmationView: View {
                     missingPhotoNotice
                         .padding(.top, 35)
 
-                    DisabledManualInputCard()
-                        .padding(.top, 20)
+                    if draft.type == .thermometer {
+                        DisabledManualInputCard()
+                            .padding(.top, 20)
+                    }
 
                     Button("다시하기", action: onRetry)
                         .font(HGFont.bold(20, relativeTo: .title2))
@@ -38,7 +52,11 @@ struct SaveBeforeConfirmationView: View {
                 }
                 .padding(.top, HGLayout.screenContentTopPadding)
 
-                HGPrimaryButton(title: "저장", action: onSave)
+                HGPrimaryButton(
+                    title: isSaving ? "저장 중..." : "저장",
+                    isEnabled: !photos.isEmpty && !isSaving,
+                    action: saveRecord
+                )
                     .padding(.top, 46)
                     .padding(.bottom, 14)
             }
@@ -65,7 +83,7 @@ struct SaveBeforeConfirmationView: View {
                     .scaledToFit()
                     .frame(width: 68, height: 68)
 
-                Text("온도계가 아직 저장이\n안되었어요")
+                Text("현장 사진을\n추가해주세요")
                     .font(HGFont.bold(20, relativeTo: .title2))
                     .multilineTextAlignment(.center)
             }
@@ -75,7 +93,23 @@ struct SaveBeforeConfirmationView: View {
     }
 
     private var photoSelector: some View {
-        HGCompactPhotoSelector()
+        HGCompactPhotoSelector(images: $photos)
+    }
+
+    private func saveRecord() {
+        guard !photos.isEmpty else { return }
+
+        isSaving = true
+        Task {
+            defer { isSaving = false }
+
+            do {
+                let result = try await HGRecordUploadService().save(draft, images: photos)
+                onSave(result)
+            } catch {
+                onFailure(error.localizedDescription)
+            }
+        }
     }
 }
 
@@ -87,6 +121,6 @@ private struct DisabledManualInputCard: View {
 
 #Preview {
     NavigationStack {
-        SaveBeforeConfirmationView()
+        SaveBeforeConfirmationView(draft: HGRecordDraft(type: .thermometer, memo: ""))
     }
 }
