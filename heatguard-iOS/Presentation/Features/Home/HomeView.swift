@@ -378,7 +378,6 @@ private struct HomeActionRow: View {
 
 private struct HomeTimeline: View {
     let times: [String]
-    private let checked = Set([0, 1, 3, 5])
 
     var body: some View {
         VStack(spacing: 7) {
@@ -390,7 +389,7 @@ private struct HomeTimeline: View {
 
                     HStack {
                         ForEach(times.indices, id: \.self) { index in
-                            timelinePoint(at: index)
+                            timelinePoint()
 
                             if index != times.indices.last {
                                 Spacer()
@@ -415,22 +414,17 @@ private struct HomeTimeline: View {
         }
     }
 
-    private func timelinePoint(at index: Int) -> some View {
-        let isCurrent = index == 6
-        let isChecked = checked.contains(index) || isCurrent
-
+    private func timelinePoint() -> some View {
         return Circle()
-            .fill(isChecked ? HGColor.primary : HGColor.surface)
+            .fill(HGColor.surface)
             .overlay {
                 Circle()
                     .stroke(
-                        isCurrent
-                            ? HGColor.primary.opacity(0.3)
-                            : HGColor.homeTimelineBorder,
-                        lineWidth: isCurrent ? 5 : 1
+                        HGColor.homeTimelineBorder,
+                        lineWidth: 1
                     )
             }
-            .frame(width: isCurrent ? 10 : 8, height: isCurrent ? 10 : 8)
+            .frame(width: 8, height: 8)
     }
 }
 
