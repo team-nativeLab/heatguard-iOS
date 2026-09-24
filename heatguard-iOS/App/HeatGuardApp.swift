@@ -14,10 +14,8 @@ struct heatguard_iOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            NavigationStack {
-                rootView
-            }
-            .task { await restoreSession() }
+            rootView
+                .task { await restoreSession() }
         }
     }
 
