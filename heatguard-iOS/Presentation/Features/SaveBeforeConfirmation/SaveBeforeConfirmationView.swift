@@ -36,14 +36,14 @@ struct SaveBeforeConfirmationView: View {
                     photoSelector
                         .padding(.top, 15)
                 }
-                .padding(.top, 45)
+                .padding(.top, HGLayout.screenContentTopPadding)
 
-                HGPrimaryButton(title: "저장", height: 48, action: onSave)
+                HGPrimaryButton(title: "저장", action: onSave)
                     .padding(.top, 46)
                     .padding(.bottom, 14)
             }
-            .padding(.horizontal, 25)
-            .padding(.top, 24)
+            .padding(.horizontal, HGLayout.screenHorizontalPadding)
+            .padding(.top, HGLayout.screenTopPadding)
         }
         .scrollIndicators(.hidden)
         .background(HGColor.appBackground)

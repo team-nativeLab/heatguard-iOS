@@ -27,7 +27,7 @@ struct SaveFailureView: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 83, alignment: .leading)
             }
-            .padding(.horizontal, 25)
+            .padding(.horizontal, HGLayout.screenHorizontalPadding)
             .padding(.top, 26)
         } actions: {
             VStack(spacing: 14) {
@@ -43,7 +43,7 @@ struct SaveFailureView: View {
             VStack(spacing: 0) {
                 ZStack {
                     Circle()
-                        .fill(Color.red.opacity(0.1))
+                        .fill(HGColor.saveFailureIconBackground)
                         .frame(width: 84, height: 84)
 
                     Image("Warning")
@@ -61,6 +61,6 @@ struct SaveFailureView: View {
             }
             .frame(maxWidth: .infinity, minHeight: 178)
         }
-        .padding(.horizontal, 25)
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
     }
 }

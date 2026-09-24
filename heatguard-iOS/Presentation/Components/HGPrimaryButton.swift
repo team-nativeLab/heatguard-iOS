@@ -8,7 +8,7 @@ import SwiftUI
 struct HGPrimaryButton: View {
     let title: String
     var isEnabled = true
-    var height: CGFloat = 48
+    var height: CGFloat = HGLayout.primaryButtonHeight
     let action: () -> Void
 
     var body: some View {
@@ -19,7 +19,10 @@ struct HGPrimaryButton: View {
                 .frame(height: height)
         }
         .foregroundStyle(.white)
-        .background(isEnabled ? HGColor.primary : HGColor.disabled, in: RoundedRectangle(cornerRadius: 14))
+        .background(
+            isEnabled ? HGColor.primary : HGColor.disabled,
+            in: RoundedRectangle(cornerRadius: HGLayout.primaryButtonCornerRadius)
+        )
         .disabled(!isEnabled)
         .accessibilityHint(isEnabled ? "" : "현재 사용할 수 없습니다")
     }

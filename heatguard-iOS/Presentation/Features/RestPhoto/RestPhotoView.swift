@@ -31,21 +31,21 @@ struct RestPhotoView: View {
                 restForm
                     .padding(.top, 26)
             }
-            .padding(.top, 45)
+            .padding(.top, HGLayout.screenContentTopPadding)
 
             Spacer(minLength: 0)
 
             HGPrimaryButton(
                 title: isSaving ? "저장 중..." : "기록 저장",
                 isEnabled: !isSaving,
-                height: 48,
+                height: HGLayout.primaryButtonHeight,
                 action: saveRecord
             )
             .padding(.horizontal, 4)
             .padding(.bottom, 4)
         }
-        .padding(.horizontal, 25)
-        .padding(.top, 24)
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
+        .padding(.top, HGLayout.screenTopPadding)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .dismissKeyboardOnBackgroundTap()
@@ -67,8 +67,8 @@ struct RestPhotoView: View {
                 .font(HGFont.bold(13, relativeTo: .caption))
                 .frame(maxWidth: .infinity, minHeight: 45, alignment: .leading)
                 .padding(.horizontal, 15)
-                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
-                .overlay { RoundedRectangle(cornerRadius: 12).stroke(HGColor.inputBorder, lineWidth: 1) }
+                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: HGLayout.inputCardCornerRadius))
+                .overlay { RoundedRectangle(cornerRadius: HGLayout.inputCardCornerRadius).stroke(HGColor.inputBorder, lineWidth: 1) }
                 .padding(.top, 12)
             HGOptionalMemoSection(
                 placeholder: "휴식 관련 메모를 입력해주세요",

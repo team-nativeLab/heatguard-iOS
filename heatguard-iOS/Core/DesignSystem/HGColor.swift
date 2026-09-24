@@ -28,4 +28,13 @@ enum HGColor {
     static let error = Color(red: 255 / 255, green: 97 / 255, blue: 114 / 255)
     static let inputBorder = Color(red: 234 / 255, green: 234 / 255, blue: 234 / 255)
     static let popupBackground = Color(red: 249 / 255, green: 251 / 255, blue: 252 / 255)
+    static let homeHeatLevelBackground = Color(red: 1, green: 226 / 255, blue: 214 / 255)
+    static let homeBaselineBackground = Color(red: 1, green: 221 / 255, blue: 226 / 255)
+    static let homeHeatLevelText = Color.orange
+    static let emergencyNoticeText = Color.red
+    static let emergencyNoticeBackground = Color.red.opacity(0.08)
+    static let emergencyCallBackground = Color.orange.opacity(0.18)
+    static let emergencyCallForeground = Color.orange.opacity(0.75)
+    static let emergencyCallText = Color.orange
+    static let saveFailureIconBackground = Color.red.opacity(0.1)
 }

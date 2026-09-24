@@ -6,8 +6,8 @@
 import SwiftUI
 
 struct HGCard<Content: View>: View {
-    var cornerRadius: CGFloat = 16
-    var padding: CGFloat = 20
+    var cornerRadius: CGFloat = HGLayout.surfaceCardCornerRadius
+    var padding: CGFloat = HGLayout.cardPadding
     @ViewBuilder let content: Content
 
     var body: some View {

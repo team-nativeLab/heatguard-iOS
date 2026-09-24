@@ -26,11 +26,11 @@ struct ThermometerRecordView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text("온도계 기록")
                     .font(HGFont.bold(20, relativeTo: .title2))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(HGColor.primaryText)
 
                 Text("온도계 데이터를 입력하고 현장 사진을\n촬영해 주세요.")
                     .font(HGFont.regular(14, relativeTo: .subheadline))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(HGColor.primaryText)
                     .padding(.top, 10)
 
                 temperatureSummaryCard
@@ -42,16 +42,16 @@ struct ThermometerRecordView: View {
                 photoSection
                     .padding(.top, 26)
             }
-            .padding(.top, 45)
+            .padding(.top, HGLayout.screenContentTopPadding)
 
             Spacer(minLength: 0)
 
-            HGPrimaryButton(title: "기록 저장", height: 48, action: continueToPhoto)
+            HGPrimaryButton(title: "기록 저장", action: continueToPhoto)
                 .padding(.horizontal, 4)
                 .padding(.bottom, 4)
         }
-        .padding(.horizontal, 25)
-        .padding(.top, 24)
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
+        .padding(.top, HGLayout.screenTopPadding)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .dismissKeyboardOnBackgroundTap()
@@ -75,7 +75,7 @@ struct ThermometerRecordView: View {
 
                 Text("\(temperature) °C")
                     .font(HGFont.bold(32, relativeTo: .largeTitle))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(HGColor.primaryText)
                     .padding(.top, 9)
 
                 Text("습도 \(humidity)% · 체감 \(apparentTemperature.formatted(.number.precision(.fractionLength(1)))) °C")
@@ -88,7 +88,7 @@ struct ThermometerRecordView: View {
         }
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity, minHeight: 138, maxHeight: 138)
-        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
+        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: HGLayout.inputCardCornerRadius))
         .shadow(color: HGColor.cardShadow.opacity(0.25), radius: 7.3, x: 4, y: 4)
     }
 
@@ -104,7 +104,7 @@ struct ThermometerRecordView: View {
         VStack(alignment: .leading, spacing: 14) {
             Text("현장 사진")
                 .font(HGFont.bold(20, relativeTo: .title2))
-                .foregroundStyle(.black)
+                .foregroundStyle(HGColor.primaryText)
 
             Button(action: continueToPhoto) {
                 HStack(spacing: 0) {
