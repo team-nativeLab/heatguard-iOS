@@ -7,12 +7,12 @@ struct RestPhotoView: View {
     @State private var photos: [UIImage]
     @State private var isSaving = false
     let onSave: (HGRecordSaveResult) -> Void
-    let onFailure: (String, HGRecordDraft, [UIImage]) -> Void
+    let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
     let onPhotoRequired: (HGRecordDraft) -> Void
 
     init(
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
-        onFailure: @escaping (String, HGRecordDraft, [UIImage]) -> Void = { _, _, _ in },
+        onFailure: @escaping (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void = { _, _, _ in },
         onPhotoRequired: @escaping (HGRecordDraft) -> Void = { _ in },
         initialMemo: String = "",
         initialPhotos: [UIImage] = []
@@ -104,7 +104,7 @@ struct RestPhotoView: View {
                 )
                 onSave(result)
             } catch {
-                onFailure(error.localizedDescription, draft, photos)
+                onFailure(HGRecordSaveFailure(error: error), draft, photos)
             }
         }
     }

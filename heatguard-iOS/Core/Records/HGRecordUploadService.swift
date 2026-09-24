@@ -188,6 +188,16 @@ enum HGRecordUploadError: LocalizedError {
         case .uploadFailed: "사진 업로드에 실패했습니다."
         }
     }
+
+    var diagnosticCode: String {
+        switch self {
+        case .teamUnavailable: "TEAM_UNAVAILABLE"
+        case .photoCount: "PHOTO_COUNT"
+        case .photoEncoding: "PHOTO_ENCODING"
+        case .uploadPreparation: "UPLOAD_PREPARATION"
+        case .uploadFailed: "UPLOAD_FAILED"
+        }
+    }
 }
 
 private extension String {

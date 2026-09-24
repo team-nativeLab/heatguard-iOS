@@ -269,9 +269,9 @@ struct HomeView: View {
             )
         case let .saveSuccess(result):
             SaveSuccessView(result: result, onConfirm: returnToHome)
-        case let .saveFailure(errorMessage):
+        case let .saveFailure(failure):
             SaveFailureView(
-                errorMessage: errorMessage,
+                failure: failure,
                 onRetry: removeCurrentRoute,
                 onTemporarySave: saveTemporaryAndReturn
             )
@@ -301,10 +301,10 @@ struct HomeView: View {
         flowPath.append(HomeFlowRoute.saveSuccess(result))
     }
 
-    private func showSaveFailure(_ errorMessage: String, draft: HGRecordDraft, images: [UIImage]) {
+    private func showSaveFailure(_ failure: HGRecordSaveFailure, draft: HGRecordDraft, images: [UIImage]) {
         failedDraft = draft
         failedImages = images
-        flowPath.append(HomeFlowRoute.saveFailure(errorMessage))
+        flowPath.append(HomeFlowRoute.saveFailure(failure))
     }
 
     private func showPhotoRequired(_ draft: HGRecordDraft) {
@@ -407,7 +407,7 @@ private enum HomeFlowRoute: Hashable {
     case fieldPhoto(HGRecordDraft)
     case saveBeforeConfirmation(HGRecordDraft)
     case saveSuccess(HGRecordSaveResult)
-    case saveFailure(String)
+    case saveFailure(HGRecordSaveFailure)
     case recordHistory
     case recordDetail(String)
 

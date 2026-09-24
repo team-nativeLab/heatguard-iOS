@@ -5,13 +5,13 @@ struct FieldPhotoCaptureView: View {
     @State private var isSaving = false
     let draft: HGRecordDraft
     let onSave: (HGRecordSaveResult) -> Void
-    let onFailure: (String, HGRecordDraft, [UIImage]) -> Void
+    let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
     let onPhotoRequired: (HGRecordDraft) -> Void
 
     init(
         draft: HGRecordDraft = HGRecordDraft(type: .thermometer, memo: ""),
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
-        onFailure: @escaping (String, HGRecordDraft, [UIImage]) -> Void = { _, _, _ in },
+        onFailure: @escaping (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void = { _, _, _ in },
         onPhotoRequired: @escaping (HGRecordDraft) -> Void = { _ in },
         initialPhotos: [UIImage] = []
     ) {
@@ -125,7 +125,7 @@ struct FieldPhotoCaptureView: View {
                 let result = try await HGRecordUploadService().save(draft, images: photos)
                 onSave(result)
             } catch {
-                onFailure(error.localizedDescription, draft, photos)
+                onFailure(HGRecordSaveFailure(error: error), draft, photos)
             }
         }
     }
