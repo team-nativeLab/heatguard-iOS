@@ -1,15 +1,11 @@
 import SwiftUI
 
 struct SaveSuccessView: View {
-    private let records = [
-        SavedRecord(title: "온도계 기록", detail: "47.5 ℃  ( 습도 55% 체감 40.7℃ )", isNavigable: true),
-        SavedRecord(title: "작업 사진", detail: "2장", isNavigable: true),
-        SavedRecord(title: "휴식 사진", detail: "2장", isNavigable: true),
-        SavedRecord(title: "저장 시간", detail: "2026.07.18 10 : 30", isNavigable: false)
-    ]
+    let result: HGRecordSaveResult
     let onConfirm: () -> Void
 
-    init(onConfirm: @escaping () -> Void = {}) {
+    init(result: HGRecordSaveResult, onConfirm: @escaping () -> Void = {}) {
+        self.result = result
         self.onConfirm = onConfirm
     }
 
@@ -77,6 +73,22 @@ struct SaveSuccessView: View {
         }
         .padding(.horizontal, HGLayout.screenHorizontalPadding)
     }
+
+    private var records: [SavedRecord] {
+        [
+            SavedRecord(title: result.draft.type.savedRecordTitle, detail: recordDetail, isNavigable: true),
+            SavedRecord(title: "첨부 사진", detail: "\(result.photoCount)장", isNavigable: true),
+            SavedRecord(title: "저장 시간", detail: result.savedAt.formatted(date: .numeric, time: .shortened), isNavigable: false)
+        ]
+    }
+
+    private var recordDetail: String {
+        guard result.draft.type == .thermometer else { return "사진과 메모가 저장됐어요" }
+
+        let temperature = result.draft.temperature.map { String(format: "%.1f ℃", $0) } ?? "온도 정보 없음"
+        let humidity = result.draft.humidity.map { String(format: "습도 %.0f%%", $0) } ?? "습도 정보 없음"
+        return "\(temperature) · \(humidity)"
+    }
 }
 
 private struct SavedRecord: Identifiable {
@@ -114,4 +126,13 @@ private struct SavedRecordRow: View {
     }
 }
 
-#Preview { SaveSuccessView() }
+#Preview {
+    SaveSuccessView(
+        result: HGRecordSaveResult(
+            recordID: "preview",
+            draft: HGRecordDraft(type: .thermometer, memo: "", temperature: 47.5, humidity: 55),
+            photoCount: 2,
+            savedAt: .now
+        )
+    )
+}

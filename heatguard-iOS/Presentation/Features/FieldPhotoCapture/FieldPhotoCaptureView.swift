@@ -3,19 +3,18 @@ import SwiftUI
 struct FieldPhotoCaptureView: View {
     @State private var photos: [UIImage] = []
     @State private var isSaving = false
-    @State private var saveError: String?
     let draft: HGRecordDraft
-    let onSave: () -> Void
+    let onSave: (HGRecordSaveResult) -> Void
+    let onFailure: (String) -> Void
 
-    private let measurements = [
-        FieldMeasurement(title: "온도 ( ℃ )", value: "47.5"),
-        FieldMeasurement(title: "습도 ( % )", value: "55"),
-        FieldMeasurement(title: "체감온도 ( ℃ )", value: "자동 계산")
-    ]
-
-    init(draft: HGRecordDraft = HGRecordDraft(type: .thermometer, memo: ""), onSave: @escaping () -> Void = {}) {
+    init(
+        draft: HGRecordDraft = HGRecordDraft(type: .thermometer, memo: ""),
+        onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
+        onFailure: @escaping (String) -> Void = { _ in }
+    ) {
         self.draft = draft
         self.onSave = onSave
+        self.onFailure = onFailure
     }
 
     var body: some View {
@@ -59,7 +58,6 @@ struct FieldPhotoCaptureView: View {
         .padding(.top, HGLayout.screenTopPadding)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
-        .alert("기록을 저장하지 못했습니다.", isPresented: saveErrorAlert) { Button("확인", role: .cancel) {} } message: { Text(saveError ?? "") }
     }
 
     private var header: some View {
@@ -96,14 +94,29 @@ struct FieldPhotoCaptureView: View {
         HGCompactPhotoSelector(images: $photos)
     }
 
-    private var saveErrorAlert: Binding<Bool> { Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } }) }
+    private var measurements: [FieldMeasurement] {
+        [
+            FieldMeasurement(title: "온도 ( ℃ )", value: formattedMeasurement(draft.temperature)),
+            FieldMeasurement(title: "습도 ( % )", value: formattedMeasurement(draft.humidity)),
+            FieldMeasurement(title: "체감온도 ( ℃ )", value: "자동 계산")
+        ]
+    }
+
+    private func formattedMeasurement(_ value: Double?) -> String {
+        guard let value else { return "정보 없음" }
+        return value.formatted(.number.precision(.fractionLength(0 ... 1)))
+    }
 
     private func saveRecord() {
         isSaving = true
         Task {
             defer { isSaving = false }
-            do { try await HGRecordUploadService().save(draft, images: photos); onSave() }
-            catch { saveError = error.localizedDescription }
+            do {
+                let result = try await HGRecordUploadService().save(draft, images: photos)
+                onSave(result)
+            } catch {
+                onFailure(error.localizedDescription)
+            }
         }
     }
 }

@@ -13,7 +13,7 @@ struct HGRecordUploadService {
         self.session = session
     }
 
-    func save(_ draft: HGRecordDraft, images: [UIImage]) async throws {
+    func save(_ draft: HGRecordDraft, images: [UIImage]) async throws -> HGRecordSaveResult {
         let photos = try images.map(HGUploadPhoto.init)
         guard (1 ... 2).contains(photos.count) else {
             throw HGRecordUploadError.photoCount
@@ -35,7 +35,7 @@ struct HGRecordUploadService {
 
         try await upload(photos, to: uploadResponse.uploads)
 
-        let _: HGRecordSaveResponse = try await client.send(
+        let response: HGRecordSaveResponse = try await client.send(
             HGRecordSaveRequest(
                 type: draft.type.rawValue,
                 photoKeys: uploadResponse.uploads.map(\.objectKey),
@@ -47,6 +47,13 @@ struct HGRecordUploadService {
             method: "POST",
             path: "/api/v1/team/records",
             requiresAuthentication: true
+        )
+
+        return HGRecordSaveResult(
+            recordID: response.recordID,
+            draft: draft,
+            photoCount: photos.count,
+            savedAt: .now
         )
     }
 
@@ -83,10 +90,27 @@ struct HGRecordDraft: Hashable {
     }
 }
 
+struct HGRecordSaveResult: Hashable {
+    let recordID: String
+    let draft: HGRecordDraft
+    let photoCount: Int
+    let savedAt: Date
+}
+
 enum HGRecordType: String, Hashable, Decodable {
     case thermometer = "THERMOMETER"
     case work = "WORK"
     case rest = "REST"
+}
+
+extension HGRecordType {
+    var savedRecordTitle: String {
+        switch self {
+        case .thermometer: "온도계 기록"
+        case .work: "작업 사진"
+        case .rest: "휴식 사진"
+        }
+    }
 }
 
 private struct HGUploadURLRequest: Encodable {

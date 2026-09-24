@@ -65,9 +65,12 @@ struct HGAPIClient {
             guard let token = try tokenStore.load() else { throw HGAPIError.authenticationRequired }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        let (_, response) = try await session.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, (200 ... 299).contains(httpResponse.statusCode) else {
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
             throw HGAPIError.invalidResponse
+        }
+        guard (200 ... 299).contains(httpResponse.statusCode) else {
+            throw responseError(from: data, statusCode: httpResponse.statusCode)
         }
     }
 
@@ -102,17 +105,35 @@ struct HGAPIClient {
             throw HGAPIError.invalidResponse
         }
 
-        let decoder = JSONDecoder()
-        let envelope = try decoder.decode(HGAPIEnvelope<Response>.self, from: data)
-
-        guard (200 ... 299).contains(httpResponse.statusCode), envelope.success, let payload = envelope.data else {
-            throw HGAPIError.server(
-                message: envelope.error?.message ?? "요청을 처리하지 못했습니다.",
-                statusCode: httpResponse.statusCode
-            )
+        guard (200 ... 299).contains(httpResponse.statusCode) else {
+            throw responseError(from: data, statusCode: httpResponse.statusCode)
         }
 
-        return payload
+        do {
+            let envelope = try JSONDecoder().decode(HGAPIEnvelope<Response>.self, from: data)
+            guard envelope.success, let payload = envelope.data else {
+                throw HGAPIError.server(
+                    message: envelope.error?.message ?? "요청을 처리하지 못했습니다.",
+                    statusCode: httpResponse.statusCode
+                )
+            }
+
+            return payload
+        } catch let error as HGAPIError {
+            throw error
+        } catch {
+            throw HGAPIError.responseDecoding
+        }
+    }
+
+    private func responseError(from data: Data, statusCode: Int) -> HGAPIError {
+        let errorEnvelope = try? JSONDecoder().decode(HGAPIEnvelope<HGEmptyPayload>.self, from: data)
+        let fallbackMessage = HTTPURLResponse.localizedString(forStatusCode: statusCode)
+
+        return HGAPIError.server(
+            message: errorEnvelope?.error?.message ?? fallbackMessage,
+            statusCode: statusCode
+        )
     }
 }
 
@@ -127,10 +148,13 @@ struct HGAPIErrorDetail: Decodable {
     let message: String
 }
 
+private struct HGEmptyPayload: Decodable {}
+
 enum HGAPIError: LocalizedError {
     case configuration(String)
     case authenticationRequired
     case invalidResponse
+    case responseDecoding
     case server(message: String, statusCode: Int)
 
     var errorDescription: String? {
@@ -141,6 +165,8 @@ enum HGAPIError: LocalizedError {
             return "로그인이 필요합니다."
         case .invalidResponse:
             return "서버 응답을 처리하지 못했습니다."
+        case .responseDecoding:
+            return "서버 응답 형식을 처리하지 못했습니다."
         }
     }
 }

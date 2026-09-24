@@ -1,14 +1,16 @@
 import SwiftUI
 
 struct SaveFailureView: View {
-    private let error = (title: "서버와 연결할 수 없습니다", message: "잠시 후 다시 시도해주세요")
+    let errorMessage: String
     let onRetry: () -> Void
     let onTemporarySave: () -> Void
 
     init(
+        errorMessage: String,
         onRetry: @escaping () -> Void = {},
         onTemporarySave: @escaping () -> Void = {}
     ) {
+        self.errorMessage = errorMessage
         self.onRetry = onRetry
         self.onTemporarySave = onTemporarySave
     }
@@ -20,7 +22,7 @@ struct SaveFailureView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("오류 내용")
                         .font(HGFont.bold(15))
-                    Text("\(error.title)\n\(error.message)")
+                    Text(errorMessage)
                         .font(HGFont.medium(15))
                         .foregroundStyle(HGColor.secondaryText)
                         .lineSpacing(8)
