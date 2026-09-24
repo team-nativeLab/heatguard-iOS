@@ -74,7 +74,7 @@ struct HGRecordUploadService {
     }
 }
 
-struct HGRecordDraft: Hashable {
+struct HGRecordDraft: Hashable, Codable {
     let type: HGRecordType
     let memo: String
     let measuredAt: Date
@@ -97,7 +97,7 @@ struct HGRecordSaveResult: Hashable {
     let savedAt: Date
 }
 
-enum HGRecordType: String, Hashable, Decodable {
+enum HGRecordType: String, Hashable, Codable {
     case thermometer = "THERMOMETER"
     case work = "WORK"
     case rest = "REST"

@@ -7,13 +7,13 @@ struct SaveBeforeConfirmationView: View {
     let draft: HGRecordDraft
     let onRetry: () -> Void
     let onSave: (HGRecordSaveResult) -> Void
-    let onFailure: (String) -> Void
+    let onFailure: (String, HGRecordDraft, [UIImage]) -> Void
 
     init(
         draft: HGRecordDraft,
         onRetry: @escaping () -> Void = {},
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
-        onFailure: @escaping (String) -> Void = { _ in }
+        onFailure: @escaping (String, HGRecordDraft, [UIImage]) -> Void = { _, _, _ in }
     ) {
         self.draft = draft
         self.onRetry = onRetry
@@ -107,7 +107,7 @@ struct SaveBeforeConfirmationView: View {
                 let result = try await HGRecordUploadService().save(draft, images: photos)
                 onSave(result)
             } catch {
-                onFailure(error.localizedDescription)
+                onFailure(error.localizedDescription, draft, photos)
             }
         }
     }
