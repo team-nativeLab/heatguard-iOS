@@ -58,11 +58,11 @@ struct RecordTypeSelectionView: View {
                 }
             }
             .padding(.top, 33)
-            .padding(.horizontal, 25)
+            .padding(.horizontal, HGLayout.screenHorizontalPadding)
 
             Spacer(minLength: 0)
 
-            HGPrimaryButton(title: "확인", isEnabled: selectedType != nil, height: 48) {
+            HGPrimaryButton(title: "확인", isEnabled: selectedType != nil) {
                 guard let selectedType else { return }
                 dismiss()
                 onConfirm(selectedType)

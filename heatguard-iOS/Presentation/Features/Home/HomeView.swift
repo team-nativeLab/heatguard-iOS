@@ -49,13 +49,13 @@ struct HomeView: View {
             }
             .padding(.top, 8)
             Spacer(minLength: 8)
-            HGPrimaryButton(title: "기록하기", height: 48) {
+            HGPrimaryButton(title: "기록하기") {
                 showsRecordTypes = true
             }
             .padding(.bottom, 10)
         }
-        .padding(.horizontal, 27)
-        .padding(.top, 24)
+        .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
+        .padding(.top, HGLayout.screenTopPadding)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showsRecordTypes, onDismiss: openSelectedRecord) {
@@ -98,10 +98,10 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(dashboard.weather.heatLevelTitle)
                         .font(HGFont.bold(10, relativeTo: .caption2))
-                        .foregroundStyle(Color.orange)
+                        .foregroundStyle(HGColor.homeHeatLevelText)
                         .padding(.horizontal, 10)
                         .frame(height: 24)
-                        .background(Color(red: 1, green: 226 / 255, blue: 214 / 255), in: Capsule())
+                        .background(HGColor.homeHeatLevelBackground, in: Capsule())
 
                     Text("현재 온도")
                         .font(HGFont.medium(12, relativeTo: .caption))
@@ -116,7 +116,7 @@ struct HomeView: View {
                             .foregroundStyle(HGColor.error)
                             .padding(.horizontal, 7)
                             .frame(height: 20)
-                            .background(Color(red: 1, green: 221 / 255, blue: 226 / 255), in: Capsule())
+                            .background(HGColor.homeBaselineBackground, in: Capsule())
                     }
 
                     Text("습도 \(dashboard.weather.humidityText) · 체감온도 \(dashboard.weather.apparentTemperatureText)")

@@ -47,16 +47,16 @@ struct FieldPhotoCaptureView: View {
                 photoSelector
                     .padding(.top, 15)
             }
-            .padding(.top, 45)
+            .padding(.top, HGLayout.screenContentTopPadding)
 
             Spacer(minLength: 0)
 
-            HGPrimaryButton(title: isSaving ? "저장 중..." : "저장", isEnabled: !isSaving, height: 48, action: saveRecord)
+            HGPrimaryButton(title: isSaving ? "저장 중..." : "저장", isEnabled: !isSaving, action: saveRecord)
                 .padding(.horizontal, 4)
                 .padding(.bottom, 4)
         }
-        .padding(.horizontal, 25)
-        .padding(.top, 24)
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
+        .padding(.top, HGLayout.screenTopPadding)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .alert("기록을 저장하지 못했습니다.", isPresented: saveErrorAlert) { Button("확인", role: .cancel) {} } message: { Text(saveError ?? "") }
@@ -129,7 +129,7 @@ private struct FieldMeasurementRow: View {
                 .font(HGFont.semiBold(13, relativeTo: .caption))
                 .foregroundStyle(measurement.value == "자동 계산" ? HGColor.secondaryText : HGColor.primaryText)
         }
-        .padding(.horizontal, 20)
+            .padding(.horizontal, HGLayout.cardPadding)
         .frame(height: 36)
     }
 }

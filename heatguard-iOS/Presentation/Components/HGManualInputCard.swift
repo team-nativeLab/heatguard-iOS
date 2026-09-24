@@ -45,11 +45,11 @@ struct HGManualInputCard: View {
                 .foregroundStyle(HGColor.secondaryText)
                 .padding(.top, 18)
         }
-        .padding(20)
+        .padding(HGLayout.cardPadding)
         .opacity(isLocked ? 0.5 : 1)
-        .background(cardBackground, in: RoundedRectangle(cornerRadius: 16))
+        .background(cardBackground, in: RoundedRectangle(cornerRadius: HGLayout.surfaceCardCornerRadius))
         .overlay {
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: HGLayout.surfaceCardCornerRadius)
                 .stroke(HGColor.inputBorder, lineWidth: 1)
         }
         .disabled(!isEnabled || isLocked)

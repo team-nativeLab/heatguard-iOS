@@ -46,13 +46,13 @@ struct SaveSuccessView: View {
                 .padding(.top, 15)
         }
         .frame(maxWidth: .infinity, minHeight: 178)
-        .padding(20)
-        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 25))
+        .padding(HGLayout.cardPadding)
+        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: HGLayout.popupCornerRadius))
         .overlay {
-            RoundedRectangle(cornerRadius: 25)
+            RoundedRectangle(cornerRadius: HGLayout.popupCornerRadius)
                 .stroke(HGColor.inputBorder, lineWidth: 1)
         }
-        .padding(.horizontal, 25)
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
     }
 
     private var summaryCard: some View {
@@ -69,13 +69,13 @@ struct SaveSuccessView: View {
                 }
             }
         }
-        .padding(20)
-        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 25))
+        .padding(HGLayout.cardPadding)
+        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: HGLayout.popupCornerRadius))
         .overlay {
-            RoundedRectangle(cornerRadius: 25)
+            RoundedRectangle(cornerRadius: HGLayout.popupCornerRadius)
                 .stroke(HGColor.inputBorder, lineWidth: 1)
         }
-        .padding(.horizontal, 25)
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
     }
 }
 

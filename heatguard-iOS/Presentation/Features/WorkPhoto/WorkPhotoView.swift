@@ -24,11 +24,11 @@ struct WorkPhotoView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text("작업 전 · 중 사진")
                     .font(HGFont.bold(20, relativeTo: .title2))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(HGColor.primaryText)
 
                 Text("작업 현장과 보호조치를 확인 할 수 있는\n사진을 촬영해 주세요")
                     .font(HGFont.regular(14, relativeTo: .subheadline))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(HGColor.primaryText)
                     .padding(.top, 10)
 
                 HGPhotoCaptureSection(images: $photos)
@@ -37,21 +37,21 @@ struct WorkPhotoView: View {
                 memoSection
                     .padding(.top, 25)
             }
-            .padding(.top, 45)
+            .padding(.top, HGLayout.screenContentTopPadding)
 
             Spacer(minLength: 0)
 
             HGPrimaryButton(
                 title: isSaving ? "저장 중..." : "기록 저장",
                 isEnabled: !isSaving,
-                height: 48,
+                height: HGLayout.primaryButtonHeight,
                 action: saveRecord
             )
             .padding(.horizontal, 4)
             .padding(.bottom, 4)
         }
-        .padding(.horizontal, 25)
-        .padding(.top, 24)
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
+        .padding(.top, HGLayout.screenTopPadding)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .dismissKeyboardOnBackgroundTap()
