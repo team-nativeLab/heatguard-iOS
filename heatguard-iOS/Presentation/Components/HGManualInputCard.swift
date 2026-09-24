@@ -54,6 +54,7 @@ struct HGManualInputCard: View {
         }
         .disabled(!isEnabled || isLocked)
         .accessibilityElement(children: .contain)
+        .keyboardDismissToolbar()
     }
 
     private func inputField(
