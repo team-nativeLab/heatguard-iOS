@@ -9,12 +9,15 @@ struct WorkPhotoView: View {
     @State private var memo = ""
     @State private var photos: [UIImage] = []
     @State private var isSaving = false
-    @State private var saveError: String?
+    let onSave: (HGRecordSaveResult) -> Void
+    let onFailure: (String) -> Void
 
-    let onSave: () -> Void
-
-    init(onSave: @escaping () -> Void = {}) {
+    init(
+        onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
+        onFailure: @escaping (String) -> Void = { _ in }
+    ) {
         self.onSave = onSave
+        self.onFailure = onFailure
     }
 
     var body: some View {
@@ -55,11 +58,6 @@ struct WorkPhotoView: View {
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .dismissKeyboardOnBackgroundTap()
-        .alert("기록을 저장하지 못했습니다.", isPresented: saveErrorAlert) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text(saveError ?? "")
-        }
     }
 
     private var header: some View {
@@ -75,23 +73,19 @@ struct WorkPhotoView: View {
         .padding(.horizontal, 7)
     }
 
-    private var saveErrorAlert: Binding<Bool> {
-        Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })
-    }
-
     private func saveRecord() {
         UIApplication.shared.dismissKeyboard()
         isSaving = true
         Task {
             defer { isSaving = false }
             do {
-                try await HGRecordUploadService().save(
+                let result = try await HGRecordUploadService().save(
                     HGRecordDraft(type: .work, memo: memo),
                     images: photos
                 )
-                onSave()
+                onSave(result)
             } catch {
-                saveError = error.localizedDescription
+                onFailure(error.localizedDescription)
             }
         }
     }
