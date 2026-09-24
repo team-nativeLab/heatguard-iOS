@@ -85,9 +85,11 @@ struct LoginView: View {
         }
         .background(HGColor.surface)
         .toolbar(.hidden, for: .navigationBar)
+        .dismissKeyboardOnBackgroundTap()
     }
 
     private func login() {
+        UIApplication.shared.dismissKeyboard()
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedEmail.isEmpty, !password.isEmpty else {
             requestError = "이메일과 비밀번호를 입력해주세요."

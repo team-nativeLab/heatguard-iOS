@@ -54,6 +54,7 @@ struct ThermometerRecordView: View {
         .padding(.top, 24)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
+        .dismissKeyboardOnBackgroundTap()
     }
 
     private var header: some View {
@@ -139,6 +140,7 @@ struct ThermometerRecordView: View {
     }
 
     private func continueToPhoto() {
+        UIApplication.shared.dismissKeyboard()
         guard
             let inputTemperature = Double(temperature),
             let inputHumidity = Double(humidity)

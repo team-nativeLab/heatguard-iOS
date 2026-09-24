@@ -18,6 +18,7 @@ struct HGPhotoCaptureSection: View {
 
     var body: some View {
         Button {
+            UIApplication.shared.dismissKeyboard()
             showsSourceDialog = true
         } label: {
             content

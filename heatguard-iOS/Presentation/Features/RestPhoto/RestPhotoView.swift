@@ -48,6 +48,7 @@ struct RestPhotoView: View {
         .padding(.top, 24)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
+        .dismissKeyboardOnBackgroundTap()
         .alert("기록을 저장하지 못했습니다.", isPresented: saveErrorAlert) {
             Button("확인", role: .cancel) {}
         } message: {
@@ -84,6 +85,7 @@ struct RestPhotoView: View {
     }
 
     private func saveRecord() {
+        UIApplication.shared.dismissKeyboard()
         isSaving = true
         Task {
             defer { isSaving = false }
