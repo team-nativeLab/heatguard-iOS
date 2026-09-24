@@ -169,4 +169,34 @@ enum HGAPIError: LocalizedError {
             return "서버 응답 형식을 처리하지 못했습니다."
         }
     }
+
+    var failureTitle: String {
+        switch self {
+        case .authenticationRequired:
+            return "로그인이 필요합니다"
+        case let .server(_, statusCode) where statusCode == 401 || statusCode == 403:
+            return "인증이 만료됐습니다"
+        case .configuration:
+            return "서버 설정 오류"
+        case .invalidResponse, .responseDecoding:
+            return "서버 응답 오류"
+        case .server:
+            return "서버 요청 오류"
+        }
+    }
+
+    var diagnosticCode: String {
+        switch self {
+        case .configuration:
+            return "CONFIGURATION"
+        case .authenticationRequired:
+            return "AUTH_REQUIRED"
+        case .invalidResponse:
+            return "INVALID_RESPONSE"
+        case .responseDecoding:
+            return "RESPONSE_DECODING"
+        case let .server(_, statusCode):
+            return "HTTP \(statusCode)"
+        }
+    }
 }

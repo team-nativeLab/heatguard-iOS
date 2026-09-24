@@ -1,16 +1,16 @@
 import SwiftUI
 
 struct SaveFailureView: View {
-    let errorMessage: String
+    let failure: HGRecordSaveFailure
     let onRetry: () -> Void
     let onTemporarySave: () -> Void
 
     init(
-        errorMessage: String,
+        failure: HGRecordSaveFailure,
         onRetry: @escaping () -> Void = {},
         onTemporarySave: @escaping () -> Void = {}
     ) {
-        self.errorMessage = errorMessage
+        self.failure = failure
         self.onRetry = onRetry
         self.onTemporarySave = onTemporarySave
     }
@@ -22,10 +22,16 @@ struct SaveFailureView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("오류 내용")
                         .font(HGFont.bold(15))
-                    Text(errorMessage)
+                    Text(failure.title)
+                        .font(HGFont.semiBold(15))
+                        .foregroundStyle(HGColor.primaryText)
+                    Text(failure.message)
                         .font(HGFont.medium(15))
                         .foregroundStyle(HGColor.secondaryText)
                         .lineSpacing(8)
+                    Text(failure.diagnosticCode)
+                        .font(HGFont.regular(11, relativeTo: .caption2))
+                        .foregroundStyle(HGColor.secondaryText)
                 }
                 .frame(maxWidth: .infinity, minHeight: 83, alignment: .leading)
             }

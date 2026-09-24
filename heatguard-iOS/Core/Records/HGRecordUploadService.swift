@@ -74,7 +74,7 @@ struct HGRecordUploadService {
     }
 }
 
-struct HGRecordDraft: Hashable {
+struct HGRecordDraft: Hashable, Codable {
     let type: HGRecordType
     let memo: String
     let measuredAt: Date
@@ -97,7 +97,7 @@ struct HGRecordSaveResult: Hashable {
     let savedAt: Date
 }
 
-enum HGRecordType: String, Hashable, Decodable {
+enum HGRecordType: String, Hashable, Codable {
     case thermometer = "THERMOMETER"
     case work = "WORK"
     case rest = "REST"
@@ -186,6 +186,16 @@ enum HGRecordUploadError: LocalizedError {
         case .photoEncoding: "선택한 사진을 처리하지 못했습니다."
         case .uploadPreparation: "사진 업로드를 준비하지 못했습니다."
         case .uploadFailed: "사진 업로드에 실패했습니다."
+        }
+    }
+
+    var diagnosticCode: String {
+        switch self {
+        case .teamUnavailable: "TEAM_UNAVAILABLE"
+        case .photoCount: "PHOTO_COUNT"
+        case .photoEncoding: "PHOTO_ENCODING"
+        case .uploadPreparation: "UPLOAD_PREPARATION"
+        case .uploadFailed: "UPLOAD_FAILED"
         }
     }
 }

@@ -3,18 +3,25 @@ import SwiftUI
 struct RestPhotoView: View {
     private let restPeriod = "13 : 00 ~ 13 : 30 (중간 휴식)"
 
-    @State private var memo = ""
-    @State private var photos: [UIImage] = []
+    @State private var memo: String
+    @State private var photos: [UIImage]
     @State private var isSaving = false
     let onSave: (HGRecordSaveResult) -> Void
-    let onFailure: (String) -> Void
+    let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
+    let onPhotoRequired: (HGRecordDraft) -> Void
 
     init(
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
-        onFailure: @escaping (String) -> Void = { _ in }
+        onFailure: @escaping (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void = { _, _, _ in },
+        onPhotoRequired: @escaping (HGRecordDraft) -> Void = { _ in },
+        initialMemo: String = "",
+        initialPhotos: [UIImage] = []
     ) {
         self.onSave = onSave
         self.onFailure = onFailure
+        self.onPhotoRequired = onPhotoRequired
+        _memo = State(initialValue: initialMemo)
+        _photos = State(initialValue: initialPhotos)
     }
 
     var body: some View {
@@ -81,17 +88,23 @@ struct RestPhotoView: View {
 
     private func saveRecord() {
         UIApplication.shared.dismissKeyboard()
+        let draft = HGRecordDraft(type: .rest, memo: memo)
+        guard !photos.isEmpty else {
+            onPhotoRequired(draft)
+            return
+        }
+
         isSaving = true
         Task {
             defer { isSaving = false }
             do {
                 let result = try await HGRecordUploadService().save(
-                    HGRecordDraft(type: .rest, memo: memo),
+                    draft,
                     images: photos
                 )
                 onSave(result)
             } catch {
-                onFailure(error.localizedDescription)
+                onFailure(HGRecordSaveFailure(error: error), draft, photos)
             }
         }
     }

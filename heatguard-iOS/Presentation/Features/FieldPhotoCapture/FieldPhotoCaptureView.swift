@@ -1,20 +1,25 @@
 import SwiftUI
 
 struct FieldPhotoCaptureView: View {
-    @State private var photos: [UIImage] = []
+    @State private var photos: [UIImage]
     @State private var isSaving = false
     let draft: HGRecordDraft
     let onSave: (HGRecordSaveResult) -> Void
-    let onFailure: (String) -> Void
+    let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
+    let onPhotoRequired: (HGRecordDraft) -> Void
 
     init(
         draft: HGRecordDraft = HGRecordDraft(type: .thermometer, memo: ""),
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
-        onFailure: @escaping (String) -> Void = { _ in }
+        onFailure: @escaping (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void = { _, _, _ in },
+        onPhotoRequired: @escaping (HGRecordDraft) -> Void = { _ in },
+        initialPhotos: [UIImage] = []
     ) {
         self.draft = draft
         self.onSave = onSave
         self.onFailure = onFailure
+        self.onPhotoRequired = onPhotoRequired
+        _photos = State(initialValue: initialPhotos)
     }
 
     var body: some View {
@@ -108,6 +113,11 @@ struct FieldPhotoCaptureView: View {
     }
 
     private func saveRecord() {
+        guard !photos.isEmpty else {
+            onPhotoRequired(draft)
+            return
+        }
+
         isSaving = true
         Task {
             defer { isSaving = false }
@@ -115,7 +125,7 @@ struct FieldPhotoCaptureView: View {
                 let result = try await HGRecordUploadService().save(draft, images: photos)
                 onSave(result)
             } catch {
-                onFailure(error.localizedDescription)
+                onFailure(HGRecordSaveFailure(error: error), draft, photos)
             }
         }
     }

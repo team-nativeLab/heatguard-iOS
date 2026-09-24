@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct HomeView: View {
     @State private var showsRecordTypes = false
@@ -11,6 +12,12 @@ struct HomeView: View {
     @State private var dashboardError: String?
     @State private var emergencyError: String?
     @State private var checklist = HGChecklistSummary(times: [], checkedCount: 0, totalCount: 0)
+    @State private var storedDraft: HGStoredRecordDraft?
+    @State private var failedDraft: HGRecordDraft?
+    @State private var failedImages: [UIImage] = []
+    @State private var isResumingStoredDraft = false
+    @State private var showsStoredDraft = false
+    @State private var storedDraftError: String?
 
     var body: some View {
         NavigationStack(path: $flowPath) {
@@ -74,6 +81,7 @@ struct HomeView: View {
         .task {
             await loadDashboard()
             await recoverEmergencyCall()
+            loadStoredDraft()
         }
         .alert("홈 데이터를 불러오지 못했습니다.", isPresented: dashboardErrorAlert) {
             Button("다시 시도") {
@@ -86,6 +94,18 @@ struct HomeView: View {
         .alert("긴급 호출에 실패했습니다.", isPresented: emergencyErrorAlert) {
             Button("확인", role: .cancel) {}
         } message: { Text(emergencyError ?? "") }
+        .alert("임시저장 기록", isPresented: $showsStoredDraft) {
+            Button("이어 작성", action: resumeStoredDraft)
+            Button("삭제", role: .destructive, action: discardStoredDraft)
+            Button("나중에", role: .cancel) {}
+        } message: {
+            Text("저장하지 않은 기록이 있습니다. 이어서 작성할까요?")
+        }
+        .alert("임시저장 오류", isPresented: storedDraftErrorAlert) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(storedDraftError ?? "")
+        }
     }
 
     private var header: some View {
@@ -185,6 +205,7 @@ struct HomeView: View {
 
     private func openSelectedRecord() {
         guard let pendingRecordType else { return }
+        clearResumeState()
         flowPath.append(HomeFlowRoute(recordType: pendingRecordType))
         self.pendingRecordType = nil
     }
@@ -216,23 +237,43 @@ struct HomeView: View {
                 onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) }
             )
         case .workPhoto:
-            WorkPhotoView(onSave: showSaveSuccess, onFailure: showSaveFailure)
+            WorkPhotoView(
+                onSave: showSaveSuccess,
+                onFailure: showSaveFailure,
+                onPhotoRequired: showPhotoRequired,
+                initialMemo: resumedDraft(for: .work)?.memo ?? "",
+                initialPhotos: resumedImages(for: .work)
+            )
         case .restPhoto:
-            RestPhotoView(onSave: showSaveSuccess, onFailure: showSaveFailure)
+            RestPhotoView(
+                onSave: showSaveSuccess,
+                onFailure: showSaveFailure,
+                onPhotoRequired: showPhotoRequired,
+                initialMemo: resumedDraft(for: .rest)?.memo ?? "",
+                initialPhotos: resumedImages(for: .rest)
+            )
         case let .fieldPhoto(draft):
-            FieldPhotoCaptureView(draft: draft, onSave: showSaveSuccess, onFailure: showSaveFailure)
-        case .saveBeforeConfirmation:
+            FieldPhotoCaptureView(
+                draft: draft,
+                onSave: showSaveSuccess,
+                onFailure: showSaveFailure,
+                onPhotoRequired: showPhotoRequired,
+                initialPhotos: resumedImages(for: .thermometer)
+            )
+        case let .saveBeforeConfirmation(draft):
             SaveBeforeConfirmationView(
+                draft: draft,
                 onRetry: removeCurrentRoute,
-                onSave: removeCurrentRoute
+                onSave: showSaveSuccess,
+                onFailure: showSaveFailure
             )
         case let .saveSuccess(result):
             SaveSuccessView(result: result, onConfirm: returnToHome)
-        case let .saveFailure(errorMessage):
+        case let .saveFailure(failure):
             SaveFailureView(
-                errorMessage: errorMessage,
+                failure: failure,
                 onRetry: removeCurrentRoute,
-                onTemporarySave: returnToHome
+                onTemporarySave: saveTemporaryAndReturn
             )
         case .recordHistory:
             RecordHistoryView { record in
@@ -253,11 +294,83 @@ struct HomeView: View {
     }
 
     private func showSaveSuccess(_ result: HGRecordSaveResult) {
+        if isResumingStoredDraft {
+            try? HGRecordDraftStore().clear()
+            clearResumeState()
+        }
         flowPath.append(HomeFlowRoute.saveSuccess(result))
     }
 
-    private func showSaveFailure(_ errorMessage: String) {
-        flowPath.append(HomeFlowRoute.saveFailure(errorMessage))
+    private func showSaveFailure(_ failure: HGRecordSaveFailure, draft: HGRecordDraft, images: [UIImage]) {
+        failedDraft = draft
+        failedImages = images
+        flowPath.append(HomeFlowRoute.saveFailure(failure))
+    }
+
+    private func showPhotoRequired(_ draft: HGRecordDraft) {
+        flowPath.append(HomeFlowRoute.saveBeforeConfirmation(draft))
+    }
+
+    private func loadStoredDraft() {
+        do {
+            storedDraft = try HGRecordDraftStore().load()
+            showsStoredDraft = storedDraft != nil
+        } catch {
+            storedDraftError = error.localizedDescription
+        }
+    }
+
+    private func resumeStoredDraft() {
+        guard let storedDraft else { return }
+
+        isResumingStoredDraft = true
+        showsStoredDraft = false
+
+        switch storedDraft.draft.type {
+        case .thermometer:
+            flowPath.append(HomeFlowRoute.fieldPhoto(storedDraft.draft))
+        case .work:
+            flowPath.append(HomeFlowRoute.workPhoto)
+        case .rest:
+            flowPath.append(HomeFlowRoute.restPhoto)
+        }
+    }
+
+    private func discardStoredDraft() {
+        do {
+            try HGRecordDraftStore().clear()
+            clearResumeState()
+        } catch {
+            storedDraftError = error.localizedDescription
+        }
+    }
+
+    private func saveTemporaryAndReturn() {
+        guard let failedDraft else { return }
+
+        do {
+            try HGRecordDraftStore().save(draft: failedDraft, images: failedImages)
+            storedDraft = HGStoredRecordDraft(draft: failedDraft, images: failedImages)
+            clearResumeState()
+            returnToHome()
+        } catch {
+            storedDraftError = error.localizedDescription
+        }
+    }
+
+    private func resumedDraft(for type: HGRecordType) -> HGRecordDraft? {
+        guard isResumingStoredDraft, storedDraft?.draft.type == type else { return nil }
+        return storedDraft?.draft
+    }
+
+    private func resumedImages(for type: HGRecordType) -> [UIImage] {
+        guard isResumingStoredDraft, storedDraft?.draft.type == type else { return [] }
+        return storedDraft?.images ?? []
+    }
+
+    private func clearResumeState() {
+        isResumingStoredDraft = false
+        storedDraft = nil
     }
 
     private var dashboardErrorAlert: Binding<Bool> {
@@ -269,6 +382,10 @@ struct HomeView: View {
 
     private var emergencyErrorAlert: Binding<Bool> {
         Binding(get: { emergencyError != nil }, set: { if !$0 { emergencyError = nil } })
+    }
+
+    private var storedDraftErrorAlert: Binding<Bool> {
+        Binding(get: { storedDraftError != nil }, set: { if !$0 { storedDraftError = nil } })
     }
 
     private func loadDashboard() async {
@@ -288,9 +405,9 @@ private enum HomeFlowRoute: Hashable {
     case workPhoto
     case restPhoto
     case fieldPhoto(HGRecordDraft)
-    case saveBeforeConfirmation
+    case saveBeforeConfirmation(HGRecordDraft)
     case saveSuccess(HGRecordSaveResult)
-    case saveFailure(String)
+    case saveFailure(HGRecordSaveFailure)
     case recordHistory
     case recordDetail(String)
 
