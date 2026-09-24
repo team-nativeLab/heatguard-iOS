@@ -1,7 +1,11 @@
 import Foundation
 
 struct HGRecordHistoryService {
-    private let client = HGAPIClient()
+    private let client: HGAPIClient
+
+    init(client: HGAPIClient = HGAPIClient()) {
+        self.client = client
+    }
 
     func fetchRecords() async throws -> HGRecordPage {
         try await client.get(

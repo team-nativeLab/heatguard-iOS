@@ -1,7 +1,11 @@
 import Foundation
 
 struct HGChecklistService {
-    private let client = HGAPIClient()
+    private let client: HGAPIClient
+
+    init(client: HGAPIClient = HGAPIClient()) {
+        self.client = client
+    }
 
     func fetch() async throws -> HGChecklistSummary {
         let home: HGWorkerHomeChecklistResponse = try await client.get(
