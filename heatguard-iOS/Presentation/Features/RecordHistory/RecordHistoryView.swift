@@ -5,7 +5,7 @@ struct RecordHistoryView: View {
 
     @State private var records: [HGRecordHistoryItem] = []
     @State private var isLoading = true
-    @State private var error: String?
+    @State private var error: HGErrorPresentation?
 
     init(onRecordSelected: @escaping (HGRecordHistoryItem) -> Void = { _ in }) {
         self.onRecordSelected = onRecordSelected
@@ -43,7 +43,7 @@ struct RecordHistoryView: View {
             Button("다시 시도") { Task { await loadRecords() } }
             Button("확인", role: .cancel) {}
         } message: {
-            Text(error ?? "")
+            Text(error?.alertMessage ?? "")
         }
     }
 
@@ -56,7 +56,7 @@ struct RecordHistoryView: View {
             records = try await HGRecordHistoryService().fetchRecords().items
             error = nil
         } catch {
-            self.error = error.localizedDescription
+            self.error = HGErrorPresentation(error: error)
         }
     }
 

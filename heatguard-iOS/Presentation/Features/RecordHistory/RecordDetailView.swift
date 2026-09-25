@@ -5,7 +5,7 @@ struct RecordDetailView: View {
 
     @State private var record: HGRecordDetail?
     @State private var isLoading = true
-    @State private var error: String?
+    @State private var error: HGErrorPresentation?
 
     var body: some View {
         Group {
@@ -31,7 +31,7 @@ struct RecordDetailView: View {
             Button("다시 시도") { Task { await loadRecord() } }
             Button("확인", role: .cancel) {}
         } message: {
-            Text(error ?? "")
+            Text(error?.alertMessage ?? "")
         }
     }
 
@@ -112,7 +112,7 @@ struct RecordDetailView: View {
             record = try await HGRecordHistoryService().fetchDetail(id: recordID)
             error = nil
         } catch {
-            self.error = error.localizedDescription
+            self.error = HGErrorPresentation(error: error)
         }
     }
 

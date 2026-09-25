@@ -5,6 +5,12 @@ struct HGErrorPresentation: Hashable {
     let message: String
     let diagnosticCode: String
 
+    init(title: String, message: String, diagnosticCode: String) {
+        self.title = title
+        self.message = message
+        self.diagnosticCode = diagnosticCode
+    }
+
     init(error: Error) {
         if let apiError = error as? HGAPIError {
             title = apiError.failureTitle
