@@ -114,7 +114,8 @@ struct HGAPIClient {
             guard envelope.success, let payload = envelope.data else {
                 throw HGAPIError.server(
                     message: envelope.error?.message ?? "요청을 처리하지 못했습니다.",
-                    statusCode: httpResponse.statusCode
+                    statusCode: httpResponse.statusCode,
+                    serverCode: envelope.error?.code
                 )
             }
 
@@ -132,7 +133,8 @@ struct HGAPIClient {
 
         return HGAPIError.server(
             message: errorEnvelope?.error?.message ?? fallbackMessage,
-            statusCode: statusCode
+            statusCode: statusCode,
+            serverCode: errorEnvelope?.error?.code
         )
     }
 }
@@ -144,8 +146,8 @@ struct HGAPIEnvelope<Payload: Decodable>: Decodable {
 }
 
 struct HGAPIErrorDetail: Decodable {
-    let code: String
-    let message: String
+    let code: String?
+    let message: String?
 }
 
 private struct HGEmptyPayload: Decodable {}
@@ -155,11 +157,11 @@ enum HGAPIError: LocalizedError {
     case authenticationRequired
     case invalidResponse
     case responseDecoding
-    case server(message: String, statusCode: Int)
+    case server(message: String, statusCode: Int, serverCode: String?)
 
     var errorDescription: String? {
         switch self {
-        case let .configuration(message), let .server(message, _):
+        case let .configuration(message), let .server(message, _, _):
             return message
         case .authenticationRequired:
             return "로그인이 필요합니다."
@@ -174,7 +176,7 @@ enum HGAPIError: LocalizedError {
         switch self {
         case .authenticationRequired:
             return "로그인이 필요합니다"
-        case let .server(_, statusCode) where statusCode == 401 || statusCode == 403:
+        case let .server(_, statusCode, _) where statusCode == 401 || statusCode == 403:
             return "인증이 만료됐습니다"
         case .configuration:
             return "서버 설정 오류"
@@ -195,8 +197,11 @@ enum HGAPIError: LocalizedError {
             return "INVALID_RESPONSE"
         case .responseDecoding:
             return "RESPONSE_DECODING"
-        case let .server(_, statusCode):
-            return "HTTP \(statusCode)"
+        case let .server(_, statusCode, serverCode):
+            guard let serverCode, !serverCode.isEmpty else {
+                return "HTTP \(statusCode)"
+            }
+            return "HTTP \(statusCode) · \(serverCode)"
         }
     }
 }

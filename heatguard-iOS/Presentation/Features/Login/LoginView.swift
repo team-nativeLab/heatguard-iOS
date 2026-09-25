@@ -9,7 +9,7 @@ struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var isSubmitting = false
-    @State private var requestError: String?
+    @State private var requestError: HGErrorPresentation?
 
     private let authenticationService = HGAuthenticationService()
     private let onAuthenticated: (TeamSession) -> Void
@@ -71,10 +71,16 @@ struct LoginView: View {
                 .padding(.horizontal, 40)
 
             if let requestError {
-                Text(requestError)
-                    .font(HGFont.regular(12, relativeTo: .caption))
-                    .foregroundStyle(HGColor.error)
-                    .padding(.top, 8)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(requestError.title)
+                        .font(HGFont.semiBold(12, relativeTo: .caption))
+                    Text(requestError.message)
+                        .font(HGFont.regular(12, relativeTo: .caption))
+                    Text("오류 코드: \(requestError.diagnosticCode)")
+                        .font(HGFont.regular(10, relativeTo: .caption2))
+                }
+                .foregroundStyle(HGColor.error)
+                .padding(.top, 8)
             }
 
             Text("계정 생성과 재설정은 현장관리자에게 문의해주세요")
@@ -92,7 +98,11 @@ struct LoginView: View {
         UIApplication.shared.dismissKeyboard()
         let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedEmail.isEmpty, !password.isEmpty else {
-            requestError = "이메일과 비밀번호를 입력해주세요."
+            requestError = HGErrorPresentation(
+                title: "입력 정보를 확인해주세요",
+                message: "이메일과 비밀번호를 입력해주세요.",
+                diagnosticCode: "INPUT_REQUIRED"
+            )
             return
         }
 
@@ -106,7 +116,7 @@ struct LoginView: View {
                 let session = try await authenticationService.login(email: trimmedEmail, password: password)
                 onAuthenticated(session)
             } catch {
-                requestError = error.localizedDescription
+                requestError = HGErrorPresentation(error: error)
             }
         }
     }

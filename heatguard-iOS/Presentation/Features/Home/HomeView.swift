@@ -9,8 +9,8 @@ struct HomeView: View {
     @State private var pendingRecordType: RecordType?
     @State private var flowPath = NavigationPath()
     @State private var dashboard = HomeDashboard.unavailable
-    @State private var dashboardError: String?
-    @State private var emergencyError: String?
+    @State private var dashboardError: HGErrorPresentation?
+    @State private var emergencyError: HGErrorPresentation?
     @State private var checklist = HGChecklistSummary(times: [], checkedCount: 0, totalCount: 0)
     @State private var storedDraft: HGStoredRecordDraft?
     @State private var failedDraft: HGRecordDraft?
@@ -89,11 +89,11 @@ struct HomeView: View {
             }
             Button("확인", role: .cancel) {}
         } message: {
-            Text(dashboardError ?? "")
+            Text(dashboardError?.alertMessage ?? "")
         }
         .alert("긴급 호출에 실패했습니다.", isPresented: emergencyErrorAlert) {
             Button("확인", role: .cancel) {}
-        } message: { Text(emergencyError ?? "") }
+        } message: { Text(emergencyError?.alertMessage ?? "") }
         .alert("임시저장 기록", isPresented: $showsStoredDraft) {
             Button("이어 작성", action: resumeStoredDraft)
             Button("삭제", role: .destructive, action: discardStoredDraft)
@@ -218,7 +218,7 @@ struct HomeView: View {
                 _ = try await HGEmergencyCallService().createCall()
                 showsCalling = true
             } catch {
-                emergencyError = error.localizedDescription
+                emergencyError = HGErrorPresentation(error: error)
             }
         }
     }
@@ -395,7 +395,7 @@ struct HomeView: View {
             checklist = loadedDashboard.checklist
             dashboardError = nil
         } catch {
-            dashboardError = error.localizedDescription
+            dashboardError = HGErrorPresentation(error: error)
         }
     }
 }
