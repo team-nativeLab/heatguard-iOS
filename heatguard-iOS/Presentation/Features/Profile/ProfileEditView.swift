@@ -1,9 +1,16 @@
 import SwiftUI
 
 struct ProfileEditView: View {
-    @State private var company = "이음산업건설"
-    @State private var name = "김현장"
+    let profile: HGTeamProfile?
+    @State private var company: String
+    @State private var name: String
     @State private var showsSavedMessage = false
+
+    init(profile: HGTeamProfile? = nil) {
+        self.profile = profile
+        _company = State(initialValue: "이음산업건설")
+        _name = State(initialValue: profile?.name ?? "김현장")
+    }
 
     var body: some View {
         ScrollView {
@@ -19,7 +26,7 @@ struct ProfileEditView: View {
                     HGTextField(title: "이름", placeholder: "이름을 입력해주세요", text: $name, fieldHeight: 48)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("이메일").font(HGFont.semiBold(13, relativeTo: .caption)).foregroundStyle(HGColor.primaryText)
-                        HStack { Text("worker@ieum.co.kr").foregroundStyle(HGColor.secondaryText); Spacer(); Text("변경 불가").font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText) }
+                        HStack { Text(profile?.email ?? "worker@ieum.co.kr").foregroundStyle(HGColor.secondaryText); Spacer(); Text("변경 불가").font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText) }
                             .font(HGFont.regular(14)).padding(.horizontal, 16).frame(height: 48).background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: 12))
                         Text("로그인에 쓰는 이메일은 변경할 수 없어요").font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText)
                     }
