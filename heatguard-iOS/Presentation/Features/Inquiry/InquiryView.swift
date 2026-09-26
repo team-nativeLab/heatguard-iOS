@@ -31,7 +31,7 @@ struct InquiryView: View {
         }
         .background(HGColor.appBackground).navigationTitle("문의하기").navigationBarTitleDisplayMode(.inline)
         .alert("문의 기능을 준비 중입니다.", isPresented: $showsUnsupportedMessage) { Button("확인", role: .cancel) {} } message: { Text("작업자 문의 등록·조회 API가 제공되면 문의를 보낼 수 있어요.") }
-        .dismissKeyboardOnBackgroundTap().keyboardDismissToolbar()
+        .dismissKeyboardOnBackgroundTap()
     }
     private func submitInquiry() { showsUnsupportedMessage = true }
 }

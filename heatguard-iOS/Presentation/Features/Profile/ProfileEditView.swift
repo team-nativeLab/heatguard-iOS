@@ -40,7 +40,7 @@ struct ProfileEditView: View {
         .background(HGColor.appBackground).navigationTitle("내 정보 수정").navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) { HGPrimaryButton(title: "저장하기") { showsUnsupportedMessage = true }.padding(.horizontal, 28).padding(.vertical, 10).background(HGColor.appBackground) }
         .alert("아직 저장할 수 없습니다.", isPresented: $showsUnsupportedMessage) { Button("확인", role: .cancel) {} } message: { Text("회사명과 이름을 변경하는 작업자 API가 준비되면 저장할 수 있어요.") }
-        .dismissKeyboardOnBackgroundTap().keyboardDismissToolbar()
+        .dismissKeyboardOnBackgroundTap()
     }
 }
 
@@ -60,7 +60,7 @@ private struct PasswordChangeView: View {
             HGPrimaryButton(title: isSubmitting ? "변경 중..." : "비밀번호 변경", isEnabled: isValid && !isSubmitting) {
                 Task { await changePassword() }
             }
-        }.padding(24).background(HGColor.appBackground).navigationTitle("비밀번호 변경").navigationBarTitleDisplayMode(.inline).dismissKeyboardOnBackgroundTap().keyboardDismissToolbar()
+        }.padding(24).background(HGColor.appBackground).navigationTitle("비밀번호 변경").navigationBarTitleDisplayMode(.inline).dismissKeyboardOnBackgroundTap()
         .alert(error?.title ?? "비밀번호 변경 오류", isPresented: errorAlert) { Button("확인", role: .cancel) {} } message: { Text(error?.alertMessage ?? "") }
         .alert("비밀번호가 변경되었습니다.", isPresented: $isComplete) { Button("확인", role: .cancel) {} }
     }
