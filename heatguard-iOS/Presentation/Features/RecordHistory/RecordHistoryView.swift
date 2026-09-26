@@ -40,7 +40,7 @@ struct RecordHistoryView: View {
                 .background(HGColor.appBackground)
         }
         .task { await loadRecords() }
-        .alert("기록을 불러오지 못했습니다.", isPresented: errorAlert) {
+        .alert(error?.title ?? "기록 조회 오류", isPresented: errorAlert) {
             Button("다시 시도") { Task { await loadRecords() } }
             Button("확인", role: .cancel) {}
         } message: { Text(error?.alertMessage ?? "") }

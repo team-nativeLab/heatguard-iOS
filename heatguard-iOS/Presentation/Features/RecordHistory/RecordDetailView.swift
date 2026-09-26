@@ -29,7 +29,7 @@ struct RecordDetailView: View {
         .navigationTitle("기록 상세")
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadRecord() }
-        .alert("상세 기록을 불러오지 못했습니다.", isPresented: errorAlert) {
+        .alert(error?.title ?? "상세 기록 조회 오류", isPresented: errorAlert) {
             Button("다시 시도") { Task { await loadRecord() } }
             Button("확인", role: .cancel) {}
         } message: { Text(error?.alertMessage ?? "") }
