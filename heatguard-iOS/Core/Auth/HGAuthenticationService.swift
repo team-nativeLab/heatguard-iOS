@@ -33,6 +33,10 @@ struct HGAuthenticationService {
         return TeamSession()
     }
 
+    func currentProfile() async throws -> HGTeamProfile {
+        try await client.get(path: "/api/v1/auth/team/me", requiresAuthentication: true)
+    }
+
     func logout() async throws {
         try await client.sendVoid(method: "POST", path: "/api/v1/auth/team/logout", requiresAuthentication: true)
         try tokenStore.clear()
@@ -49,6 +53,16 @@ struct HGAuthenticationService {
             path: "/api/v1/auth/team/password",
             requiresAuthentication: true
         )
+    }
+
+    func withdraw(currentPassword: String) async throws {
+        try await client.sendVoid(
+            WithdrawalRequest(currentPassword: currentPassword),
+            method: "DELETE",
+            path: "/api/v1/team/profile",
+            requiresAuthentication: true
+        )
+        try tokenStore.clear()
     }
 }
 
@@ -82,6 +96,20 @@ private struct TeamLoginResponse: Decodable {
 
 private struct TeamSessionResponse: Decodable {}
 
+struct HGTeamProfile: Decodable, Equatable {
+    let userID: String
+    let name: String
+    let email: String
+    let role: String
+    let teamID: String?
+
+    enum CodingKeys: String, CodingKey {
+        case userID = "userId"
+        case name, email, role
+        case teamID = "teamId"
+    }
+}
+
 private struct PasswordChangeRequest: Encodable {
     let currentPassword: String
     let newPassword: String
@@ -90,6 +118,8 @@ private struct PasswordChangeRequest: Encodable {
 private struct PasswordChangeResponse: Decodable {
     let changedAt: String?
 }
+
+private struct WithdrawalRequest: Encodable { let currentPassword: String }
 
 struct TeamSession: Equatable {}
 

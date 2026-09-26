@@ -16,6 +16,7 @@ struct HomeView: View {
     @State private var pendingRecordType: RecordType?
     @State private var flowPath = NavigationPath()
     @State private var dashboard = HomeDashboard.unavailable
+    @State private var teamProfile: HGTeamProfile?
     @State private var dashboardError: HGErrorPresentation?
     @State private var emergencyError: HGErrorPresentation?
     @State private var logoutError: HGErrorPresentation?
@@ -81,7 +82,7 @@ struct HomeView: View {
                     .transition(.opacity)
 
                 HGMenuDrawer(
-                    profile: .preview,
+                    profile: teamProfile.map(HGMenuProfile.init(profile:)) ?? .preview,
                     onDismiss: dismissMenuDrawer,
                     onProfileEdit: {
                         dismissMenuDrawer()
@@ -117,6 +118,7 @@ struct HomeView: View {
         .navigationDestination(for: HomeFlowRoute.self, destination: destinationView)
         .task {
             await loadDashboard()
+            await loadProfile()
             loadStoredDraft()
         }
         .alert("홈 데이터를 불러오지 못했습니다.", isPresented: dashboardErrorAlert) {
@@ -317,12 +319,12 @@ struct HomeView: View {
         case let .recordDetail(recordID):
             RecordDetailView(recordID: recordID)
         case .profileEdit:
-            ProfileEditView()
+            ProfileEditView(profile: teamProfile)
         case .inquiry:
             InquiryView()
         case .withdrawalGuide:
-            WithdrawalGuideView {
-                flowPath.append(HomeFlowRoute.withdrawalCompleted)
+            WithdrawalGuideView { password in
+                Task { await withdraw(password: password) }
             }
         case .withdrawalCompleted:
             WithdrawalCompletedView(onConfirm: finishWithdrawal)
@@ -365,6 +367,16 @@ struct HomeView: View {
         do {
             try HGAuthTokenStore.shared.clear()
             onSessionEnded()
+        } catch {
+            dashboardError = HGErrorPresentation(error: error)
+        }
+    }
+
+    @MainActor
+    private func withdraw(password: String) async {
+        do {
+            try await HGAuthenticationService().withdraw(currentPassword: password)
+            flowPath.append(HomeFlowRoute.withdrawalCompleted)
         } catch {
             dashboardError = HGErrorPresentation(error: error)
         }
@@ -478,6 +490,11 @@ struct HomeView: View {
         } catch {
             dashboardError = HGErrorPresentation(error: error)
         }
+    }
+
+    @MainActor
+    private func loadProfile() async {
+        teamProfile = try? await HGAuthenticationService().currentProfile()
     }
 }
 

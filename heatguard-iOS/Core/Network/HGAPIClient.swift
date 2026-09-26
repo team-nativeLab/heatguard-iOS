@@ -58,9 +58,19 @@ struct HGAPIClient {
     }
 
     func sendVoid(method: String, path: String, requiresAuthentication: Bool = false) async throws {
+        try await sendVoid(method: method, path: path, body: nil, requiresAuthentication: requiresAuthentication)
+    }
+
+    func sendVoid<Request: Encodable>(_ requestBody: Request, method: String, path: String, requiresAuthentication: Bool = false) async throws {
+        try await sendVoid(method: method, path: path, body: try JSONEncoder().encode(requestBody), requiresAuthentication: requiresAuthentication)
+    }
+
+    private func sendVoid(method: String, path: String, body: Data?, requiresAuthentication: Bool) async throws {
         let baseURL = try HGAPIConfiguration.baseURL()
         var request = URLRequest(url: baseURL.appending(path: path))
         request.httpMethod = method
+        request.httpBody = body
+        if body != nil { request.setValue("application/json", forHTTPHeaderField: "Content-Type") }
         if requiresAuthentication {
             guard let token = try tokenStore.load() else { throw HGAPIError.authenticationRequired }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")

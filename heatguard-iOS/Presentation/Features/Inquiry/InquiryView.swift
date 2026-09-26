@@ -7,7 +7,7 @@ struct InquiryView: View {
         .init(title: "앱에서 사진 업로드가 안 돼요", date: "2026.09.25", isAnswered: true),
         .init(title: "온도계 기록 수정 요청", date: "2026.09.26", isAnswered: false)
     ]
-    @State private var showsSuccess = false
+    @State private var showsUnsupportedMessage = false
 
     var body: some View {
         ScrollView {
@@ -24,10 +24,10 @@ struct InquiryView: View {
             }.padding(24)
         }
         .background(HGColor.appBackground).navigationTitle("문의하기").navigationBarTitleDisplayMode(.inline)
-        .alert("문의가 등록되었습니다.", isPresented: $showsSuccess) { Button("확인", role: .cancel) {} } message: { Text("답변을 등록한 이메일과 문의 목록에서 확인할 수 있어요.") }
+        .alert("문의 기능을 준비 중입니다.", isPresented: $showsUnsupportedMessage) { Button("확인", role: .cancel) {} } message: { Text("작업자 문의 등록·조회 API가 제공되면 문의를 보낼 수 있어요.") }
         .dismissKeyboardOnBackgroundTap().keyboardDismissToolbar()
     }
-    private func submitInquiry() { inquiries.insert(.init(title: title, date: Date.now.formatted(.dateTime.year().month().day()), isAnswered: false), at: 0); title = ""; content = ""; showsSuccess = true }
+    private func submitInquiry() { showsUnsupportedMessage = true }
 }
 private struct InquiryItem: Identifiable { let id = UUID(); let title: String; let date: String; let isAnswered: Bool }
 private struct InquiryRow: View { let item: InquiryItem; var body: some View { HStack { VStack(alignment: .leading, spacing: 5) { HStack(spacing: 6) { Text(item.isAnswered ? "답변 완료" : "답변 대기").font(HGFont.medium(10, relativeTo: .caption2)).foregroundStyle(item.isAnswered ? HGColor.primary : HGColor.secondaryText).padding(.horizontal, 8).padding(.vertical, 4).background(HGColor.homeMetricIconBackground, in: Capsule()); Text(item.title).font(HGFont.medium(13, relativeTo: .subheadline)) }; Text(item.date).font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText) }; Spacer(); Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(HGColor.homeChevron) }.padding(16) } }

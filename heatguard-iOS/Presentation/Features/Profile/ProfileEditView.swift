@@ -1,9 +1,16 @@
 import SwiftUI
 
 struct ProfileEditView: View {
-    @State private var company = "이음산업건설"
-    @State private var name = "김현장"
-    @State private var showsSavedMessage = false
+    let profile: HGTeamProfile?
+    @State private var company: String
+    @State private var name: String
+    @State private var showsUnsupportedMessage = false
+
+    init(profile: HGTeamProfile? = nil) {
+        self.profile = profile
+        _company = State(initialValue: "이음산업건설")
+        _name = State(initialValue: profile?.name ?? "김현장")
+    }
 
     var body: some View {
         ScrollView {
@@ -19,7 +26,7 @@ struct ProfileEditView: View {
                     HGTextField(title: "이름", placeholder: "이름을 입력해주세요", text: $name, fieldHeight: 48)
                     VStack(alignment: .leading, spacing: 8) {
                         Text("이메일").font(HGFont.semiBold(13, relativeTo: .caption)).foregroundStyle(HGColor.primaryText)
-                        HStack { Text("worker@ieum.co.kr").foregroundStyle(HGColor.secondaryText); Spacer(); Text("변경 불가").font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText) }
+                        HStack { Text(profile?.email ?? "worker@ieum.co.kr").foregroundStyle(HGColor.secondaryText); Spacer(); Text("변경 불가").font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText) }
                             .font(HGFont.regular(14)).padding(.horizontal, 16).frame(height: 48).background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: 12))
                         Text("로그인에 쓰는 이메일은 변경할 수 없어요").font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText)
                     }
@@ -31,8 +38,8 @@ struct ProfileEditView: View {
             }.padding(24)
         }
         .background(HGColor.appBackground).navigationTitle("내 정보 수정").navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) { HGPrimaryButton(title: "저장하기") { showsSavedMessage = true }.padding(.horizontal, 28).padding(.vertical, 10).background(HGColor.appBackground) }
-        .alert("저장 완료", isPresented: $showsSavedMessage) { Button("확인", role: .cancel) {} } message: { Text("수정한 정보가 저장되었습니다.") }
+        .safeAreaInset(edge: .bottom) { HGPrimaryButton(title: "저장하기") { showsUnsupportedMessage = true }.padding(.horizontal, 28).padding(.vertical, 10).background(HGColor.appBackground) }
+        .alert("아직 저장할 수 없습니다.", isPresented: $showsUnsupportedMessage) { Button("확인", role: .cancel) {} } message: { Text("회사명과 이름을 변경하는 작업자 API가 준비되면 저장할 수 있어요.") }
         .dismissKeyboardOnBackgroundTap().keyboardDismissToolbar()
     }
 }

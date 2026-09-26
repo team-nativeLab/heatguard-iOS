@@ -5,11 +5,23 @@ struct HGMenuProfile: Equatable {
     let role: String
     let email: String
 
+    init(name: String, role: String, email: String) {
+        self.name = name
+        self.role = role
+        self.email = email
+    }
+
     static let preview = HGMenuProfile(
         name: "김현장",
         role: "이음산업건설 · 현장작업자",
         email: "worker@ieum.co.kr"
     )
+
+    nonisolated init(profile: HGTeamProfile) {
+        name = profile.name
+        role = profile.role == "TEAM_MEMBER" ? "현장작업자" : profile.role
+        email = profile.email
+    }
 
     var initial: String {
         String(name.prefix(1))

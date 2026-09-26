@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct WithdrawalGuideView: View {
-    let onRequestConfirmation: () -> Void
+    let onRequestConfirmation: (String) -> Void
 
     @State private var selectedReason: WithdrawalReason?
     @State private var password = ""
     @State private var hasAgreed = false
     @State private var showsConfirmation = false
 
-    init(onRequestConfirmation: @escaping () -> Void = {}) {
+    init(onRequestConfirmation: @escaping (String) -> Void = { _ in }) {
         self.onRequestConfirmation = onRequestConfirmation
     }
 
@@ -156,7 +156,7 @@ struct WithdrawalGuideView: View {
 
     private func confirmWithdrawal() {
         showsConfirmation = false
-        onRequestConfirmation()
+        onRequestConfirmation(password)
     }
 
     private func noticeText(_ text: String) -> some View {
