@@ -305,6 +305,8 @@ struct HomeView: View {
         case .recordHistory:
             RecordHistoryView { record in
                 flowPath.append(HomeFlowRoute.recordDetail(record.recordID))
+            } onCreateRecord: {
+                showsRecordTypes = true
             }
         case let .recordDetail(recordID):
             RecordDetailView(recordID: recordID)
