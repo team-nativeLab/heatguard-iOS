@@ -6,6 +6,7 @@ struct WithdrawalGuideView: View {
     @State private var selectedReason: WithdrawalReason?
     @State private var password = ""
     @State private var hasAgreed = false
+    @State private var showsConfirmation = false
 
     init(onRequestConfirmation: @escaping () -> Void = {}) {
         self.onRequestConfirmation = onRequestConfirmation
@@ -48,11 +49,29 @@ struct WithdrawalGuideView: View {
         .navigationTitle("회원탈퇴")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
-            HGPrimaryButton(title: "탈퇴하기", isEnabled: canRequestWithdrawal, action: onRequestConfirmation)
+            HGPrimaryButton(title: "탈퇴하기", isEnabled: canRequestWithdrawal) {
+                showsConfirmation = true
+            }
                 .padding(.horizontal, HGLayout.screenHorizontalPadding)
                 .padding(.vertical, 14)
                 .background(HGColor.appBackground)
         }
+        .overlay {
+            if showsConfirmation {
+                ZStack {
+                    Color.black.opacity(0.42)
+                        .ignoresSafeArea()
+                        .onTapGesture(perform: dismissConfirmation)
+
+                    WithdrawalConfirmationDialog(
+                        onCancel: dismissConfirmation,
+                        onConfirm: confirmWithdrawal
+                    )
+                }
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: showsConfirmation)
         .dismissKeyboardOnBackgroundTap()
     }
 
@@ -129,6 +148,15 @@ struct WithdrawalGuideView: View {
 
     private var canRequestWithdrawal: Bool {
         selectedReason != nil && !password.isEmpty && hasAgreed
+    }
+
+    private func dismissConfirmation() {
+        showsConfirmation = false
+    }
+
+    private func confirmWithdrawal() {
+        showsConfirmation = false
+        onRequestConfirmation()
     }
 
     private func noticeText(_ text: String) -> some View {
