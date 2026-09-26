@@ -83,22 +83,16 @@ struct WorkPhotoView: View {
     private func saveRecord() {
         UIApplication.shared.dismissKeyboard()
         let draft = HGRecordDraft(type: .work, memo: memo)
-        guard !photos.isEmpty else {
-            onPhotoRequired(draft)
-            return
-        }
-
         isSaving = true
         Task {
             defer { isSaving = false }
-            do {
-                let result = try await HGRecordUploadService().save(
-                    draft,
-                    images: photos
-                )
+            switch await HGPhotoRecordSaveAction.perform(draft: draft, images: photos) {
+            case .photoRequired:
+                onPhotoRequired(draft)
+            case let .success(result):
                 onSave(result)
-            } catch {
-                onFailure(HGRecordSaveFailure(error: error), draft, photos)
+            case let .failure(failure):
+                onFailure(failure, draft, photos)
             }
         }
     }
