@@ -2,6 +2,12 @@ import SwiftUI
 import UIKit
 
 struct HomeView: View {
+    let onSessionEnded: () -> Void
+
+    init(onSessionEnded: @escaping () -> Void = {}) {
+        self.onSessionEnded = onSessionEnded
+    }
+
     @State private var showsRecordTypes = false
     @State private var showsMenuDrawer = false
     @State private var showsEmergency = false
@@ -302,7 +308,11 @@ struct HomeView: View {
         case let .recordDetail(recordID):
             RecordDetailView(recordID: recordID)
         case .withdrawalGuide:
-            WithdrawalGuideView()
+            WithdrawalGuideView {
+                flowPath.append(HomeFlowRoute.withdrawalCompleted)
+            }
+        case .withdrawalCompleted:
+            WithdrawalCompletedView(onConfirm: finishWithdrawal)
         }
     }
 
@@ -313,6 +323,15 @@ struct HomeView: View {
 
     private func returnToHome() {
         flowPath = NavigationPath()
+    }
+
+    private func finishWithdrawal() {
+        do {
+            try HGAuthTokenStore.shared.clear()
+            onSessionEnded()
+        } catch {
+            dashboardError = HGErrorPresentation(error: error)
+        }
     }
 
     private func showSaveSuccess(_ result: HGRecordSaveResult) {
@@ -433,6 +452,7 @@ private enum HomeFlowRoute: Hashable {
     case recordHistory
     case recordDetail(String)
     case withdrawalGuide
+    case withdrawalCompleted
 
     init(recordType: RecordType) {
         switch recordType {

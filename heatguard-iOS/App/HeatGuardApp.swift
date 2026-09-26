@@ -24,7 +24,7 @@ struct heatguard_iOSApp: App {
         if isRestoringSession {
             ProgressView()
         } else if isAuthenticated {
-            HomeView()
+            HomeView(onSessionEnded: { isAuthenticated = false })
         } else {
             LoginView { _ in isAuthenticated = true }
         }
