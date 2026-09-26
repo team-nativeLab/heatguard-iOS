@@ -50,6 +50,16 @@ struct HGAuthenticationService {
             requiresAuthentication: true
         )
     }
+
+    func withdraw(currentPassword: String) async throws {
+        try await client.sendVoid(
+            WithdrawalRequest(currentPassword: currentPassword),
+            method: "DELETE",
+            path: "/api/v1/team/profile",
+            requiresAuthentication: true
+        )
+        try tokenStore.clear()
+    }
 }
 
 private struct TeamLoginRequest: Encodable {
@@ -90,6 +100,8 @@ private struct PasswordChangeRequest: Encodable {
 private struct PasswordChangeResponse: Decodable {
     let changedAt: String?
 }
+
+private struct WithdrawalRequest: Encodable { let currentPassword: String }
 
 struct TeamSession: Equatable {}
 

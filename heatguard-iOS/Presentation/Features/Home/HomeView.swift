@@ -321,8 +321,8 @@ struct HomeView: View {
         case .inquiry:
             InquiryView()
         case .withdrawalGuide:
-            WithdrawalGuideView {
-                flowPath.append(HomeFlowRoute.withdrawalCompleted)
+            WithdrawalGuideView { password in
+                Task { await withdraw(password: password) }
             }
         case .withdrawalCompleted:
             WithdrawalCompletedView(onConfirm: finishWithdrawal)
@@ -365,6 +365,16 @@ struct HomeView: View {
         do {
             try HGAuthTokenStore.shared.clear()
             onSessionEnded()
+        } catch {
+            dashboardError = HGErrorPresentation(error: error)
+        }
+    }
+
+    @MainActor
+    private func withdraw(password: String) async {
+        do {
+            try await HGAuthenticationService().withdraw(currentPassword: password)
+            flowPath.append(HomeFlowRoute.withdrawalCompleted)
         } catch {
             dashboardError = HGErrorPresentation(error: error)
         }

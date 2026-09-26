@@ -2,7 +2,6 @@ import SwiftUI
 
 struct HGScreenHeader: View {
     var onMenuTap: () -> Void = {}
-    var onNotificationTap: () -> Void = {}
 
     var body: some View {
         HStack {
@@ -12,7 +11,7 @@ struct HGScreenHeader: View {
                 .font(HGFont.bold(20, relativeTo: .title2))
                 .foregroundStyle(HGColor.primaryText)
             Spacer()
-            headerButton("bell", action: onNotificationTap)
+            Color.clear.frame(width: 28, height: 28)
         }
         .frame(height: 28)
     }
