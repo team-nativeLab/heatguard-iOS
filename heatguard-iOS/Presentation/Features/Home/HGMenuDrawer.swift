@@ -20,9 +20,7 @@ struct HGMenuDrawer: View {
     let profile: HGMenuProfile
     let onDismiss: () -> Void
     let onProfileEdit: () -> Void
-    let onNotificationSettings: () -> Void
-    let onNotices: () -> Void
-    let onCustomerSupport: () -> Void
+    let onInquiry: () -> Void
     let onLogout: () -> Void
     let onWithdrawal: () -> Void
 
@@ -89,9 +87,7 @@ struct HGMenuDrawer: View {
     private var menuSection: some View {
         VStack(spacing: 0) {
             drawerRow(title: "내 정보 수정", action: onProfileEdit)
-            drawerRow(title: "알림 설정", action: onNotificationSettings)
-            drawerRow(title: "공지사항", action: onNotices)
-            drawerRow(title: "고객센터", action: onCustomerSupport)
+            drawerRow(title: "문의하기", action: onInquiry)
         }
         .padding(.top, 9)
     }
@@ -135,9 +131,7 @@ struct HGMenuDrawer: View {
         profile: .preview,
         onDismiss: {},
         onProfileEdit: {},
-        onNotificationSettings: {},
-        onNotices: {},
-        onCustomerSupport: {},
+        onInquiry: {},
         onLogout: {},
         onWithdrawal: {}
     )
