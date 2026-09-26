@@ -76,16 +76,16 @@ struct HomeView: View {
             if showsMenuDrawer {
                 HGMenuDrawer(
                     profile: .preview,
-                    onDismiss: { showsMenuDrawer = false },
-                    onProfileEdit: { showsMenuDrawer = false },
-                    onInquiry: { showsMenuDrawer = false },
+                    onDismiss: dismissMenuDrawer,
+                    onProfileEdit: dismissMenuDrawer,
+                    onInquiry: dismissMenuDrawer,
                     onLogout: logout,
                     onWithdrawal: {
-                        showsMenuDrawer = false
+                        dismissMenuDrawer()
                         flowPath.append(HomeFlowRoute.withdrawalGuide)
                     }
                 )
-                .transition(.move(edge: .leading))
+                .transition(.move(edge: .leading).combined(with: .opacity))
             }
         }
         .background(HGColor.appBackground)
@@ -136,7 +136,7 @@ struct HomeView: View {
     }
 
     private var header: some View {
-        HGScreenHeader(onMenuTap: { showsMenuDrawer = true })
+        HGScreenHeader(onMenuTap: showMenuDrawer)
     }
 
     private var weatherSummary: some View {
@@ -321,13 +321,25 @@ struct HomeView: View {
     }
 
     private func logout() {
-        showsMenuDrawer = false
+        dismissMenuDrawer()
 
         do {
             try HGAuthenticationService().endLocalSession()
             onSessionEnded()
         } catch {
             logoutError = HGErrorPresentation(error: error)
+        }
+    }
+
+    private func showMenuDrawer() {
+        withAnimation(.easeOut(duration: 0.24)) {
+            showsMenuDrawer = true
+        }
+    }
+
+    private func dismissMenuDrawer() {
+        withAnimation(.easeInOut(duration: 0.24)) {
+            showsMenuDrawer = false
         }
     }
 
