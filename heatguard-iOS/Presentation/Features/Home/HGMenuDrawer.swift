@@ -17,6 +17,15 @@ struct HGMenuProfile: Equatable {
 }
 
 struct HGMenuDrawer: View {
+    private enum Metrics {
+        static let maximumWidth: CGFloat = 320
+        static let widthRatio: CGFloat = 0.78
+        static let dismissThreshold: CGFloat = 0.35
+        static let maximumDimOpacity: CGFloat = 0.35
+    }
+
+    @GestureState private var dragOffset: CGFloat = 0
+
     let profile: HGMenuProfile
     let onDismiss: () -> Void
     let onProfileEdit: () -> Void
@@ -26,16 +35,22 @@ struct HGMenuDrawer: View {
 
     var body: some View {
         GeometryReader { proxy in
+            let drawerWidth = min(proxy.size.width * Metrics.widthRatio, Metrics.maximumWidth)
+            let drawerOffset = min(dragOffset, 0)
+            let dimOpacity = Metrics.maximumDimOpacity * (1 + drawerOffset / drawerWidth)
+
             ZStack(alignment: .leading) {
-                Color.black.opacity(0.35)
+                Color.black.opacity(dimOpacity)
                     .contentShape(Rectangle())
                     .onTapGesture(perform: onDismiss)
 
                 drawerContent
                     .padding(.top, proxy.safeAreaInsets.top)
-                    .frame(width: min(proxy.size.width * 0.78, 320))
+                    .frame(width: drawerWidth)
                     .frame(maxHeight: .infinity)
                     .background(HGColor.surface)
+                    .offset(x: drawerOffset)
+                    .gesture(dismissDragGesture(drawerWidth: drawerWidth))
             }
             .ignoresSafeArea()
         }
@@ -123,6 +138,22 @@ struct HGMenuDrawer: View {
             .frame(height: 53)
         }
         .buttonStyle(.plain)
+    }
+
+    private func dismissDragGesture(drawerWidth: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 8)
+            .updating($dragOffset) { value, state, _ in
+                guard value.translation.width < 0 else { return }
+                state = value.translation.width
+            }
+            .onEnded { value in
+                let shouldDismiss = value.translation.width < -drawerWidth * Metrics.dismissThreshold
+                    || value.predictedEndTranslation.width < -drawerWidth * Metrics.dismissThreshold
+
+                if shouldDismiss {
+                    onDismiss()
+                }
+            }
     }
 }
 
