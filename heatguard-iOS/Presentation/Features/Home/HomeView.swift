@@ -268,7 +268,7 @@ struct HomeView: View {
     private func destinationView(for route: HomeFlowRoute) -> some View {
         switch route {
         case .thermometer:
-            ThermometerRecordView(
+            ThermometerRecordView(weather: dashboard.weather,
                 onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) }
             )
         case .workPhoto:
