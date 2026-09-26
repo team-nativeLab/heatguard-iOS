@@ -9,11 +9,11 @@ struct HGChecklistService {
 
     func fetch() async throws -> HGChecklistSummary {
         let home: HGWorkerHomeChecklistResponse = try await client.get(
-            path: "/api/v1/team",
+            path: HGAPIPath.teamHome,
             requiresAuthentication: true
         )
         let checklist: HGChecklistResponse = try await client.get(
-            path: "/api/v1/team/checklist",
+            path: HGAPIPath.teamChecklist,
             requiresAuthentication: true
         )
         return HGChecklistSummary(times: home.checkTimes, checkedCount: checklist.items.filter(\.checked).count, totalCount: checklist.items.count)
@@ -21,7 +21,7 @@ struct HGChecklistService {
 
     func fetchItems() async throws -> [HGChecklistItem] {
         let response: HGChecklistResponse = try await client.get(
-            path: "/api/v1/team/checklist",
+            path: HGAPIPath.teamChecklist,
             requiresAuthentication: true
         )
         return response.items
@@ -31,7 +31,7 @@ struct HGChecklistService {
         return try await client.send(
             HGChecklistUpdateRequest(checked: isChecked),
             method: "PUT",
-            path: "/api/v1/team/checklist/items/\(itemID)",
+            path: HGAPIPath.teamChecklistItem(id: itemID),
             requiresAuthentication: true
         )
     }

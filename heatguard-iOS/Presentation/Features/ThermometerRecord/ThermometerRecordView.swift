@@ -7,15 +7,17 @@ import SwiftUI
 
 struct ThermometerRecordView: View {
     @State private var isManualEntryEnabled = false
-    @State private var temperature = "47.5"
-    @State private var humidity = "55"
-    @State private var apparentTemperature = 40.5
+    @State private var temperature: String
+    @State private var humidity: String
+    private let apparentTemperature: Double?
+    @State private var validationMessage: String?
 
     let onContinue: (HGRecordDraft) -> Void
 
-    init(
-        onContinue: @escaping (HGRecordDraft) -> Void = { _ in }
-    ) {
+    init(weather: HomeWeather = .unavailable, onContinue: @escaping (HGRecordDraft) -> Void = { _ in }) {
+        _temperature = State(initialValue: weather.temperature.map { String(format: "%.1f", $0) } ?? "")
+        _humidity = State(initialValue: weather.humidity.map { String(format: "%.0f", $0) } ?? "")
+        apparentTemperature = weather.apparentTemperature
         self.onContinue = onContinue
     }
 
@@ -55,6 +57,7 @@ struct ThermometerRecordView: View {
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .dismissKeyboardOnBackgroundTap()
+        .alert("입력값을 확인해주세요", isPresented: validationAlert) { Button("확인", role: .cancel) {} } message: { Text(validationMessage ?? "") }
     }
 
     private var header: some View {
@@ -73,12 +76,12 @@ struct ThermometerRecordView: View {
                     .font(HGFont.semiBold(13, relativeTo: .caption))
                     .foregroundStyle(summaryText)
 
-                Text("\(temperature) °C")
+                Text(temperature.isEmpty ? "—" : "\(temperature) °C")
                     .font(HGFont.bold(32, relativeTo: .largeTitle))
                     .foregroundStyle(HGColor.primaryText)
                     .padding(.top, 9)
 
-                Text("습도 \(humidity)% · 체감 \(apparentTemperature.formatted(.number.precision(.fractionLength(1)))) °C")
+                Text("습도 \(humidity.isEmpty ? "—" : "\(humidity)%") · 체감 \(apparentTemperature.map { $0.formatted(.number.precision(.fractionLength(1))) + " °C" } ?? "—")")
                     .font(HGFont.semiBold(13, relativeTo: .caption))
                     .foregroundStyle(summaryText)
                     .padding(.top, 14)
@@ -144,7 +147,10 @@ struct ThermometerRecordView: View {
         guard
             let inputTemperature = Double(temperature),
             let inputHumidity = Double(humidity)
-        else { return }
+        else {
+            validationMessage = "온도와 습도를 숫자로 입력해주세요."
+            return
+        }
 
         continueWithRecord(temperature: inputTemperature, humidity: inputHumidity)
     }
@@ -153,6 +159,12 @@ struct ThermometerRecordView: View {
         onContinue(HGRecordDraft(type: .thermometer, memo: "", temperature: temperature, humidity: humidity))
     }
 
+    private var validationAlert: Binding<Bool> { Binding(get: { validationMessage != nil }, set: { if !$0 { validationMessage = nil } }) }
+
+}
+
+private extension HomeWeather {
+    static let unavailable = HomeWeather(temperature: nil, humidity: nil, apparentTemperature: nil, heatLevel: 0)
 }
 
 #Preview {

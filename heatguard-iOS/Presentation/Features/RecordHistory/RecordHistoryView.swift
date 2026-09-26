@@ -40,7 +40,7 @@ struct RecordHistoryView: View {
                 .background(HGColor.appBackground)
         }
         .task { await loadRecords() }
-        .alert("기록을 불러오지 못했습니다.", isPresented: errorAlert) {
+        .alert(error?.title ?? "기록 조회 오류", isPresented: errorAlert) {
             Button("다시 시도") { Task { await loadRecords() } }
             Button("확인", role: .cancel) {}
         } message: { Text(error?.alertMessage ?? "") }
@@ -165,7 +165,7 @@ private struct RecordHistoryRow: View {
 private extension HGRecordHistoryItem {
     var summary: String { [temperature.map { String(format: "%.1f°C", $0) }, memo].compactMap { $0 }.joined(separator: " · ") }
     var formattedMeasuredAt: String {
-        guard let date = ISO8601DateFormatter().date(from: measuredAt) else { return measuredAt }
+        guard let date = measuredAt.hgISO8601Date else { return measuredAt }
         return date.formatted(date: .omitted, time: .shortened)
     }
 }

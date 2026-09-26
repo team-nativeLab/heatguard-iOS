@@ -9,7 +9,7 @@ struct HGDashboardService {
 
     func fetchHomeDashboard() async throws -> HomeDashboard {
         let response: WorkerHomeDashboardResponse = try await client.get(
-            path: "/api/v1/team",
+            path: HGAPIPath.teamHome,
             requiresAuthentication: true
         )
         return HomeDashboard(response: response)

@@ -3,10 +3,7 @@ import SwiftUI
 struct InquiryView: View {
     @State private var title = ""
     @State private var content = ""
-    @State private var inquiries: [InquiryItem] = [
-        .init(title: "앱에서 사진 업로드가 안 돼요", date: "2026.09.25", isAnswered: true),
-        .init(title: "온도계 기록 수정 요청", date: "2026.09.26", isAnswered: false)
-    ]
+    private let inquiries: [InquiryItem] = []
     @State private var showsUnsupportedMessage = false
 
     var body: some View {
@@ -20,7 +17,16 @@ struct InquiryView: View {
                 }
                 HGPrimaryButton(title: "문의 등록", isEnabled: !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) { submitInquiry() }
                 HStack { Text("내 문의 목록").font(HGFont.bold(16, relativeTo: .headline)); Spacer(); Text("\(inquiries.count)건").font(HGFont.regular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText) }
-                VStack(spacing: 0) { ForEach(inquiries) { inquiry in InquiryRow(item: inquiry); if inquiry.id != inquiries.last?.id { Divider().padding(.leading, 16) } } }.background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                if inquiries.isEmpty {
+                    Text("문의 내역 API가 준비되면 등록한 문의를 확인할 수 있어요.")
+                        .font(HGFont.regular(12, relativeTo: .caption))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(16)
+                        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                } else {
+                    VStack(spacing: 0) { ForEach(inquiries) { inquiry in InquiryRow(item: inquiry); if inquiry.id != inquiries.last?.id { Divider().padding(.leading, 16) } } }.background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                }
             }.padding(24)
         }
         .background(HGColor.appBackground).navigationTitle("문의하기").navigationBarTitleDisplayMode(.inline)

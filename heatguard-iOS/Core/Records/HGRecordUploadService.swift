@@ -26,7 +26,7 @@ struct HGRecordUploadService {
                 }
             ),
             method: "POST",
-            path: "/api/v1/team/uploads",
+            path: HGAPIPath.teamUploads,
             requiresAuthentication: true
         )
         guard uploadResponse.uploads.count == photos.count else {
@@ -40,12 +40,12 @@ struct HGRecordUploadService {
                 type: draft.type.rawValue,
                 photoKeys: uploadResponse.uploads.map(\.objectKey),
                 memo: draft.memo.nilIfEmpty,
-                measuredAt: ISO8601DateFormatter().string(from: draft.measuredAt),
+                measuredAt: ISO8601DateFormatter.heatGuard.string(from: draft.measuredAt),
                 temperature: draft.temperature,
                 humidity: draft.humidity
             ),
             method: "POST",
-            path: "/api/v1/team/records",
+            path: HGAPIPath.teamRecords,
             requiresAuthentication: true
         )
 

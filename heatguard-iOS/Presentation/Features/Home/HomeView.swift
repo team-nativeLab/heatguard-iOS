@@ -20,6 +20,7 @@ struct HomeView: View {
     @State private var dashboardError: HGErrorPresentation?
     @State private var emergencyError: HGErrorPresentation?
     @State private var logoutError: HGErrorPresentation?
+    @State private var withdrawalError: HGErrorPresentation?
     @State private var checklist = HGChecklistSummary(times: [], checkedCount: 0, totalCount: 0)
     @State private var storedDraft: HGStoredRecordDraft?
     @State private var failedDraft: HGRecordDraft?
@@ -135,6 +136,9 @@ struct HomeView: View {
         .alert("로그아웃하지 못했습니다.", isPresented: logoutErrorAlert) {
             Button("확인", role: .cancel) {}
         } message: { Text(logoutError?.alertMessage ?? "") }
+        .alert(withdrawalError?.title ?? "회원탈퇴 오류", isPresented: withdrawalErrorAlert) {
+            Button("확인", role: .cancel) {}
+        } message: { Text(withdrawalError?.alertMessage ?? "") }
         .alert("임시저장 기록", isPresented: $showsStoredDraft) {
             Button("이어 작성", action: resumeStoredDraft)
             Button("삭제", role: .destructive, action: discardStoredDraft)
@@ -268,7 +272,7 @@ struct HomeView: View {
     private func destinationView(for route: HomeFlowRoute) -> some View {
         switch route {
         case .thermometer:
-            ThermometerRecordView(
+            ThermometerRecordView(weather: dashboard.weather,
                 onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) }
             )
         case .workPhoto:
@@ -364,12 +368,7 @@ struct HomeView: View {
     }
 
     private func finishWithdrawal() {
-        do {
-            try HGAuthTokenStore.shared.clear()
-            onSessionEnded()
-        } catch {
-            dashboardError = HGErrorPresentation(error: error)
-        }
+        onSessionEnded()
     }
 
     @MainActor
@@ -378,7 +377,7 @@ struct HomeView: View {
             try await HGAuthenticationService().withdraw(currentPassword: password)
             flowPath.append(HomeFlowRoute.withdrawalCompleted)
         } catch {
-            dashboardError = HGErrorPresentation(error: error)
+            withdrawalError = HGErrorPresentation(error: error)
         }
     }
 
@@ -475,6 +474,10 @@ struct HomeView: View {
 
     private var logoutErrorAlert: Binding<Bool> {
         Binding(get: { logoutError != nil }, set: { if !$0 { logoutError = nil } })
+    }
+
+    private var withdrawalErrorAlert: Binding<Bool> {
+        Binding(get: { withdrawalError != nil }, set: { if !$0 { withdrawalError = nil } })
     }
 
     private var storedDraftErrorAlert: Binding<Bool> {
