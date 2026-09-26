@@ -41,6 +41,15 @@ struct HGAuthenticationService {
     func endLocalSession() throws {
         try tokenStore.clear()
     }
+
+    func changePassword(currentPassword: String, newPassword: String) async throws {
+        let _: PasswordChangeResponse = try await client.send(
+            PasswordChangeRequest(currentPassword: currentPassword, newPassword: newPassword),
+            method: "PUT",
+            path: "/api/v1/auth/team/password",
+            requiresAuthentication: true
+        )
+    }
 }
 
 private struct TeamLoginRequest: Encodable {
@@ -72,6 +81,15 @@ private struct TeamLoginResponse: Decodable {
 }
 
 private struct TeamSessionResponse: Decodable {}
+
+private struct PasswordChangeRequest: Encodable {
+    let currentPassword: String
+    let newPassword: String
+}
+
+private struct PasswordChangeResponse: Decodable {
+    let changedAt: String?
+}
 
 struct TeamSession: Equatable {}
 

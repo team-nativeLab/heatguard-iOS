@@ -83,8 +83,14 @@ struct HomeView: View {
                 HGMenuDrawer(
                     profile: .preview,
                     onDismiss: dismissMenuDrawer,
-                    onProfileEdit: dismissMenuDrawer,
-                    onInquiry: dismissMenuDrawer,
+                    onProfileEdit: {
+                        dismissMenuDrawer()
+                        flowPath.append(HomeFlowRoute.profileEdit)
+                    },
+                    onInquiry: {
+                        dismissMenuDrawer()
+                        flowPath.append(HomeFlowRoute.inquiry)
+                    },
                     onLogout: logout,
                     onWithdrawal: {
                         dismissMenuDrawer()
@@ -305,9 +311,15 @@ struct HomeView: View {
         case .recordHistory:
             RecordHistoryView { record in
                 flowPath.append(HomeFlowRoute.recordDetail(record.recordID))
+            } onCreateRecord: {
+                showsRecordTypes = true
             }
         case let .recordDetail(recordID):
             RecordDetailView(recordID: recordID)
+        case .profileEdit:
+            ProfileEditView()
+        case .inquiry:
+            InquiryView()
         case .withdrawalGuide:
             WithdrawalGuideView {
                 flowPath.append(HomeFlowRoute.withdrawalCompleted)
@@ -479,6 +491,8 @@ private enum HomeFlowRoute: Hashable {
     case saveFailure(HGRecordSaveFailure)
     case recordHistory
     case recordDetail(String)
+    case profileEdit
+    case inquiry
     case withdrawalGuide
     case withdrawalCompleted
 
