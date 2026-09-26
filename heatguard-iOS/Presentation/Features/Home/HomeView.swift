@@ -19,6 +19,7 @@ struct HomeView: View {
     @State private var teamProfile: HGTeamProfile?
     @State private var dashboardError: HGErrorPresentation?
     @State private var emergencyError: HGErrorPresentation?
+    @State private var managerPhoneError: HGErrorPresentation?
     @State private var logoutError: HGErrorPresentation?
     @State private var withdrawalError: HGErrorPresentation?
     @State private var checklist = HGChecklistSummary(times: [], checkedCount: 0, totalCount: 0)
@@ -133,6 +134,9 @@ struct HomeView: View {
         .alert("긴급 호출에 실패했습니다.", isPresented: emergencyErrorAlert) {
             Button("확인", role: .cancel) {}
         } message: { Text(emergencyError?.alertMessage ?? "") }
+        .alert(managerPhoneError?.title ?? "관리자 전화 오류", isPresented: managerPhoneErrorAlert) {
+            Button("확인", role: .cancel) {}
+        } message: { Text(managerPhoneError?.alertMessage ?? "") }
         .alert("로그아웃하지 못했습니다.", isPresented: logoutErrorAlert) {
             Button("확인", role: .cancel) {}
         } message: { Text(logoutError?.alertMessage ?? "") }
@@ -228,7 +232,9 @@ struct HomeView: View {
                 icon: "HomeManagerPhone",
                 title: "관리자 전화",
                 subtitle: "현장 관리자에게 연락"
-            ) {}
+            ) {
+                contactSiteManager()
+            }
             Divider().padding(.leading, 16)
             HomeActionRow(
                 icon: "HomeEmergencyPhone",
@@ -266,6 +272,14 @@ struct HomeView: View {
                 emergencyError = HGErrorPresentation(error: error)
             }
         }
+    }
+
+    private func contactSiteManager() {
+        managerPhoneError = HGErrorPresentation(
+            title: "관리자 연락처 정보가 없습니다",
+            message: "현재 작업자 홈 API가 현장 관리자 전화번호를 제공하지 않아 전화를 연결할 수 없습니다.",
+            diagnosticCode: "MANAGER_PHONE_UNAVAILABLE"
+        )
     }
 
     @ViewBuilder
@@ -470,6 +484,10 @@ struct HomeView: View {
 
     private var emergencyErrorAlert: Binding<Bool> {
         Binding(get: { emergencyError != nil }, set: { if !$0 { emergencyError = nil } })
+    }
+
+    private var managerPhoneErrorAlert: Binding<Bool> {
+        Binding(get: { managerPhoneError != nil }, set: { if !$0 { managerPhoneError = nil } })
     }
 
     private var logoutErrorAlert: Binding<Bool> {
