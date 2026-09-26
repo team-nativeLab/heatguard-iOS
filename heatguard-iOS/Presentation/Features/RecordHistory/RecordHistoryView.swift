@@ -8,6 +8,8 @@ struct RecordHistoryView: View {
     @State private var isLoading = true
     @State private var error: HGErrorPresentation?
     @State private var selectedFilter: RecordFilter = .all
+    @State private var selectedPeriodEnd = Date.now
+    @State private var showsPeriodPicker = false
 
     init(onRecordSelected: @escaping (HGRecordHistoryItem) -> Void = { _ in }, onCreateRecord: @escaping () -> Void = {}) {
         self.onRecordSelected = onRecordSelected
@@ -40,6 +42,25 @@ struct RecordHistoryView: View {
                 .background(HGColor.appBackground)
         }
         .task { await loadRecords() }
+        .sheet(isPresented: $showsPeriodPicker) {
+            NavigationStack {
+                DatePicker(
+                    "기준일",
+                    selection: $selectedPeriodEnd,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
+                .padding(24)
+                .navigationTitle("기록 기간 선택")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("완료") { showsPeriodPicker = false }
+                    }
+                }
+            }
+            .presentationDetents([.medium])
+        }
         .alert(error?.title ?? "기록 조회 오류", isPresented: errorAlert) {
             Button("다시 시도") { Task { await loadRecords() } }
             Button("확인", role: .cancel) {}
@@ -47,14 +68,18 @@ struct RecordHistoryView: View {
     }
 
     private var periodSelector: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "calendar").foregroundStyle(HGColor.secondaryText)
-            Text(currentWeekRange).font(HGFont.medium(14, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
-            Spacer()
-            Image(systemName: "chevron.down").font(.caption.weight(.semibold)).foregroundStyle(HGColor.secondaryText)
+        Button { showsPeriodPicker = true } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "calendar").foregroundStyle(HGColor.secondaryText)
+                Text(currentWeekRange).font(HGFont.medium(14, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
+                Spacer()
+                Image(systemName: "chevron.down").font(.caption.weight(.semibold)).foregroundStyle(HGColor.secondaryText)
+            }
+            .padding(.horizontal, 20).frame(height: 52)
+            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
         }
-        .padding(.horizontal, 20).frame(height: 52)
-        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+        .buttonStyle(.plain)
+        .accessibilityHint("기준일을 선택해 최근 7일 기록을 조회합니다")
     }
 
     private var filterSelector: some View {
@@ -74,13 +99,13 @@ struct RecordHistoryView: View {
 
     private var summaryCard: some View {
         HStack(spacing: 0) {
-            RecordCountMetric(title: "전체", count: records.count)
+            RecordCountMetric(title: "전체", count: periodRecords.count)
             Divider().frame(height: 28)
-            RecordCountMetric(title: "온도계", count: records.count(where: { $0.type == .thermometer }))
+            RecordCountMetric(title: "온도계", count: periodRecords.count(where: { $0.type == .thermometer }))
             Divider().frame(height: 28)
-            RecordCountMetric(title: "작업 사진", count: records.count(where: { $0.type == .work }))
+            RecordCountMetric(title: "작업 사진", count: periodRecords.count(where: { $0.type == .work }))
             Divider().frame(height: 28)
-            RecordCountMetric(title: "휴식 사진", count: records.count(where: { $0.type == .rest }))
+            RecordCountMetric(title: "휴식 사진", count: periodRecords.count(where: { $0.type == .rest }))
         }
         .padding(.vertical, 16)
         .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
@@ -110,10 +135,25 @@ struct RecordHistoryView: View {
         }
     }
 
-    private var filteredRecords: [HGRecordHistoryItem] { records.filter { selectedFilter.matches($0.type) } }
+    private var filteredRecords: [HGRecordHistoryItem] {
+        periodRecords.filter { selectedFilter.matches($0.type) }
+    }
+
+    private var periodRecords: [HGRecordHistoryItem] {
+        let calendar = Calendar.current
+        let end = calendar.startOfDay(for: selectedPeriodEnd)
+        let start = calendar.date(byAdding: .day, value: -6, to: end) ?? end
+        let endExclusive = calendar.date(byAdding: .day, value: 1, to: end) ?? end
+
+        return records.filter { record in
+            guard let measuredAt = record.measuredAt.hgISO8601Date else { return false }
+            return measuredAt >= start && measuredAt < endExclusive
+        }
+    }
+
     private var currentWeekRange: String {
-        let start = Calendar.current.date(byAdding: .day, value: -6, to: .now) ?? .now
-        return "\(start.formatted(.dateTime.year().month().day())) ~ \(Date.now.formatted(.dateTime.year().month().day()))"
+        let start = Calendar.current.date(byAdding: .day, value: -6, to: selectedPeriodEnd) ?? selectedPeriodEnd
+        return "\(start.formatted(.dateTime.year().month().day())) ~ \(selectedPeriodEnd.formatted(.dateTime.year().month().day()))"
     }
 
     @MainActor private func loadRecords() async {
