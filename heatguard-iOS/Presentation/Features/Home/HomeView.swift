@@ -105,7 +105,6 @@ struct HomeView: View {
         .navigationDestination(for: HomeFlowRoute.self, destination: destinationView)
         .task {
             await loadDashboard()
-            await recoverEmergencyCall()
             loadStoredDraft()
         }
         .alert("홈 데이터를 불러오지 못했습니다.", isPresented: dashboardErrorAlert) {
@@ -249,12 +248,6 @@ struct HomeView: View {
                 emergencyError = HGErrorPresentation(error: error)
             }
         }
-    }
-
-    @MainActor
-    private func recoverEmergencyCall() async {
-        guard (try? await HGEmergencyCallService().currentCall()) != nil else { return }
-        showsCalling = true
     }
 
     @ViewBuilder
