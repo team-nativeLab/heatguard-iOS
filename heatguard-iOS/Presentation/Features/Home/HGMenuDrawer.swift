@@ -58,7 +58,6 @@ struct HGMenuDrawer: View {
                 .gesture(dismissDragGesture(drawerWidth: drawerWidth))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .ignoresSafeArea()
     }
 
     private var drawerContent: some View {
