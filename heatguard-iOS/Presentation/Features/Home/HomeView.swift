@@ -78,9 +78,7 @@ struct HomeView: View {
                     profile: .preview,
                     onDismiss: { showsMenuDrawer = false },
                     onProfileEdit: { showsMenuDrawer = false },
-                    onNotificationSettings: { showsMenuDrawer = false },
-                    onNotices: { showsMenuDrawer = false },
-                    onCustomerSupport: { showsMenuDrawer = false },
+                    onInquiry: { showsMenuDrawer = false },
                     onLogout: logout,
                     onWithdrawal: {
                         showsMenuDrawer = false
