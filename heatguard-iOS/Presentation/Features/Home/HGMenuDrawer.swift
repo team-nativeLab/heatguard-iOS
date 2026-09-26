@@ -34,6 +34,7 @@ struct HGMenuDrawer: View {
                     .onTapGesture(perform: onDismiss)
 
                 drawerContent
+                    .padding(.top, proxy.safeAreaInsets.top)
                     .frame(width: min(proxy.size.width * 0.78, 320))
                     .frame(maxHeight: .infinity)
                     .background(HGColor.surface)
