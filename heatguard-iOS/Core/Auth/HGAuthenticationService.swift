@@ -17,7 +17,7 @@ struct HGAuthenticationService {
         let response: TeamLoginResponse = try await client.send(
             TeamLoginRequest(email: email, password: password),
             method: "POST",
-            path: "/api/v1/auth/team/login"
+            path: HGAPIPath.teamLogin
         )
         try tokenStore.save(response.accessToken)
         return TeamSession()
@@ -27,18 +27,18 @@ struct HGAuthenticationService {
         guard try tokenStore.load() != nil else { return nil }
 
         let _: TeamSessionResponse = try await client.get(
-            path: "/api/v1/auth/team/me",
+            path: HGAPIPath.teamMe,
             requiresAuthentication: true
         )
         return TeamSession()
     }
 
     func currentProfile() async throws -> HGTeamProfile {
-        try await client.get(path: "/api/v1/auth/team/me", requiresAuthentication: true)
+        try await client.get(path: HGAPIPath.teamMe, requiresAuthentication: true)
     }
 
     func logout() async throws {
-        try await client.sendVoid(method: "POST", path: "/api/v1/auth/team/logout", requiresAuthentication: true)
+        try await client.sendVoid(method: "POST", path: HGAPIPath.teamLogout, requiresAuthentication: true)
         try tokenStore.clear()
     }
 
@@ -50,7 +50,7 @@ struct HGAuthenticationService {
         let _: PasswordChangeResponse = try await client.send(
             PasswordChangeRequest(currentPassword: currentPassword, newPassword: newPassword),
             method: "PUT",
-            path: "/api/v1/auth/team/password",
+            path: HGAPIPath.teamPassword,
             requiresAuthentication: true
         )
     }
@@ -59,7 +59,7 @@ struct HGAuthenticationService {
         try await client.sendVoid(
             WithdrawalRequest(currentPassword: currentPassword),
             method: "DELETE",
-            path: "/api/v1/team/profile",
+            path: HGAPIPath.teamProfile,
             requiresAuthentication: true
         )
         try tokenStore.clear()

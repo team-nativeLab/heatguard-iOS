@@ -9,14 +9,14 @@ struct HGRecordHistoryService {
 
     func fetchRecords() async throws -> HGRecordPage {
         try await client.get(
-            path: "/api/v1/team/records",
+            path: HGAPIPath.teamRecords,
             requiresAuthentication: true
         )
     }
 
     func fetchDetail(id: String) async throws -> HGRecordDetail {
         try await client.get(
-            path: "/api/v1/team/records/\(id)",
+            path: HGAPIPath.teamRecord(id: id),
             requiresAuthentication: true
         )
     }

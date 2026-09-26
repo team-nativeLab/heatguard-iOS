@@ -132,7 +132,7 @@ private struct DetailInfoRow: View {
 }
 private extension AsyncImagePhase { func get() throws -> Image { if case let .success(image) = self { return image }; throw URLError(.cannotDecodeContentData) } }
 private extension HGRecordDetail {
-    var formattedMeasuredAt: String { guard let date = ISO8601DateFormatter().date(from: measuredAt) else { return measuredAt }; return date.formatted(date: .long, time: .shortened) }
+    var formattedMeasuredAt: String { guard let date = measuredAt.hgISO8601Date else { return measuredAt }; return date.formatted(date: .long, time: .shortened) }
     var temperatureText: String { temperature.map { String(format: "%.1f°C", $0) } ?? "-" }
     var humidityText: String { humidity.map { String(format: "%.0f%%", $0) } ?? "-" }
     var apparentTemperatureText: String { apparentTemperature.map { String(format: "%.1f°C", $0) } ?? "-" }

@@ -165,7 +165,7 @@ private struct RecordHistoryRow: View {
 private extension HGRecordHistoryItem {
     var summary: String { [temperature.map { String(format: "%.1f°C", $0) }, memo].compactMap { $0 }.joined(separator: " · ") }
     var formattedMeasuredAt: String {
-        guard let date = ISO8601DateFormatter().date(from: measuredAt) else { return measuredAt }
+        guard let date = measuredAt.hgISO8601Date else { return measuredAt }
         return date.formatted(date: .omitted, time: .shortened)
     }
 }
