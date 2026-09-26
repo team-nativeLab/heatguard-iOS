@@ -26,7 +26,7 @@ struct HGRecordUploadService {
                 }
             ),
             method: "POST",
-            path: "/api/v1/team/uploads",
+            path: HGAPIPath.teamUploads,
             requiresAuthentication: true
         )
         guard uploadResponse.uploads.count == photos.count else {
@@ -45,7 +45,7 @@ struct HGRecordUploadService {
                 humidity: draft.humidity
             ),
             method: "POST",
-            path: "/api/v1/team/records",
+            path: HGAPIPath.teamRecords,
             requiresAuthentication: true
         )
 

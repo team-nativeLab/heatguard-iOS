@@ -11,7 +11,7 @@ struct HGEmergencyCallService {
         let _: HGEmergencyCallResponse = try await client.send(
             HGEmergencyCallRequest(message: message, clientOccurredAt: ISO8601DateFormatter().string(from: .now)),
             method: "POST",
-            path: "/api/v1/team/emergency-calls",
+            path: HGAPIPath.teamEmergencyCalls,
             requiresAuthentication: true,
             headers: ["Idempotency-Key": UUID().uuidString]
         )
