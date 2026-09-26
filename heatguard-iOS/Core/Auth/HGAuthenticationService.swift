@@ -37,6 +37,10 @@ struct HGAuthenticationService {
         try await client.sendVoid(method: "POST", path: "/api/v1/auth/team/logout", requiresAuthentication: true)
         try tokenStore.clear()
     }
+
+    func endLocalSession() throws {
+        try tokenStore.clear()
+    }
 }
 
 private struct TeamLoginRequest: Encodable {

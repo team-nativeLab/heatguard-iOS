@@ -18,6 +18,7 @@ struct HomeView: View {
     @State private var dashboard = HomeDashboard.unavailable
     @State private var dashboardError: HGErrorPresentation?
     @State private var emergencyError: HGErrorPresentation?
+    @State private var logoutError: HGErrorPresentation?
     @State private var checklist = HGChecklistSummary(times: [], checkedCount: 0, totalCount: 0)
     @State private var storedDraft: HGStoredRecordDraft?
     @State private var failedDraft: HGRecordDraft?
@@ -80,7 +81,7 @@ struct HomeView: View {
                     onNotificationSettings: { showsMenuDrawer = false },
                     onNotices: { showsMenuDrawer = false },
                     onCustomerSupport: { showsMenuDrawer = false },
-                    onLogout: { showsMenuDrawer = false },
+                    onLogout: logout,
                     onWithdrawal: {
                         showsMenuDrawer = false
                         flowPath.append(HomeFlowRoute.withdrawalGuide)
@@ -120,6 +121,9 @@ struct HomeView: View {
         .alert("긴급 호출에 실패했습니다.", isPresented: emergencyErrorAlert) {
             Button("확인", role: .cancel) {}
         } message: { Text(emergencyError?.alertMessage ?? "") }
+        .alert("로그아웃하지 못했습니다.", isPresented: logoutErrorAlert) {
+            Button("확인", role: .cancel) {}
+        } message: { Text(logoutError?.alertMessage ?? "") }
         .alert("임시저장 기록", isPresented: $showsStoredDraft) {
             Button("이어 작성", action: resumeStoredDraft)
             Button("삭제", role: .destructive, action: discardStoredDraft)
@@ -325,6 +329,17 @@ struct HomeView: View {
         flowPath = NavigationPath()
     }
 
+    private func logout() {
+        showsMenuDrawer = false
+
+        do {
+            try HGAuthenticationService().endLocalSession()
+            onSessionEnded()
+        } catch {
+            logoutError = HGErrorPresentation(error: error)
+        }
+    }
+
     private func finishWithdrawal() {
         do {
             try HGAuthTokenStore.shared.clear()
@@ -423,6 +438,10 @@ struct HomeView: View {
 
     private var emergencyErrorAlert: Binding<Bool> {
         Binding(get: { emergencyError != nil }, set: { if !$0 { emergencyError = nil } })
+    }
+
+    private var logoutErrorAlert: Binding<Bool> {
+        Binding(get: { logoutError != nil }, set: { if !$0 { logoutError = nil } })
     }
 
     private var storedDraftErrorAlert: Binding<Bool> {
