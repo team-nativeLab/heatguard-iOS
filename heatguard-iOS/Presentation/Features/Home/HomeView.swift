@@ -75,7 +75,10 @@ struct HomeView: View {
                     onNotices: { showsMenuDrawer = false },
                     onCustomerSupport: { showsMenuDrawer = false },
                     onLogout: { showsMenuDrawer = false },
-                    onWithdrawal: { showsMenuDrawer = false }
+                    onWithdrawal: {
+                        showsMenuDrawer = false
+                        flowPath.append(HomeFlowRoute.withdrawalGuide)
+                    }
                 )
                 .transition(.move(edge: .leading))
             }
@@ -298,6 +301,8 @@ struct HomeView: View {
             }
         case let .recordDetail(recordID):
             RecordDetailView(recordID: recordID)
+        case .withdrawalGuide:
+            WithdrawalGuideView()
         }
     }
 
@@ -427,6 +432,7 @@ private enum HomeFlowRoute: Hashable {
     case saveFailure(HGRecordSaveFailure)
     case recordHistory
     case recordDetail(String)
+    case withdrawalGuide
 
     init(recordType: RecordType) {
         switch recordType {
