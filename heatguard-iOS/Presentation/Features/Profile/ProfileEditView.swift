@@ -4,7 +4,7 @@ struct ProfileEditView: View {
     let profile: HGTeamProfile?
     @State private var company: String
     @State private var name: String
-    @State private var showsSavedMessage = false
+    @State private var showsUnsupportedMessage = false
 
     init(profile: HGTeamProfile? = nil) {
         self.profile = profile
@@ -38,8 +38,8 @@ struct ProfileEditView: View {
             }.padding(24)
         }
         .background(HGColor.appBackground).navigationTitle("내 정보 수정").navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) { HGPrimaryButton(title: "저장하기") { showsSavedMessage = true }.padding(.horizontal, 28).padding(.vertical, 10).background(HGColor.appBackground) }
-        .alert("저장 완료", isPresented: $showsSavedMessage) { Button("확인", role: .cancel) {} } message: { Text("수정한 정보가 저장되었습니다.") }
+        .safeAreaInset(edge: .bottom) { HGPrimaryButton(title: "저장하기") { showsUnsupportedMessage = true }.padding(.horizontal, 28).padding(.vertical, 10).background(HGColor.appBackground) }
+        .alert("아직 저장할 수 없습니다.", isPresented: $showsUnsupportedMessage) { Button("확인", role: .cancel) {} } message: { Text("회사명과 이름을 변경하는 작업자 API가 준비되면 저장할 수 있어요.") }
         .dismissKeyboardOnBackgroundTap().keyboardDismissToolbar()
     }
 }
