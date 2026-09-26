@@ -41,12 +41,28 @@ private struct PasswordChangeView: View {
     @State private var currentPassword = ""
     @State private var newPassword = ""
     @State private var confirmation = ""
+    @State private var isSubmitting = false
+    @State private var error: HGErrorPresentation?
+    @State private var isComplete = false
     var body: some View {
         VStack(spacing: 20) {
             HGTextField(title: "현재 비밀번호", placeholder: "현재 비밀번호를 입력해주세요", text: $currentPassword, isSecure: true, fieldHeight: 48)
             HGTextField(title: "새 비밀번호", placeholder: "새 비밀번호를 입력해주세요", text: $newPassword, isSecure: true, fieldHeight: 48)
             HGTextField(title: "새 비밀번호 확인", placeholder: "새 비밀번호를 다시 입력해주세요", text: $confirmation, isSecure: true, fieldHeight: 48)
             Spacer()
+            HGPrimaryButton(title: isSubmitting ? "변경 중..." : "비밀번호 변경", isEnabled: isValid && !isSubmitting) {
+                Task { await changePassword() }
+            }
         }.padding(24).background(HGColor.appBackground).navigationTitle("비밀번호 변경").navigationBarTitleDisplayMode(.inline).dismissKeyboardOnBackgroundTap().keyboardDismissToolbar()
+        .alert("비밀번호를 변경하지 못했습니다.", isPresented: errorAlert) { Button("확인", role: .cancel) {} } message: { Text(error?.alertMessage ?? "") }
+        .alert("비밀번호가 변경되었습니다.", isPresented: $isComplete) { Button("확인", role: .cancel) {} }
+    }
+
+    private var isValid: Bool { !currentPassword.isEmpty && newPassword.count >= 8 && newPassword == confirmation }
+    private var errorAlert: Binding<Bool> { Binding(get: { error != nil }, set: { if !$0 { error = nil } }) }
+    @MainActor private func changePassword() async {
+        isSubmitting = true; defer { isSubmitting = false }
+        do { try await HGAuthenticationService().changePassword(currentPassword: currentPassword, newPassword: newPassword); isComplete = true; currentPassword = ""; newPassword = ""; confirmation = "" }
+        catch { self.error = HGErrorPresentation(error: error) }
     }
 }
