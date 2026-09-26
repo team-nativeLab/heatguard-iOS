@@ -74,6 +74,12 @@ struct HomeView: View {
             .padding(.top, HGLayout.screenTopPadding)
 
             if showsMenuDrawer {
+                Color.black.opacity(0.35)
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: dismissMenuDrawer)
+                    .transition(.opacity)
+
                 HGMenuDrawer(
                     profile: .preview,
                     onDismiss: dismissMenuDrawer,
@@ -85,7 +91,7 @@ struct HomeView: View {
                         flowPath.append(HomeFlowRoute.withdrawalGuide)
                     }
                 )
-                .transition(.move(edge: .leading).combined(with: .opacity))
+                .transition(.move(edge: .leading))
             }
         }
         .background(HGColor.appBackground)

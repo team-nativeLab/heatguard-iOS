@@ -21,7 +21,6 @@ struct HGMenuDrawer: View {
         static let maximumWidth: CGFloat = 320
         static let widthRatio: CGFloat = 0.78
         static let dismissThreshold: CGFloat = 0.35
-        static let maximumDimOpacity: CGFloat = 0.35
     }
 
     @GestureState private var dragOffset: CGFloat = 0
@@ -37,23 +36,17 @@ struct HGMenuDrawer: View {
         GeometryReader { proxy in
             let drawerWidth = min(proxy.size.width * Metrics.widthRatio, Metrics.maximumWidth)
             let drawerOffset = min(dragOffset, 0)
-            let dimOpacity = Metrics.maximumDimOpacity * (1 + drawerOffset / drawerWidth)
 
-            ZStack(alignment: .leading) {
-                Color.black.opacity(dimOpacity)
-                    .contentShape(Rectangle())
-                    .onTapGesture(perform: onDismiss)
-
-                drawerContent
-                    .padding(.top, proxy.safeAreaInsets.top)
-                    .frame(width: drawerWidth)
-                    .frame(maxHeight: .infinity)
-                    .background(HGColor.surface)
-                    .offset(x: drawerOffset)
-                    .gesture(dismissDragGesture(drawerWidth: drawerWidth))
-            }
-            .ignoresSafeArea()
+            drawerContent
+                .padding(.top, proxy.safeAreaInsets.top)
+                .frame(width: drawerWidth)
+                .frame(maxHeight: .infinity)
+                .background(HGColor.surface)
+                .offset(x: drawerOffset)
+                .gesture(dismissDragGesture(drawerWidth: drawerWidth))
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .ignoresSafeArea()
     }
 
     private var drawerContent: some View {
