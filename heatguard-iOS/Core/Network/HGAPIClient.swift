@@ -48,12 +48,14 @@ struct HGAPIClient {
 
     func get<Response: Decodable>(
         path: String,
-        requiresAuthentication: Bool = false
+        requiresAuthentication: Bool = false,
+        queryItems: [URLQueryItem] = []
     ) async throws -> Response {
         try await request(
             method: "GET",
             path: path,
-            requiresAuthentication: requiresAuthentication
+            requiresAuthentication: requiresAuthentication,
+            queryItems: queryItems
         )
     }
 
@@ -89,10 +91,17 @@ struct HGAPIClient {
         path: String,
         body: Data? = nil,
         requiresAuthentication: Bool,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
+        queryItems: [URLQueryItem] = []
     ) async throws -> Response {
         let baseURL = try HGAPIConfiguration.baseURL()
-        let url = baseURL.appending(path: path)
+        guard var components = URLComponents(url: baseURL.appending(path: path), resolvingAgainstBaseURL: false) else {
+            throw HGAPIError.configuration("서버 주소를 처리하지 못했습니다.")
+        }
+        components.queryItems = queryItems.isEmpty ? nil : queryItems
+        guard let url = components.url else {
+            throw HGAPIError.configuration("서버 요청 주소를 만들지 못했습니다.")
+        }
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
