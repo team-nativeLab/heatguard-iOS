@@ -39,6 +39,7 @@ struct HGManualInputCard: View {
                 calculatedField
             }
             .padding(.top, 16)
+            .disabled(!isEnabled || isLocked)
 
             Text(footerText)
                 .font(HGFont.regular(11, relativeTo: .caption2))
@@ -52,7 +53,6 @@ struct HGManualInputCard: View {
             RoundedRectangle(cornerRadius: HGLayout.surfaceCardCornerRadius)
                 .stroke(HGColor.inputBorder, lineWidth: 1)
         }
-        .disabled(!isEnabled || isLocked)
         .accessibilityElement(children: .contain)
         .keyboardDismissToolbar()
     }
