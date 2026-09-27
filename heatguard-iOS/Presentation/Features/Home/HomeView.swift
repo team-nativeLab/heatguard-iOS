@@ -306,11 +306,25 @@ struct HomeView: View {
     }
 
     private func contactSiteManager() {
-        managerPhoneError = HGErrorPresentation(
-            title: "관리자 연락처 정보가 없습니다",
-            message: "현재 작업자 홈 API가 현장 관리자 전화번호를 제공하지 않아 전화를 연결할 수 없습니다.",
-            diagnosticCode: "MANAGER_PHONE_UNAVAILABLE"
-        )
+        guard let phoneURL = dashboard.managerPhone?.telephoneURL else {
+            managerPhoneError = HGErrorPresentation(
+                title: "관리자 연락처 정보가 없습니다",
+                message: "현장 관리자 전화번호를 확인한 뒤 다시 시도해주세요.",
+                diagnosticCode: "MANAGER_PHONE_UNAVAILABLE"
+            )
+            return
+        }
+
+        UIApplication.shared.open(phoneURL, options: [:]) { didOpen in
+            guard !didOpen else { return }
+            Task { @MainActor in
+                managerPhoneError = HGErrorPresentation(
+                    title: "전화 앱을 열지 못했습니다",
+                    message: "전화 기능을 사용할 수 있는 기기에서 다시 시도해주세요.",
+                    diagnosticCode: "MANAGER_PHONE_OPEN_FAILED"
+                )
+            }
+        }
     }
 
     @ViewBuilder
@@ -549,6 +563,22 @@ struct HomeView: View {
     @MainActor
     private func loadProfile() async {
         teamProfile = try? await HGAuthenticationService().currentProfile()
+    }
+}
+
+private extension String {
+    var telephoneURL: URL? {
+        let allowedCharacters = CharacterSet(charactersIn: "+0123456789")
+        let sanitized = unicodeScalars.filter(allowedCharacters.contains).map(String.init).joined()
+        let normalized = sanitized.hasPrefix("+")
+            ? "+" + sanitized.dropFirst().filter { $0.isNumber }
+            : sanitized.filter { $0.isNumber }
+
+        guard !normalized.isEmpty, normalized.rangeOfCharacter(from: .decimalDigits) != nil else {
+            return nil
+        }
+
+        return URL(string: "tel:\\(normalized)")
     }
 }
 

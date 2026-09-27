@@ -17,11 +17,16 @@ struct HGDashboardService {
 }
 
 private struct WorkerHomeDashboardResponse: Decodable {
+    let site: WorkerHomeSite?
     let weather: WorkerHomeWeather?
     let heatLevel: Int
     let checkTimes: [String]
     let checklistSummary: WorkerChecklistSummary
     let activeEmergencyCall: WorkerEmergencyCall?
+}
+
+private struct WorkerHomeSite: Decodable {
+    let managerPhone: String?
 }
 
 private struct WorkerHomeWeather: Decodable {
@@ -38,12 +43,14 @@ private struct WorkerChecklistSummary: Decodable {
 private struct WorkerEmergencyCall: Decodable {}
 
 struct HomeDashboard: Equatable {
+    let managerPhone: String?
     let weather: HomeWeather
     let todayRecordCount: Int
     let activeEmergencyCount: Int
     let checklist: HGChecklistSummary
 
     fileprivate init(response: WorkerHomeDashboardResponse) {
+        managerPhone = response.site?.managerPhone
         weather = HomeWeather(
             temperature: response.weather?.temperature,
             humidity: response.weather?.humidity,
@@ -60,6 +67,7 @@ struct HomeDashboard: Equatable {
     }
 
     static let unavailable = HomeDashboard(
+        managerPhone: nil,
         weather: HomeWeather(
             temperature: nil,
             humidity: nil,
@@ -72,11 +80,13 @@ struct HomeDashboard: Equatable {
     )
 
     private init(
+        managerPhone: String?,
         weather: HomeWeather,
         todayRecordCount: Int,
         activeEmergencyCount: Int,
         checklist: HGChecklistSummary
     ) {
+        self.managerPhone = managerPhone
         self.weather = weather
         self.todayRecordCount = todayRecordCount
         self.activeEmergencyCount = activeEmergencyCount
