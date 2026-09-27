@@ -13,6 +13,9 @@ struct HomeView: View {
     @State private var showsEmergency = false
     @State private var showsCalling = false
     @State private var shouldBeginEmergencyCall = false
+    @State private var activeEmergencyCallID: String?
+    @State private var isUpdatingEmergencyCall = false
+    @State private var emergencyStatusError: HGErrorPresentation?
     @State private var pendingRecordType: RecordType?
     @State private var flowPath = NavigationPath()
     @State private var dashboard = HomeDashboard.unavailable
@@ -115,7 +118,11 @@ struct HomeView: View {
             }
         }
         .sheet(isPresented: $showsCalling) {
-            EmergencyCallView(onCancel: { showsCalling = false })
+            EmergencyCallView(
+                isCancelling: isUpdatingEmergencyCall,
+                error: $emergencyStatusError,
+                onCancel: cancelEmergencyCall
+            )
         }
         .navigationDestination(for: HomeFlowRoute.self, destination: destinationView)
         .task {
@@ -266,10 +273,34 @@ struct HomeView: View {
         shouldBeginEmergencyCall = false
         Task {
             do {
-                _ = try await HGEmergencyCallService().createCall()
+                activeEmergencyCallID = try await HGEmergencyCallService().createCall()
                 showsCalling = true
             } catch {
                 emergencyError = HGErrorPresentation(error: error)
+            }
+        }
+    }
+
+    private func cancelEmergencyCall() {
+        guard let activeEmergencyCallID else {
+            emergencyStatusError = HGErrorPresentation(
+                title: "긴급 호출 오류",
+                message: "취소할 긴급 호출 정보를 찾지 못했습니다.",
+                diagnosticCode: "EMERGENCY_CALL_ID_MISSING"
+            )
+            return
+        }
+
+        Task {
+            isUpdatingEmergencyCall = true
+            defer { isUpdatingEmergencyCall = false }
+
+            do {
+                try await HGEmergencyCallService().updateCall(id: activeEmergencyCallID, status: .cancelled)
+                self.activeEmergencyCallID = nil
+                showsCalling = false
+            } catch {
+                emergencyStatusError = HGErrorPresentation(error: error)
             }
         }
     }

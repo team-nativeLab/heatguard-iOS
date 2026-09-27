@@ -26,6 +26,13 @@ struct HGErrorPresentation: Hashable {
             return
         }
 
+        if let emergencyError = error as? HGEmergencyCallError {
+            title = "긴급 호출 오류"
+            message = emergencyError.localizedDescription
+            diagnosticCode = emergencyError.diagnosticCode
+            return
+        }
+
         if let urlError = error as? URLError {
             title = "네트워크 연결 오류"
             message = urlError.localizedDescription
