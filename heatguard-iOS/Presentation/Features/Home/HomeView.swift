@@ -14,6 +14,7 @@ struct HomeView: View {
     @State private var showsCalling = false
     @State private var shouldBeginEmergencyCall = false
     @State private var activeEmergencyCallID: String?
+    @State private var activeEmergencyCallStatus: HGEmergencyCallStatus?
     @State private var isUpdatingEmergencyCall = false
     @State private var emergencyStatusError: HGErrorPresentation?
     @State private var pendingRecordType: RecordType?
@@ -120,6 +121,7 @@ struct HomeView: View {
         .sheet(isPresented: $showsCalling) {
             EmergencyCallView(
                 isCancelling: isUpdatingEmergencyCall,
+                canCancel: activeEmergencyCallStatus?.canCancel ?? false,
                 error: $emergencyStatusError,
                 onCancel: cancelEmergencyCall
             )
@@ -128,6 +130,7 @@ struct HomeView: View {
         .task {
             await loadDashboard()
             await loadProfile()
+            await restoreCurrentEmergencyCall()
             loadStoredDraft()
         }
         .alert("홈 데이터를 불러오지 못했습니다.", isPresented: dashboardErrorAlert) {
@@ -273,7 +276,9 @@ struct HomeView: View {
         shouldBeginEmergencyCall = false
         Task {
             do {
-                activeEmergencyCallID = try await HGEmergencyCallService().createCall()
+                let callID = try await HGEmergencyCallService().createCall()
+                activeEmergencyCallID = callID
+                activeEmergencyCallStatus = .active
                 showsCalling = true
             } catch {
                 emergencyError = HGErrorPresentation(error: error)
@@ -282,7 +287,7 @@ struct HomeView: View {
     }
 
     private func cancelEmergencyCall() {
-        guard let activeEmergencyCallID else {
+        guard let activeEmergencyCallID, activeEmergencyCallStatus?.canCancel == true else {
             emergencyStatusError = HGErrorPresentation(
                 title: "긴급 호출 오류",
                 message: "취소할 긴급 호출 정보를 찾지 못했습니다.",
@@ -298,10 +303,22 @@ struct HomeView: View {
             do {
                 try await HGEmergencyCallService().updateCall(id: activeEmergencyCallID, status: .cancelled)
                 self.activeEmergencyCallID = nil
+                self.activeEmergencyCallStatus = nil
                 showsCalling = false
             } catch {
                 emergencyStatusError = HGErrorPresentation(error: error)
             }
+        }
+    }
+
+    private func restoreCurrentEmergencyCall() async {
+        do {
+            guard let currentCall = try await HGEmergencyCallService().fetchCurrentCall() else { return }
+            activeEmergencyCallID = currentCall.id
+            activeEmergencyCallStatus = currentCall.status
+            showsCalling = true
+        } catch {
+            emergencyError = HGErrorPresentation(error: error)
         }
     }
 
