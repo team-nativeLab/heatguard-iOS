@@ -1,9 +1,11 @@
 import SwiftUI
 
 struct EmergencyAlertView: View {
+    let isCalling: Bool
     let onCall: () -> Void
 
-    init(onCall: @escaping () -> Void = {}) {
+    init(isCalling: Bool = false, onCall: @escaping () -> Void = {}) {
+        self.isCalling = isCalling
         self.onCall = onCall
     }
 
@@ -18,7 +20,8 @@ struct EmergencyAlertView: View {
             contactCard
                 .padding(.top, 28)
         } actions: {
-            HGSecondaryButton(title: "호출하기", action: onCall)
+            HGSecondaryButton(title: isCalling ? "호출 중..." : "호출하기", action: onCall)
+                .disabled(isCalling)
                 .padding(.horizontal, 28)
         }
     }

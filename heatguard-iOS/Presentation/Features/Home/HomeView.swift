@@ -10,9 +10,8 @@ struct HomeView: View {
 
     @State private var showsRecordTypes = false
     @State private var showsMenuDrawer = false
-    @State private var showsEmergency = false
-    @State private var showsCalling = false
-    @State private var shouldBeginEmergencyCall = false
+    @State private var emergencySheet: EmergencySheet?
+    @State private var isCreatingEmergencyCall = false
     @State private var activeEmergencyCallID: String?
     @State private var activeEmergencyCallStatus: HGEmergencyCallStatus?
     @State private var isUpdatingEmergencyCall = false
@@ -112,19 +111,21 @@ struct HomeView: View {
         .sheet(isPresented: $showsRecordTypes, onDismiss: openSelectedRecord) {
             RecordTypeSelectionView { pendingRecordType = $0 }
         }
-        .sheet(isPresented: $showsEmergency, onDismiss: beginEmergencyCall) {
-            EmergencyAlertView {
-                shouldBeginEmergencyCall = true
-                showsEmergency = false
+        .sheet(item: $emergencySheet) { sheet in
+            switch sheet {
+            case .alert:
+                EmergencyAlertView(
+                    isCalling: isCreatingEmergencyCall,
+                    onCall: beginEmergencyCall
+                )
+            case .calling:
+                EmergencyCallView(
+                    isCancelling: isUpdatingEmergencyCall,
+                    canCancel: activeEmergencyCallStatus?.canCancel ?? false,
+                    error: $emergencyStatusError,
+                    onCancel: cancelEmergencyCall
+                )
             }
-        }
-        .sheet(isPresented: $showsCalling) {
-            EmergencyCallView(
-                isCancelling: isUpdatingEmergencyCall,
-                canCancel: activeEmergencyCallStatus?.canCancel ?? false,
-                error: $emergencyStatusError,
-                onCancel: cancelEmergencyCall
-            )
         }
         .navigationDestination(for: HomeFlowRoute.self, destination: destinationView)
         .task {
@@ -251,7 +252,7 @@ struct HomeView: View {
                 title: "긴급 전화",
                 subtitle: "본사와 즉시 연결"
             ) {
-                showsEmergency = true
+                emergencySheet = .alert
             }
         }
         .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
@@ -272,14 +273,15 @@ struct HomeView: View {
     }
 
     private func beginEmergencyCall() {
-        guard shouldBeginEmergencyCall else { return }
-        shouldBeginEmergencyCall = false
+        guard !isCreatingEmergencyCall else { return }
+        isCreatingEmergencyCall = true
         Task {
+            defer { isCreatingEmergencyCall = false }
             do {
                 let callID = try await HGEmergencyCallService().createCall()
                 activeEmergencyCallID = callID
                 activeEmergencyCallStatus = .active
-                showsCalling = true
+                emergencySheet = .calling
             } catch {
                 emergencyError = HGErrorPresentation(error: error)
             }
@@ -304,7 +306,7 @@ struct HomeView: View {
                 try await HGEmergencyCallService().updateCall(id: activeEmergencyCallID, status: .cancelled)
                 self.activeEmergencyCallID = nil
                 self.activeEmergencyCallStatus = nil
-                showsCalling = false
+                emergencySheet = nil
             } catch {
                 emergencyStatusError = HGErrorPresentation(error: error)
             }
@@ -316,7 +318,7 @@ struct HomeView: View {
             guard let currentCall = try await HGEmergencyCallService().fetchCurrentCall() else { return }
             activeEmergencyCallID = currentCall.id
             activeEmergencyCallStatus = currentCall.status
-            showsCalling = true
+            emergencySheet = .calling
         } catch {
             emergencyError = HGErrorPresentation(error: error)
         }
@@ -597,6 +599,13 @@ private extension String {
 
         return URL(string: "tel:\\(normalized)")
     }
+}
+
+private enum EmergencySheet: Identifiable {
+    case alert
+    case calling
+
+    var id: Self { self }
 }
 
 private enum HomeFlowRoute: Hashable {
