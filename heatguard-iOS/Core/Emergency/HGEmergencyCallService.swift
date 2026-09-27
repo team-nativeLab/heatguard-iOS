@@ -30,11 +30,34 @@ struct HGEmergencyCallService {
             requiresAuthentication: true
         )
     }
+
+    func fetchCurrentCall() async throws -> HGEmergencyCall? {
+        let response: HGEmergencyCallResponse = try await client.get(
+            path: HGAPIPath.teamCurrentEmergencyCall,
+            requiresAuthentication: true
+        )
+
+        guard response.status != .none, let callID = response.callID, !callID.isEmpty else {
+            return nil
+        }
+
+        return HGEmergencyCall(id: callID, status: response.status)
+    }
 }
 
-enum HGEmergencyCallStatus: String, Encodable {
+struct HGEmergencyCall: Equatable {
+    let id: String
+    let status: HGEmergencyCallStatus
+}
+
+enum HGEmergencyCallStatus: String, Codable {
+    case none = "NONE"
+    case active = "ACTIVE"
+    case acknowledged = "ACKNOWLEDGED"
     case cancelled = "CANCELLED"
     case completed = "COMPLETED"
+
+    var canCancel: Bool { self == .active }
 }
 
 enum HGEmergencyCallError: LocalizedError {
@@ -64,7 +87,7 @@ private struct HGEmergencyCallStatusRequest: Encodable {
 
 private struct HGEmergencyCallResponse: Decodable {
     let callID: String?
-    let status: String
+    let status: HGEmergencyCallStatus
 
     enum CodingKeys: String, CodingKey { case callID = "callId", status }
 }

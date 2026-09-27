@@ -3,15 +3,18 @@ import SwiftUI
 struct EmergencyCallView: View {
     private let contact = HGEmergencyContact.siteManager
     let isCancelling: Bool
+    let canCancel: Bool
     @Binding var error: HGErrorPresentation?
     let onCancel: () -> Void
 
     init(
         isCancelling: Bool = false,
+        canCancel: Bool = true,
         error: Binding<HGErrorPresentation?> = .constant(nil),
         onCancel: @escaping () -> Void = {}
     ) {
         self.isCancelling = isCancelling
+        self.canCancel = canCancel
         _error = error
         self.onCancel = onCancel
     }
@@ -28,7 +31,7 @@ struct EmergencyCallView: View {
                 .padding(.top, 28)
         } actions: {
             HGSecondaryButton(title: isCancelling ? "취소 중..." : "호출 취소", action: onCancel)
-                .disabled(isCancelling)
+                .disabled(isCancelling || !canCancel)
                 .padding(.horizontal, 28)
         }
         .alert(error?.title ?? "긴급 호출 오류", isPresented: errorAlert) {
