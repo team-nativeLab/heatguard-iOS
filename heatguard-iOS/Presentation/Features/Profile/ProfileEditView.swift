@@ -2,14 +2,20 @@ import SwiftUI
 
 struct ProfileEditView: View {
     let profile: HGTeamProfile?
-    @State private var company: String
+    let onProfileUpdated: (HGTeamProfile) -> Void
     @State private var name: String
-    @State private var showsUnsupportedMessage = false
+    @State private var email: String
+    @State private var phone: String
+    @State private var isSaving = false
+    @State private var error: HGErrorPresentation?
+    @State private var isComplete = false
 
-    init(profile: HGTeamProfile? = nil) {
+    init(profile: HGTeamProfile? = nil, onProfileUpdated: @escaping (HGTeamProfile) -> Void = { _ in }) {
         self.profile = profile
-        _company = State(initialValue: "이음산업건설")
-        _name = State(initialValue: profile?.name ?? "김현장")
+        self.onProfileUpdated = onProfileUpdated
+        _name = State(initialValue: profile?.name ?? "")
+        _email = State(initialValue: profile?.email ?? "")
+        _phone = State(initialValue: profile?.phone ?? "")
     }
 
     var body: some View {
@@ -22,14 +28,9 @@ struct ProfileEditView: View {
                     Text("현장작업자").font(HGFont.regular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
                 }
                 VStack(spacing: 20) {
-                    HGTextField(title: "회사명", placeholder: "회사명을 입력해주세요", text: $company, fieldHeight: 48)
                     HGTextField(title: "이름", placeholder: "이름을 입력해주세요", text: $name, fieldHeight: 48)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("이메일").font(HGFont.semiBold(13, relativeTo: .caption)).foregroundStyle(HGColor.primaryText)
-                        HStack { Text(profile?.email ?? "worker@ieum.co.kr").foregroundStyle(HGColor.secondaryText); Spacer(); Text("변경 불가").font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText) }
-                            .font(HGFont.regular(14)).padding(.horizontal, 16).frame(height: 48).background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: 12))
-                        Text("로그인에 쓰는 이메일은 변경할 수 없어요").font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText)
-                    }
+                    HGTextField(title: "이메일", placeholder: "example@email.com", text: $email, fieldHeight: 48, inputType: .email)
+                    HGTextField(title: "전화번호", placeholder: "전화번호를 입력해주세요", text: $phone, fieldHeight: 48)
                     NavigationLink { PasswordChangeView() } label: {
                         HStack { VStack(alignment: .leading, spacing: 3) { Text("비밀번호 변경").font(HGFont.semiBold(14, relativeTo: .subheadline)); Text("현재 비밀번호 확인 후 변경할 수 있어요").font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText) }; Spacer(); Image(systemName: "chevron.right").foregroundStyle(HGColor.homeChevron) }
                             .padding(16).background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
@@ -38,9 +39,46 @@ struct ProfileEditView: View {
             }.padding(24)
         }
         .background(HGColor.appBackground).navigationTitle("내 정보 수정").navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) { HGPrimaryButton(title: "저장하기") { showsUnsupportedMessage = true }.padding(.horizontal, 28).padding(.vertical, 10).background(HGColor.appBackground) }
-        .alert("아직 저장할 수 없습니다.", isPresented: $showsUnsupportedMessage) { Button("확인", role: .cancel) {} } message: { Text("회사명과 이름을 변경하는 작업자 API가 준비되면 저장할 수 있어요.") }
+        .safeAreaInset(edge: .bottom) {
+            HGPrimaryButton(title: isSaving ? "저장 중..." : "저장하기", isEnabled: isValid && !isSaving) {
+                Task { await saveProfile() }
+            }
+            .padding(.horizontal, 28).padding(.vertical, 10).background(HGColor.appBackground)
+        }
+        .alert(error?.title ?? "내 정보 수정 오류", isPresented: errorAlert) { Button("확인", role: .cancel) {} } message: { Text(error?.alertMessage ?? "") }
+        .alert("내 정보가 수정되었습니다.", isPresented: $isComplete) { Button("확인", role: .cancel) {} }
         .dismissKeyboardOnBackgroundTap()
+    }
+
+    private var isValid: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && email.contains("@")
+    }
+
+    private var errorAlert: Binding<Bool> {
+        Binding(get: { error != nil }, set: { if !$0 { error = nil } })
+    }
+
+    @MainActor
+    private func saveProfile() async {
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            let updatedProfile = try await HGAuthenticationService().updateProfile(
+                name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+                phone: phone.trimmingCharacters(in: .whitespacesAndNewlines),
+                version: profile?.version
+            )
+            name = updatedProfile.name
+            email = updatedProfile.email
+            phone = updatedProfile.phone ?? ""
+            onProfileUpdated(updatedProfile)
+            isComplete = true
+        } catch {
+            self.error = HGErrorPresentation(error: error)
+        }
     }
 }
 

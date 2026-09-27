@@ -368,7 +368,9 @@ struct HomeView: View {
         case let .recordDetail(recordID):
             RecordDetailView(recordID: recordID)
         case .profileEdit:
-            ProfileEditView(profile: teamProfile)
+            ProfileEditView(profile: teamProfile) { updatedProfile in
+                teamProfile = updatedProfile
+            }
         case .inquiry:
             InquiryView()
         case .withdrawalGuide:

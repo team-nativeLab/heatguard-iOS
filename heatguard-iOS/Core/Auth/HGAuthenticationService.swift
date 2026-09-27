@@ -37,6 +37,20 @@ struct HGAuthenticationService {
         try await client.get(path: HGAPIPath.teamMe, requiresAuthentication: true)
     }
 
+    func updateProfile(
+        name: String,
+        email: String,
+        phone: String,
+        version: Int?
+    ) async throws -> HGTeamProfile {
+        try await client.send(
+            TeamProfileUpdateRequest(name: name, email: email, phone: phone, version: version),
+            method: "PATCH",
+            path: HGAPIPath.teamMe,
+            requiresAuthentication: true
+        )
+    }
+
     func logout() async throws {
         try await client.sendVoid(method: "POST", path: HGAPIPath.teamLogout, requiresAuthentication: true)
         try tokenStore.clear()
@@ -100,12 +114,14 @@ struct HGTeamProfile: Decodable, Equatable {
     let userID: String
     let name: String
     let email: String
+    let phone: String?
     let role: String
     let teamID: String?
+    let version: Int?
 
     enum CodingKeys: String, CodingKey {
         case userID = "userId"
-        case name, email, role
+        case name, email, phone, role, version
         case teamID = "teamId"
     }
 }
@@ -113,6 +129,13 @@ struct HGTeamProfile: Decodable, Equatable {
 private struct PasswordChangeRequest: Encodable {
     let currentPassword: String
     let newPassword: String
+}
+
+private struct TeamProfileUpdateRequest: Encodable {
+    let name: String
+    let email: String
+    let phone: String
+    let version: Int?
 }
 
 private struct PasswordChangeResponse: Decodable {
