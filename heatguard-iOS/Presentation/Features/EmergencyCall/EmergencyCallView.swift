@@ -2,9 +2,17 @@ import SwiftUI
 
 struct EmergencyCallView: View {
     private let contact = HGEmergencyContact.siteManager
+    let isCancelling: Bool
+    @Binding var error: HGErrorPresentation?
     let onCancel: () -> Void
 
-    init(onCancel: @escaping () -> Void = {}) {
+    init(
+        isCancelling: Bool = false,
+        error: Binding<HGErrorPresentation?> = .constant(nil),
+        onCancel: @escaping () -> Void = {}
+    ) {
+        self.isCancelling = isCancelling
+        _error = error
         self.onCancel = onCancel
     }
 
@@ -19,8 +27,14 @@ struct EmergencyCallView: View {
             contactCard
                 .padding(.top, 28)
         } actions: {
-            HGSecondaryButton(title: "호출 취소", action: onCancel)
+            HGSecondaryButton(title: isCancelling ? "취소 중..." : "호출 취소", action: onCancel)
+                .disabled(isCancelling)
                 .padding(.horizontal, 28)
+        }
+        .alert(error?.title ?? "긴급 호출 오류", isPresented: errorAlert) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(error?.alertMessage ?? "")
         }
     }
 
@@ -51,5 +65,9 @@ struct EmergencyCallView: View {
 
     private var contactCard: some View {
         HGEmergencyContactCard(contact: contact)
+    }
+
+    private var errorAlert: Binding<Bool> {
+        Binding(get: { error != nil }, set: { if !$0 { error = nil } })
     }
 }

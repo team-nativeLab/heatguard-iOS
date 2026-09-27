@@ -14,4 +14,5 @@ enum HGAPIPath {
 
     static func teamChecklistItem(id: String) -> String { "\(teamChecklist)/items/\(id)" }
     static func teamRecord(id: String) -> String { "\(teamRecords)/\(id)" }
+    static func teamEmergencyCall(id: String) -> String { "\(teamEmergencyCalls)/\(id)" }
 }
