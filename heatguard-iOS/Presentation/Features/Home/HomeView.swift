@@ -10,6 +10,7 @@ struct HomeView: View {
 
     @State private var showsRecordTypes = false
     @State private var showsMenuDrawer = false
+    @State private var isMenuDrawerVisible = false
     @State private var emergencySheet: EmergencySheet?
     @State private var isCreatingEmergencyCall = false
     @State private var activeEmergencyCallID: String?
@@ -80,30 +81,36 @@ struct HomeView: View {
             .padding(.top, HGLayout.screenTopPadding)
 
             if showsMenuDrawer {
-                Color.black.opacity(0.35)
+                Color.black.opacity(isMenuDrawerVisible ? 0.35 : 0)
                     .ignoresSafeArea()
                     .contentShape(Rectangle())
-                    .onTapGesture(perform: dismissMenuDrawer)
-                    .transition(.opacity)
+                    .onTapGesture { dismissMenuDrawer() }
+                    .allowsHitTesting(isMenuDrawerVisible)
+                    .animation(.easeInOut(duration: 0.24), value: isMenuDrawerVisible)
 
                 HGMenuDrawer(
                     profile: teamProfile.map(HGMenuProfile.init(profile:)) ?? .preview,
-                    onDismiss: dismissMenuDrawer,
+                    isPresented: isMenuDrawerVisible,
+                    onDismiss: { dismissMenuDrawer() },
                     onProfileEdit: {
-                        dismissMenuDrawer()
-                        flowPath.append(HomeFlowRoute.profileEdit)
+                        dismissMenuDrawer {
+                            flowPath.append(HomeFlowRoute.profileEdit)
+                        }
                     },
                     onInquiry: {
-                        dismissMenuDrawer()
-                        flowPath.append(HomeFlowRoute.inquiry)
+                        dismissMenuDrawer {
+                            flowPath.append(HomeFlowRoute.inquiry)
+                        }
                     },
-                    onLogout: logout,
+                    onLogout: {
+                        dismissMenuDrawer(afterDismiss: logout)
+                    },
                     onWithdrawal: {
-                        dismissMenuDrawer()
-                        flowPath.append(HomeFlowRoute.withdrawalGuide)
+                        dismissMenuDrawer {
+                            flowPath.append(HomeFlowRoute.withdrawalGuide)
+                        }
                     }
                 )
-                .transition(.move(edge: .leading))
             }
         }
         .background(HGColor.appBackground)
@@ -425,8 +432,6 @@ struct HomeView: View {
     }
 
     private func logout() {
-        dismissMenuDrawer()
-
         do {
             try HGAuthenticationService().endLocalSession()
             onSessionEnded()
@@ -436,15 +441,17 @@ struct HomeView: View {
     }
 
     private func showMenuDrawer() {
-        withAnimation(.easeOut(duration: 0.24)) {
-            showsMenuDrawer = true
+        guard !showsMenuDrawer else { return }
+        showsMenuDrawer = true
+        DispatchQueue.main.async {
+            isMenuDrawerVisible = true
         }
     }
 
-    private func dismissMenuDrawer() {
-        withAnimation(.easeInOut(duration: 0.24)) {
-            showsMenuDrawer = false
-        }
+    private func dismissMenuDrawer(afterDismiss: @escaping () -> Void = {}) {
+        isMenuDrawerVisible = false
+        showsMenuDrawer = false
+        afterDismiss()
     }
 
     private func finishWithdrawal() {

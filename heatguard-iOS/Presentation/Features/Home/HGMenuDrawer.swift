@@ -38,6 +38,7 @@ struct HGMenuDrawer: View {
     @GestureState private var dragOffset: CGFloat = 0
 
     let profile: HGMenuProfile
+    let isPresented: Bool
     let onDismiss: () -> Void
     let onProfileEdit: () -> Void
     let onInquiry: () -> Void
@@ -47,7 +48,8 @@ struct HGMenuDrawer: View {
     var body: some View {
         GeometryReader { proxy in
             let drawerWidth = min(proxy.size.width * Metrics.widthRatio, Metrics.maximumWidth)
-            let drawerOffset = min(dragOffset, 0)
+            let restingOffset = isPresented ? 0 : -drawerWidth
+            let drawerOffset = max(-drawerWidth, restingOffset + min(dragOffset, 0))
 
             drawerContent
                 .padding(.top, proxy.safeAreaInsets.top)
@@ -56,6 +58,7 @@ struct HGMenuDrawer: View {
                 .background(HGColor.surface)
                 .offset(x: drawerOffset)
                 .gesture(dismissDragGesture(drawerWidth: drawerWidth))
+                .animation(.easeInOut(duration: 0.24), value: isPresented)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
@@ -164,6 +167,7 @@ struct HGMenuDrawer: View {
 #Preview {
     HGMenuDrawer(
         profile: .preview,
+        isPresented: true,
         onDismiss: {},
         onProfileEdit: {},
         onInquiry: {},
