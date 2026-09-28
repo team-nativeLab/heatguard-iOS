@@ -7,18 +7,21 @@ struct FieldPhotoCaptureView: View {
     let onSave: (HGRecordSaveResult) -> Void
     let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
     let onPhotoRequired: (HGRecordDraft) -> Void
+    let onMenuTap: () -> Void
 
     init(
         draft: HGRecordDraft = HGRecordDraft(type: .thermometer, memo: ""),
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
         onFailure: @escaping (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void = { _, _, _ in },
         onPhotoRequired: @escaping (HGRecordDraft) -> Void = { _ in },
-        initialPhotos: [UIImage] = []
+        initialPhotos: [UIImage] = [],
+        onMenuTap: @escaping () -> Void = {}
     ) {
         self.draft = draft
         self.onSave = onSave
         self.onFailure = onFailure
         self.onPhotoRequired = onPhotoRequired
+        self.onMenuTap = onMenuTap
         _photos = State(initialValue: initialPhotos)
     }
 
@@ -66,7 +69,7 @@ struct FieldPhotoCaptureView: View {
     }
 
     private var header: some View {
-        HGScreenHeader()
+        HGScreenHeader(onMenuTap: onMenuTap)
     }
 
     private var photoPreview: some View {
