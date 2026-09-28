@@ -9,17 +9,20 @@ struct RestPhotoView: View {
     let onSave: (HGRecordSaveResult) -> Void
     let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
     let onPhotoRequired: (HGRecordDraft) -> Void
+    let onMenuTap: () -> Void
 
     init(
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
         onFailure: @escaping (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void = { _, _, _ in },
         onPhotoRequired: @escaping (HGRecordDraft) -> Void = { _ in },
         initialMemo: String = "",
-        initialPhotos: [UIImage] = []
+        initialPhotos: [UIImage] = [],
+        onMenuTap: @escaping () -> Void = {}
     ) {
         self.onSave = onSave
         self.onFailure = onFailure
         self.onPhotoRequired = onPhotoRequired
+        self.onMenuTap = onMenuTap
         _memo = State(initialValue: initialMemo)
         _photos = State(initialValue: initialPhotos)
     }
@@ -63,7 +66,7 @@ struct RestPhotoView: View {
     }
 
     private var header: some View {
-        HGScreenHeader()
+        HGScreenHeader(onMenuTap: onMenuTap)
     }
 
     private var restForm: some View {

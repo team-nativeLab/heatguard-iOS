@@ -34,84 +34,55 @@ struct HomeView: View {
     @State private var storedDraftError: String?
 
     var body: some View {
-        NavigationStack(path: $flowPath) {
-            homeContent
+        ZStack {
+            NavigationStack(path: $flowPath) {
+                homeContent
+            }
+
+            if showsMenuDrawer {
+                menuDrawerOverlay
+            }
         }
     }
 
     private var homeContent: some View {
-        ZStack {
-            VStack(spacing: 0) {
-                header
-                weatherSummary
-                    .padding(.top, 15)
-                sectionLabel("데이터 기록")
-                    .padding(.top, 20)
-                checkCard
-                    .padding(.top, 8)
-                contactCard
-                    .padding(.top, 16)
-                sectionLabel("추가 기록")
-                    .padding(.top, 16)
-                VStack(spacing: 9) {
-                    HomeActionRow(
-                        icon: "HomeCamera",
-                        title: "현장 사진",
-                        subtitle: "사진 촬영 또는 앨범에서 선택"
-                    ) {
-                        showsRecordTypes = true
-                    }
-                    HomeActionRow(
-                        icon: "HomeHistory",
-                        title: "기록 내역",
-                        subtitle: "지금까지의 기록을 확인하세요"
-                    ) {
-                        flowPath.append(HomeFlowRoute.recordHistory)
-                    }
-                }
+        VStack(spacing: 0) {
+            header
+            weatherSummary
+                .padding(.top, 15)
+            sectionLabel("데이터 기록")
+                .padding(.top, 20)
+            checkCard
                 .padding(.top, 8)
-                Spacer(minLength: 8)
-                HGPrimaryButton(title: "기록하기") {
+            contactCard
+                .padding(.top, 16)
+            sectionLabel("추가 기록")
+                .padding(.top, 16)
+            VStack(spacing: 9) {
+                HomeActionRow(
+                    icon: "HomeCamera",
+                    title: "현장 사진",
+                    subtitle: "사진 촬영 또는 앨범에서 선택"
+                ) {
                     showsRecordTypes = true
                 }
-                .padding(.bottom, 10)
+                HomeActionRow(
+                    icon: "HomeHistory",
+                    title: "기록 내역",
+                    subtitle: "지금까지의 기록을 확인하세요"
+                ) {
+                    flowPath.append(HomeFlowRoute.recordHistory)
+                }
             }
-            .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
-            .padding(.top, HGLayout.screenTopPadding)
-
-            if showsMenuDrawer {
-                Color.black.opacity(isMenuDrawerVisible ? 0.35 : 0)
-                    .ignoresSafeArea()
-                    .contentShape(Rectangle())
-                    .onTapGesture { dismissMenuDrawer() }
-                    .allowsHitTesting(isMenuDrawerVisible)
-                    .animation(.easeInOut(duration: 0.24), value: isMenuDrawerVisible)
-
-                HGMenuDrawer(
-                    profile: teamProfile.map(HGMenuProfile.init(profile:)) ?? .preview,
-                    isPresented: isMenuDrawerVisible,
-                    onDismiss: { dismissMenuDrawer() },
-                    onProfileEdit: {
-                        dismissMenuDrawer {
-                            flowPath.append(HomeFlowRoute.profileEdit)
-                        }
-                    },
-                    onInquiry: {
-                        dismissMenuDrawer {
-                            flowPath.append(HomeFlowRoute.inquiry)
-                        }
-                    },
-                    onLogout: {
-                        dismissMenuDrawer(afterDismiss: logout)
-                    },
-                    onWithdrawal: {
-                        dismissMenuDrawer {
-                            flowPath.append(HomeFlowRoute.withdrawalGuide)
-                        }
-                    }
-                )
+            .padding(.top, 8)
+            Spacer(minLength: 8)
+            HGPrimaryButton(title: "기록하기") {
+                showsRecordTypes = true
             }
+            .padding(.bottom, 10)
         }
+        .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
+        .padding(.top, HGLayout.screenTopPadding)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showsRecordTypes, onDismiss: openSelectedRecord) {
@@ -169,6 +140,40 @@ struct HomeView: View {
         } message: {
             Text(storedDraftError ?? "")
         }
+    }
+
+    @ViewBuilder
+    private var menuDrawerOverlay: some View {
+        Color.black.opacity(isMenuDrawerVisible ? 0.35 : 0)
+            .ignoresSafeArea()
+            .contentShape(Rectangle())
+            .onTapGesture { dismissMenuDrawer() }
+            .allowsHitTesting(isMenuDrawerVisible)
+            .animation(.easeInOut(duration: 0.24), value: isMenuDrawerVisible)
+
+        HGMenuDrawer(
+            profile: teamProfile.map(HGMenuProfile.init(profile:)) ?? .preview,
+            isPresented: isMenuDrawerVisible,
+            onDismiss: { dismissMenuDrawer() },
+            onProfileEdit: {
+                dismissMenuDrawer {
+                    flowPath.append(HomeFlowRoute.profileEdit)
+                }
+            },
+            onInquiry: {
+                dismissMenuDrawer {
+                    flowPath.append(HomeFlowRoute.inquiry)
+                }
+            },
+            onLogout: {
+                dismissMenuDrawer(afterDismiss: logout)
+            },
+            onWithdrawal: {
+                dismissMenuDrawer {
+                    flowPath.append(HomeFlowRoute.withdrawalGuide)
+                }
+            }
+        )
     }
 
     private var header: some View {
@@ -369,7 +374,8 @@ struct HomeView: View {
         switch route {
         case .thermometer:
             ThermometerRecordView(weather: dashboard.weather,
-                onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) }
+                onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) },
+                onMenuTap: showMenuDrawer
             )
         case .workPhoto:
             WorkPhotoView(
@@ -377,7 +383,8 @@ struct HomeView: View {
                 onFailure: showSaveFailure,
                 onPhotoRequired: showPhotoRequired,
                 initialMemo: resumedDraft(for: .work)?.memo ?? "",
-                initialPhotos: resumedImages(for: .work)
+                initialPhotos: resumedImages(for: .work),
+                onMenuTap: showMenuDrawer
             )
         case .restPhoto:
             RestPhotoView(
@@ -385,7 +392,8 @@ struct HomeView: View {
                 onFailure: showSaveFailure,
                 onPhotoRequired: showPhotoRequired,
                 initialMemo: resumedDraft(for: .rest)?.memo ?? "",
-                initialPhotos: resumedImages(for: .rest)
+                initialPhotos: resumedImages(for: .rest),
+                onMenuTap: showMenuDrawer
             )
         case let .fieldPhoto(draft):
             FieldPhotoCaptureView(
@@ -393,14 +401,16 @@ struct HomeView: View {
                 onSave: showSaveSuccess,
                 onFailure: showSaveFailure,
                 onPhotoRequired: showPhotoRequired,
-                initialPhotos: resumedImages(for: .thermometer)
+                initialPhotos: resumedImages(for: .thermometer),
+                onMenuTap: showMenuDrawer
             )
         case let .saveBeforeConfirmation(draft):
             SaveBeforeConfirmationView(
                 draft: draft,
                 onRetry: removeCurrentRoute,
                 onSave: showSaveSuccess,
-                onFailure: showSaveFailure
+                onFailure: showSaveFailure,
+                onMenuTap: showMenuDrawer
             )
         case let .saveSuccess(result):
             SaveSuccessView(result: result, onConfirm: returnToHome)

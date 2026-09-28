@@ -13,12 +13,18 @@ struct ThermometerRecordView: View {
     @State private var validationMessage: String?
 
     let onContinue: (HGRecordDraft) -> Void
+    let onMenuTap: () -> Void
 
-    init(weather: HomeWeather = .unavailable, onContinue: @escaping (HGRecordDraft) -> Void = { _ in }) {
+    init(
+        weather: HomeWeather = .unavailable,
+        onContinue: @escaping (HGRecordDraft) -> Void = { _ in },
+        onMenuTap: @escaping () -> Void = {}
+    ) {
         _temperature = State(initialValue: weather.temperature.map { String(format: "%.1f", $0) } ?? "")
         _humidity = State(initialValue: weather.humidity.map { String(format: "%.0f", $0) } ?? "")
         apparentTemperature = weather.apparentTemperature
         self.onContinue = onContinue
+        self.onMenuTap = onMenuTap
     }
 
     var body: some View {
@@ -61,7 +67,7 @@ struct ThermometerRecordView: View {
     }
 
     private var header: some View {
-        HGScreenHeader()
+        HGScreenHeader(onMenuTap: onMenuTap)
     }
 
     private var temperatureSummaryCard: some View {
