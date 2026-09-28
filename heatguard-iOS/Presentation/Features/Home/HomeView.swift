@@ -24,7 +24,6 @@ struct HomeView: View {
     @State private var dashboardError: HGErrorPresentation?
     @State private var emergencyError: HGErrorPresentation?
     @State private var managerPhoneError: HGErrorPresentation?
-    @State private var logoutError: HGErrorPresentation?
     @State private var withdrawalError: HGErrorPresentation?
     @State private var checklist = HGChecklistSummary(times: [], checkedCount: 0, totalCount: 0)
     @State private var storedDraft: HGStoredRecordDraft?
@@ -155,9 +154,6 @@ struct HomeView: View {
         .alert(managerPhoneError?.title ?? "관리자 전화 오류", isPresented: managerPhoneErrorAlert) {
             Button("확인", role: .cancel) {}
         } message: { Text(managerPhoneError?.alertMessage ?? "") }
-        .alert("로그아웃하지 못했습니다.", isPresented: logoutErrorAlert) {
-            Button("확인", role: .cancel) {}
-        } message: { Text(logoutError?.alertMessage ?? "") }
         .alert(withdrawalError?.title ?? "회원탈퇴 오류", isPresented: withdrawalErrorAlert) {
             Button("확인", role: .cancel) {}
         } message: { Text(withdrawalError?.alertMessage ?? "") }
@@ -557,10 +553,6 @@ struct HomeView: View {
 
     private var managerPhoneErrorAlert: Binding<Bool> {
         Binding(get: { managerPhoneError != nil }, set: { if !$0 { managerPhoneError = nil } })
-    }
-
-    private var logoutErrorAlert: Binding<Bool> {
-        Binding(get: { logoutError != nil }, set: { if !$0 { logoutError = nil } })
     }
 
     private var withdrawalErrorAlert: Binding<Bool> {
