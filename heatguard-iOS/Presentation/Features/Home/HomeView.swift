@@ -255,7 +255,7 @@ struct HomeView: View {
                 title: "긴급 전화",
                 subtitle: "본사와 즉시 연결"
             ) {
-                emergencySheet = .alert
+                showEmergencyCall()
             }
         }
         .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
@@ -321,9 +321,24 @@ struct HomeView: View {
             guard let currentCall = try await HGEmergencyCallService().fetchCurrentCall() else { return }
             activeEmergencyCallID = currentCall.id
             activeEmergencyCallStatus = currentCall.status
-            emergencySheet = .calling
         } catch {
             emergencyError = HGErrorPresentation(error: error)
+        }
+    }
+
+    private func showEmergencyCall() {
+        Task {
+            do {
+                if let currentCall = try await HGEmergencyCallService().fetchCurrentCall() {
+                    activeEmergencyCallID = currentCall.id
+                    activeEmergencyCallStatus = currentCall.status
+                    emergencySheet = .calling
+                } else {
+                    emergencySheet = .alert
+                }
+            } catch {
+                emergencyError = HGErrorPresentation(error: error)
+            }
         }
     }
 
