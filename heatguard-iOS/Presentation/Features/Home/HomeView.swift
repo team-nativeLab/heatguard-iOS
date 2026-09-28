@@ -2,6 +2,8 @@ import SwiftUI
 import UIKit
 
 struct HomeView: View {
+    @Environment(\.scenePhase) private var scenePhase
+
     let onSessionEnded: () -> Void
 
     init(onSessionEnded: @escaping () -> Void = {}) {
@@ -20,8 +22,11 @@ struct HomeView: View {
     @State private var pendingRecordType: RecordType?
     @State private var flowPath = NavigationPath()
     @State private var dashboard = HomeDashboard.unavailable
+    @State private var hasLoadedDashboard = false
+    @State private var dashboardIsStale = false
     @State private var teamProfile: HGTeamProfile?
     @State private var dashboardError: HGErrorPresentation?
+    @State private var profileError: HGErrorPresentation?
     @State private var emergencyError: HGErrorPresentation?
     @State private var managerPhoneError: HGErrorPresentation?
     @State private var withdrawalError: HGErrorPresentation?
@@ -48,6 +53,7 @@ struct HomeView: View {
     private var homeContent: some View {
         VStack(spacing: 0) {
             header
+            staleDashboardNotice
             weatherSummary
                 .padding(.top, 15)
             sectionLabel("데이터 기록")
@@ -111,6 +117,10 @@ struct HomeView: View {
             await restoreCurrentEmergencyCall()
             loadStoredDraft()
         }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, hasLoadedDashboard else { return }
+            Task { await loadDashboard() }
+        }
         .alert("홈 데이터를 불러오지 못했습니다.", isPresented: dashboardErrorAlert) {
             Button("다시 시도") {
                 Task { await loadDashboard() }
@@ -118,6 +128,14 @@ struct HomeView: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(dashboardError?.alertMessage ?? "")
+        }
+        .alert(profileError?.title ?? "프로필 조회 오류", isPresented: profileErrorAlert) {
+            Button("다시 시도") {
+                Task { await loadProfile() }
+            }
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(profileError?.alertMessage ?? "")
         }
         .alert("긴급 호출에 실패했습니다.", isPresented: emergencyErrorAlert) {
             Button("확인", role: .cancel) {}
@@ -152,7 +170,7 @@ struct HomeView: View {
             .animation(.easeInOut(duration: 0.24), value: isMenuDrawerVisible)
 
         HGMenuDrawer(
-            profile: teamProfile.map(HGMenuProfile.init(profile:)) ?? .preview,
+            profile: teamProfile.map(HGMenuProfile.init(profile:)) ?? .unavailable,
             isPresented: isMenuDrawerVisible,
             onDismiss: { dismissMenuDrawer() },
             onProfileEdit: {
@@ -178,6 +196,17 @@ struct HomeView: View {
 
     private var header: some View {
         HGScreenHeader(onMenuTap: showMenuDrawer)
+    }
+
+    @ViewBuilder
+    private var staleDashboardNotice: some View {
+        if dashboardIsStale {
+            Text("최신 정보를 불러오지 못해 이전 정보를 표시 중입니다.")
+                .font(HGFont.medium(11, relativeTo: .caption2))
+                .foregroundStyle(HGColor.error)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 8)
+        }
     }
 
     private var weatherSummary: some View {
@@ -232,7 +261,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 0) {
             Text("오늘 체크 시간")
                 .font(HGFont.bold(14, relativeTo: .subheadline))
-            Text(checklist.times.isEmpty ? dashboard.recordStatusText : checklist.statusText)
+            Text(checklist.times.isEmpty ? "체크 시간 정보 없음 · \(checklist.statusText)" : checklist.statusText)
                 .font(HGFont.regular(11, relativeTo: .caption2))
                 .foregroundStyle(HGColor.secondaryText)
                 .padding(.top, 7)
@@ -572,6 +601,13 @@ struct HomeView: View {
         )
     }
 
+    private var profileErrorAlert: Binding<Bool> {
+        Binding(
+            get: { profileError != nil },
+            set: { if !$0 { profileError = nil } }
+        )
+    }
+
     private var emergencyErrorAlert: Binding<Bool> {
         Binding(get: { emergencyError != nil }, set: { if !$0 { emergencyError = nil } })
     }
@@ -593,15 +629,23 @@ struct HomeView: View {
             let loadedDashboard = try await HGDashboardService().fetchHomeDashboard()
             dashboard = loadedDashboard
             checklist = loadedDashboard.checklist
+            hasLoadedDashboard = true
+            dashboardIsStale = false
             dashboardError = nil
         } catch {
+            dashboardIsStale = hasLoadedDashboard
             dashboardError = HGErrorPresentation(error: error)
         }
     }
 
     @MainActor
     private func loadProfile() async {
-        teamProfile = try? await HGAuthenticationService().currentProfile()
+        do {
+            teamProfile = try await HGAuthenticationService().currentProfile()
+            profileError = nil
+        } catch {
+            profileError = HGErrorPresentation(error: error)
+        }
     }
 }
 

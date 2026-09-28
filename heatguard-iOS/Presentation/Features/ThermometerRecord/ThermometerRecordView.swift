@@ -170,7 +170,7 @@ struct ThermometerRecordView: View {
 }
 
 private extension HomeWeather {
-    static let unavailable = HomeWeather(temperature: nil, humidity: nil, apparentTemperature: nil, heatLevel: 0)
+    static let unavailable = HomeWeather(temperature: nil, humidity: nil, apparentTemperature: nil, heatLevel: nil)
 }
 
 #Preview {

@@ -17,6 +17,12 @@ struct HGMenuProfile: Equatable {
         email: "worker@ieum.co.kr"
     )
 
+    static let unavailable = HGMenuProfile(
+        name: "프로필 정보 없음",
+        role: "프로필을 불러오지 못했습니다",
+        email: ""
+    )
+
     nonisolated init(profile: HGTeamProfile) {
         name = profile.name
         role = profile.role == "TEAM_MEMBER" ? "현장작업자" : profile.role

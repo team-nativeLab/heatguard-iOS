@@ -22,7 +22,6 @@ private struct WorkerHomeDashboardResponse: Decodable {
     let heatLevel: Int?
     let checkTimes: [String]?
     let checklistSummary: WorkerChecklistSummary?
-    let activeEmergencyCall: WorkerEmergencyCall?
 }
 
 private struct WorkerHomeSite: Decodable {
@@ -41,13 +40,9 @@ private struct WorkerChecklistSummary: Decodable {
     let completed: Int?
 }
 
-private struct WorkerEmergencyCall: Decodable {}
-
 struct HomeDashboard: Equatable {
     let managerPhone: String?
     let weather: HomeWeather
-    let todayRecordCount: Int
-    let activeEmergencyCount: Int
     let checklist: HGChecklistSummary
 
     fileprivate init(response: WorkerHomeDashboardResponse) {
@@ -56,10 +51,8 @@ struct HomeDashboard: Equatable {
             temperature: response.weather?.temperature,
             humidity: response.weather?.humidity,
             apparentTemperature: response.weather?.apparentTemperature,
-            heatLevel: response.heatLevel ?? response.weather?.heatLevel ?? 0
+            heatLevel: response.heatLevel ?? response.weather?.heatLevel
         )
-        todayRecordCount = response.checklistSummary?.completed ?? 0
-        activeEmergencyCount = response.activeEmergencyCall == nil ? 0 : 1
         checklist = HGChecklistSummary(
             times: response.checkTimes ?? [],
             checkedCount: response.checklistSummary?.completed ?? 0,
@@ -73,29 +66,19 @@ struct HomeDashboard: Equatable {
             temperature: nil,
             humidity: nil,
             apparentTemperature: nil,
-            heatLevel: 0
+            heatLevel: nil
         ),
-        todayRecordCount: 0,
-        activeEmergencyCount: 0,
         checklist: HGChecklistSummary(times: [], checkedCount: 0, totalCount: 0)
     )
 
     private init(
         managerPhone: String?,
         weather: HomeWeather,
-        todayRecordCount: Int,
-        activeEmergencyCount: Int,
         checklist: HGChecklistSummary
     ) {
         self.managerPhone = managerPhone
         self.weather = weather
-        self.todayRecordCount = todayRecordCount
-        self.activeEmergencyCount = activeEmergencyCount
         self.checklist = checklist
-    }
-
-    var recordStatusText: String {
-        "오늘 기록 \(todayRecordCount)건 · 긴급 호출 \(activeEmergencyCount)건"
     }
 }
 
@@ -103,14 +86,16 @@ struct HomeWeather: Equatable {
     let temperature: Double?
     let humidity: Double?
     let apparentTemperature: Double?
-    let heatLevel: Int
+    let heatLevel: Int?
 
     var heatLevelTitle: String {
         switch heatLevel {
+        case nil: "폭염 정보 없음"
+        case 0: "폭염 안전 단계"
         case 3: "폭염 위험 단계"
         case 2: "폭염 주의 단계"
         case 1: "폭염 관심 단계"
-        default: "폭염 안전 단계"
+        default: "폭염 정보 확인 필요"
         }
     }
 

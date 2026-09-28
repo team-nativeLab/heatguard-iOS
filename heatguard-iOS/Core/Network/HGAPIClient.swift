@@ -142,9 +142,24 @@ struct HGAPIClient {
             return payload
         } catch let error as HGAPIError {
             throw error
+        } catch let error as DecodingError {
+            throw HGAPIError.responseDecoding(codingPath: decodingPath(for: error))
         } catch {
-            throw HGAPIError.responseDecoding
+            throw HGAPIError.responseDecoding(codingPath: nil)
         }
+    }
+
+    private func decodingPath(for error: DecodingError) -> String? {
+        let codingPath: [any CodingKey]
+        switch error {
+        case let .typeMismatch(_, context), let .valueNotFound(_, context), let .keyNotFound(_, context), let .dataCorrupted(context):
+            codingPath = context.codingPath
+        @unknown default:
+            return nil
+        }
+
+        let path = codingPath.map(\.stringValue).joined(separator: ".")
+        return path.isEmpty ? nil : path
     }
 
     private func responseError(from data: Data, statusCode: Int) -> HGAPIError {
@@ -177,7 +192,7 @@ enum HGAPIError: LocalizedError {
     case keychain(message: String, status: OSStatus)
     case authenticationRequired
     case invalidResponse
-    case responseDecoding
+    case responseDecoding(codingPath: String?)
     case server(message: String, statusCode: Int, serverCode: String?)
 
     var errorDescription: String? {
@@ -220,8 +235,9 @@ enum HGAPIError: LocalizedError {
             return "AUTH_REQUIRED"
         case .invalidResponse:
             return "INVALID_RESPONSE"
-        case .responseDecoding:
-            return "RESPONSE_DECODING"
+        case let .responseDecoding(codingPath):
+            guard let codingPath else { return "RESPONSE_DECODING" }
+            return "RESPONSE_DECODING · \(codingPath)"
         case let .server(_, statusCode, serverCode):
             guard let serverCode, !serverCode.isEmpty else {
                 return "HTTP \(statusCode)"
