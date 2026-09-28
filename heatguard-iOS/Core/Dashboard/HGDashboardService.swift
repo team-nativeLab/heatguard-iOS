@@ -19,9 +19,9 @@ struct HGDashboardService {
 private struct WorkerHomeDashboardResponse: Decodable {
     let site: WorkerHomeSite?
     let weather: WorkerHomeWeather?
-    let heatLevel: Int
-    let checkTimes: [String]
-    let checklistSummary: WorkerChecklistSummary
+    let heatLevel: Int?
+    let checkTimes: [String]?
+    let checklistSummary: WorkerChecklistSummary?
     let activeEmergencyCall: WorkerEmergencyCall?
 }
 
@@ -33,11 +33,12 @@ private struct WorkerHomeWeather: Decodable {
     let temperature: Double?
     let humidity: Double?
     let apparentTemperature: Double?
+    let heatLevel: Int?
 }
 
 private struct WorkerChecklistSummary: Decodable {
-    let total: Int
-    let completed: Int
+    let total: Int?
+    let completed: Int?
 }
 
 private struct WorkerEmergencyCall: Decodable {}
@@ -55,14 +56,14 @@ struct HomeDashboard: Equatable {
             temperature: response.weather?.temperature,
             humidity: response.weather?.humidity,
             apparentTemperature: response.weather?.apparentTemperature,
-            heatLevel: response.heatLevel
+            heatLevel: response.heatLevel ?? response.weather?.heatLevel ?? 0
         )
-        todayRecordCount = response.checklistSummary.completed
+        todayRecordCount = response.checklistSummary?.completed ?? 0
         activeEmergencyCount = response.activeEmergencyCall == nil ? 0 : 1
         checklist = HGChecklistSummary(
-            times: response.checkTimes,
-            checkedCount: response.checklistSummary.completed,
-            totalCount: response.checklistSummary.total
+            times: response.checkTimes ?? [],
+            checkedCount: response.checklistSummary?.completed ?? 0,
+            totalCount: response.checklistSummary?.total ?? 0
         )
     }
 
