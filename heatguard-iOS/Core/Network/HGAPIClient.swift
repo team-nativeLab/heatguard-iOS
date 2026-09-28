@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 enum HGAPIConfiguration {
     static let baseURLKey = "HeatGuardAPIBaseURL"
@@ -173,6 +174,7 @@ private struct HGEmptyPayload: Decodable {}
 
 enum HGAPIError: LocalizedError {
     case configuration(String)
+    case keychain(message: String, status: OSStatus)
     case authenticationRequired
     case invalidResponse
     case responseDecoding
@@ -180,7 +182,7 @@ enum HGAPIError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case let .configuration(message), let .server(message, _, _):
+        case let .configuration(message), let .keychain(message, _), let .server(message, _, _):
             return message
         case .authenticationRequired:
             return "로그인이 필요합니다."
@@ -199,6 +201,8 @@ enum HGAPIError: LocalizedError {
             return "인증이 만료됐습니다"
         case .configuration:
             return "서버 설정 오류"
+        case .keychain:
+            return "인증 정보 오류"
         case .invalidResponse, .responseDecoding:
             return "서버 응답 오류"
         case .server:
@@ -210,6 +214,8 @@ enum HGAPIError: LocalizedError {
         switch self {
         case .configuration:
             return "CONFIGURATION"
+        case let .keychain(_, status):
+            return "KEYCHAIN_\(status)"
         case .authenticationRequired:
             return "AUTH_REQUIRED"
         case .invalidResponse:

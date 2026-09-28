@@ -432,12 +432,8 @@ struct HomeView: View {
     }
 
     private func logout() {
-        do {
-            try HGAuthenticationService().endLocalSession()
-            onSessionEnded()
-        } catch {
-            logoutError = HGErrorPresentation(error: error)
-        }
+        HGAuthenticationService().endLocalSession()
+        onSessionEnded()
     }
 
     private func showMenuDrawer() {
