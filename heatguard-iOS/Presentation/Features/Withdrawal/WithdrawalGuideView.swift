@@ -147,7 +147,7 @@ struct WithdrawalGuideView: View {
     }
 
     private var canRequestWithdrawal: Bool {
-        selectedReason != nil && !password.isEmpty && hasAgreed
+        !password.isEmpty && hasAgreed
     }
 
     private func dismissConfirmation() {
