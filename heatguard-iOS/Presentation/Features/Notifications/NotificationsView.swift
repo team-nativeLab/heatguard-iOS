@@ -12,6 +12,8 @@ struct NotificationsView: View {
     @State private var markingReadIDs: Set<String> = []
     @State private var isLoading = false
     @State private var isLoadingMore = false
+    @State private var listRequestID = UUID()
+    @State private var failedToLoadMore = false
     @State private var error: HGErrorPresentation?
     @State private var selectedNotice: String?
 
@@ -21,16 +23,15 @@ struct NotificationsView: View {
     }
 
     var body: some View {
-        Group {
+        VStack(spacing: 0) {
+            categoryPicker
+                .padding(.horizontal, 24)
             if isLoading && notifications.isEmpty {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if notifications.isEmpty {
                 ContentUnavailableView("알림이 없어요", systemImage: "bell", description: Text("새로운 기록과 답변이 도착하면 여기에 표시돼요."))
             } else {
                 List {
-                    categoryPicker
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
                     ForEach(notifications) { notification in
                         Button { Task { await open(notification) } } label: {
                             NotificationRow(notification: notification)
@@ -38,7 +39,7 @@ struct NotificationsView: View {
                         .buttonStyle(.plain)
                         .listRowSeparator(.visible)
                     }
-                    if hasMore {
+                    if hasMore && nextCursor != nil {
                         HStack {
                             Spacer()
                             if isLoadingMore { ProgressView() }
@@ -58,7 +59,12 @@ struct NotificationsView: View {
         .task { await loadFirstPage() }
         .onChange(of: category) { _, _ in Task { await loadFirstPage() } }
         .alert(error?.title ?? "알림 조회 오류", isPresented: errorAlert) {
-            Button("다시 시도") { Task { await loadFirstPage() } }
+            Button("다시 시도") {
+                Task {
+                    if failedToLoadMore { await loadMore() }
+                    else { await loadFirstPage() }
+                }
+            }
             Button("확인", role: .cancel) {}
         } message: { Text(error?.alertMessage ?? "") }
         .alert("알림", isPresented: noticeAlert) {
@@ -85,33 +91,50 @@ struct NotificationsView: View {
     }
 
     @MainActor private func loadFirstPage() async {
+        let requestID = UUID()
+        listRequestID = requestID
+        failedToLoadMore = false
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if listRequestID == requestID { isLoading = false }
+        }
         do {
             let page = try await HGNotificationService().fetch(category: category)
+            guard listRequestID == requestID else { return }
             notifications = page.items
             nextCursor = page.page.nextCursor
-            hasMore = page.page.hasMore
+            hasMore = page.page.hasMore && page.page.nextCursor != nil
             unreadCount = page.unreadCount
             onUnreadCountChanged(unreadCount)
             error = nil
-        } catch let requestError { error = HGErrorPresentation(error: requestError) }
+        } catch let requestError {
+            guard listRequestID == requestID else { return }
+            error = HGErrorPresentation(error: requestError)
+        }
     }
 
     @MainActor private func loadMore() async {
-        guard !isLoadingMore, hasMore else { return }
+        guard !isLoadingMore, hasMore, let nextCursor else { return }
+        let requestID = listRequestID
+        let selectedCategory = category
         isLoadingMore = true
         defer { isLoadingMore = false }
         do {
-            let page = try await HGNotificationService().fetch(category: category, cursor: nextCursor)
+            let page = try await HGNotificationService().fetch(category: selectedCategory, cursor: nextCursor)
+            guard listRequestID == requestID else { return }
             let existingIDs = Set(notifications.map(\.id))
             notifications.append(contentsOf: page.items.filter { !existingIDs.contains($0.id) })
-            nextCursor = page.page.nextCursor
-            hasMore = page.page.hasMore
+            self.nextCursor = page.page.nextCursor
+            hasMore = page.page.hasMore && page.page.nextCursor != nil
+            failedToLoadMore = false
             unreadCount = page.unreadCount
             onUnreadCountChanged(unreadCount)
             error = nil
-        } catch let requestError { error = HGErrorPresentation(error: requestError) }
+        } catch let requestError {
+            guard listRequestID == requestID else { return }
+            failedToLoadMore = true
+            error = HGErrorPresentation(error: requestError)
+        }
     }
 
     @MainActor private func open(_ notification: HGNotification) async {
@@ -140,7 +163,10 @@ struct NotificationsView: View {
             case .emergencyAcknowledged, .unknown:
                 selectedNotice = notification.title
             }
-        } catch { self.error = HGErrorPresentation(error: error) }
+        } catch {
+            failedToLoadMore = false
+            self.error = HGErrorPresentation(error: error)
+        }
     }
 
     private var errorAlert: Binding<Bool> {

@@ -9,6 +9,7 @@ struct RecordHistoryView: View {
     @State private var isLoadingMore = false
     @State private var nextCursor: String?
     @State private var hasMore = false
+    @State private var failedToLoadMore = false
     @State private var error: HGErrorPresentation?
     @State private var selectedFilter: RecordFilter = .all
     @State private var selectedPeriodEnd = Date.now
@@ -80,7 +81,12 @@ struct RecordHistoryView: View {
             .presentationDetents([.medium])
         }
         .alert(error?.title ?? "기록 조회 오류", isPresented: errorAlert) {
-            Button("다시 시도") { Task { await loadRecords() } }
+            Button("다시 시도") {
+                Task {
+                    if failedToLoadMore { await loadMoreRecords() }
+                    else { await loadRecords() }
+                }
+            }
             Button("확인", role: .cancel) {}
         } message: { Text(error?.alertMessage ?? "") }
     }
@@ -175,6 +181,7 @@ struct RecordHistoryView: View {
     }
 
     @MainActor private func loadRecords() async {
+        failedToLoadMore = false
         isLoading = true
         defer { isLoading = false }
         do {
@@ -197,8 +204,10 @@ struct RecordHistoryView: View {
             records.append(contentsOf: page.items.filter { !existingIDs.contains($0.recordID) })
             self.nextCursor = page.page.nextCursor
             hasMore = page.page.hasMore && page.page.nextCursor != nil
+            failedToLoadMore = false
             error = nil
         } catch {
+            failedToLoadMore = true
             self.error = HGErrorPresentation(error: error)
         }
     }

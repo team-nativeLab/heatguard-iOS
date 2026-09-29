@@ -10,6 +10,7 @@ struct InquiryView: View {
     @State private var nextCursor: String?
     @State private var hasMore = false
     @State private var listRequestID = UUID()
+    @State private var failedToLoadMore = false
     @State private var isSubmitting = false
     @State private var error: HGErrorPresentation?
     @State private var isComplete = false
@@ -27,7 +28,12 @@ struct InquiryView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await loadInquiries() }
         .alert(error?.title ?? "문의 오류", isPresented: errorAlert) {
-            Button("다시 시도") { Task { await loadInquiries() } }
+            Button("다시 시도") {
+                Task {
+                    if failedToLoadMore { await loadMoreInquiries() }
+                    else { await loadInquiries() }
+                }
+            }
             Button("확인", role: .cancel) {}
         } message: { Text(error?.alertMessage ?? "") }
         .alert("문의가 등록되었습니다.", isPresented: $isComplete) {
@@ -150,6 +156,7 @@ struct InquiryView: View {
     private func loadInquiries() async {
         let requestID = UUID()
         listRequestID = requestID
+        failedToLoadMore = false
         isLoading = true
         defer {
             if listRequestID == requestID { isLoading = false }
@@ -160,9 +167,11 @@ struct InquiryView: View {
             inquiries = page.items
             nextCursor = page.page.nextCursor
             hasMore = page.page.hasMore && page.page.nextCursor != nil
+            failedToLoadMore = false
             error = nil
         } catch {
             guard listRequestID == requestID else { return }
+            failedToLoadMore = true
             self.error = HGErrorPresentation(error: error)
         }
     }
@@ -202,6 +211,7 @@ struct InquiryView: View {
             isComplete = true
             await loadInquiries()
         } catch {
+            failedToLoadMore = false
             self.error = HGErrorPresentation(error: error)
         }
     }
