@@ -6,6 +6,10 @@ struct InquiryView: View {
     @State private var inquiries: [HGInquirySummary] = []
     @State private var selectedStatus: HGInquiryStatus?
     @State private var isLoading = true
+    @State private var isLoadingMore = false
+    @State private var nextCursor: String?
+    @State private var hasMore = false
+    @State private var listRequestID = UUID()
     @State private var isSubmitting = false
     @State private var error: HGErrorPresentation?
     @State private var isComplete = false
@@ -99,6 +103,21 @@ struct InquiryView: View {
                 }
                 .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
             }
+
+            if !isLoading && hasMore {
+                Button {
+                    Task { await loadMoreInquiries() }
+                } label: {
+                    HStack(spacing: 8) {
+                        if isLoadingMore { ProgressView() }
+                        Text(isLoadingMore ? "불러오는 중..." : "더 보기")
+                    }
+                    .font(HGFont.medium(13, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.primary)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .disabled(isLoadingMore)
+            }
         }
     }
 
@@ -129,12 +148,42 @@ struct InquiryView: View {
 
     @MainActor
     private func loadInquiries() async {
+        let requestID = UUID()
+        listRequestID = requestID
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if listRequestID == requestID { isLoading = false }
+        }
         do {
-            inquiries = try await HGInquiryService().fetchInquiries(status: selectedStatus).items
+            let page = try await HGInquiryService().fetchInquiries(status: selectedStatus)
+            guard listRequestID == requestID else { return }
+            inquiries = page.items
+            nextCursor = page.page.nextCursor
+            hasMore = page.page.hasMore && page.page.nextCursor != nil
             error = nil
         } catch {
+            guard listRequestID == requestID else { return }
+            self.error = HGErrorPresentation(error: error)
+        }
+    }
+
+    @MainActor
+    private func loadMoreInquiries() async {
+        guard !isLoadingMore, hasMore, let nextCursor else { return }
+        let requestID = listRequestID
+        let status = selectedStatus
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        do {
+            let page = try await HGInquiryService().fetchInquiries(status: status, cursor: nextCursor)
+            guard listRequestID == requestID else { return }
+            let existingIDs = Set(inquiries.map(\.inquiryID))
+            inquiries.append(contentsOf: page.items.filter { !existingIDs.contains($0.inquiryID) })
+            self.nextCursor = page.page.nextCursor
+            hasMore = page.page.hasMore && page.page.nextCursor != nil
+            error = nil
+        } catch {
+            guard listRequestID == requestID else { return }
             self.error = HGErrorPresentation(error: error)
         }
     }

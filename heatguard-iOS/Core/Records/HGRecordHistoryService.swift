@@ -7,10 +7,15 @@ struct HGRecordHistoryService {
         self.client = client
     }
 
-    func fetchRecords() async throws -> HGRecordPage {
-        try await client.get(
+    func fetchRecords(limit: Int = 20, cursor: String? = nil) async throws -> HGRecordPage {
+        var queryItems = [URLQueryItem(name: "limit", value: String(limit))]
+        if let cursor {
+            queryItems.append(URLQueryItem(name: "cursor", value: cursor))
+        }
+        return try await client.get(
             path: HGAPIPath.teamRecords,
-            requiresAuthentication: true
+            requiresAuthentication: true,
+            queryItems: queryItems
         )
     }
 

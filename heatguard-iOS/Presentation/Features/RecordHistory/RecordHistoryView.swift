@@ -6,6 +6,9 @@ struct RecordHistoryView: View {
 
     @State private var records: [HGRecordHistoryItem] = []
     @State private var isLoading = true
+    @State private var isLoadingMore = false
+    @State private var nextCursor: String?
+    @State private var hasMore = false
     @State private var error: HGErrorPresentation?
     @State private var selectedFilter: RecordFilter = .all
     @State private var selectedPeriodEnd = Date.now
@@ -27,6 +30,21 @@ struct RecordHistoryView: View {
                         filterSelector.padding(.top, 14)
                         summaryCard.padding(.top, 14)
                         historyContent.padding(.top, 20)
+                        if hasMore {
+                            Button {
+                                Task { await loadMoreRecords() }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    if isLoadingMore { ProgressView() }
+                                    Text(isLoadingMore ? "불러오는 중..." : "더 보기")
+                                }
+                                .font(HGFont.medium(13, relativeTo: .subheadline))
+                                .foregroundStyle(HGColor.primary)
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                            }
+                            .disabled(isLoadingMore)
+                            .padding(.top, 12)
+                        }
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 96)
@@ -157,9 +175,32 @@ struct RecordHistoryView: View {
     }
 
     @MainActor private func loadRecords() async {
-        isLoading = true; defer { isLoading = false }
-        do { records = try await HGRecordHistoryService().fetchRecords().items; error = nil }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let page = try await HGRecordHistoryService().fetchRecords()
+            records = page.items
+            nextCursor = page.page.nextCursor
+            hasMore = page.page.hasMore && page.page.nextCursor != nil
+            error = nil
+        }
         catch { self.error = HGErrorPresentation(error: error) }
+    }
+
+    @MainActor private func loadMoreRecords() async {
+        guard !isLoadingMore, hasMore, let nextCursor else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        do {
+            let page = try await HGRecordHistoryService().fetchRecords(cursor: nextCursor)
+            let existingIDs = Set(records.map(\.recordID))
+            records.append(contentsOf: page.items.filter { !existingIDs.contains($0.recordID) })
+            self.nextCursor = page.page.nextCursor
+            hasMore = page.page.hasMore && page.page.nextCursor != nil
+            error = nil
+        } catch {
+            self.error = HGErrorPresentation(error: error)
+        }
     }
 
     private var errorAlert: Binding<Bool> { Binding(get: { error != nil }, set: { if !$0 { error = nil } }) }
