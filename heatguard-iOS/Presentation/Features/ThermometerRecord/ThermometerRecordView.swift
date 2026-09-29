@@ -10,6 +10,8 @@ struct ThermometerRecordView: View {
     @State private var temperature: String
     @State private var humidity: String
     private let apparentTemperature: Double?
+    private let teamName: String?
+    private let workplace: String?
     @State private var validationMessage: String?
 
     let onContinue: (HGRecordDraft) -> Void
@@ -17,12 +19,16 @@ struct ThermometerRecordView: View {
 
     init(
         weather: HomeWeather = .unavailable,
+        teamName: String? = nil,
+        workplace: String? = nil,
         onContinue: @escaping (HGRecordDraft) -> Void = { _ in },
         onMenuTap: @escaping () -> Void = {}
     ) {
         _temperature = State(initialValue: weather.temperature.map { String(format: "%.1f", $0) } ?? "")
         _humidity = State(initialValue: weather.humidity.map { String(format: "%.0f", $0) } ?? "")
         apparentTemperature = weather.apparentTemperature
+        self.teamName = teamName
+        self.workplace = workplace
         self.onContinue = onContinue
         self.onMenuTap = onMenuTap
     }
@@ -162,15 +168,18 @@ struct ThermometerRecordView: View {
     }
 
     private func continueWithRecord(temperature: Double, humidity: Double) {
-        onContinue(HGRecordDraft(type: .thermometer, memo: "", temperature: temperature, humidity: humidity))
+        onContinue(HGRecordDraft(
+            type: .thermometer,
+            memo: "",
+            temperature: temperature,
+            humidity: humidity,
+            teamName: teamName,
+            workplace: workplace
+        ))
     }
 
     private var validationAlert: Binding<Bool> { Binding(get: { validationMessage != nil }, set: { if !$0 { validationMessage = nil } }) }
 
-}
-
-private extension HomeWeather {
-    static let unavailable = HomeWeather(temperature: nil, humidity: nil, apparentTemperature: nil, heatLevel: 0)
 }
 
 #Preview {

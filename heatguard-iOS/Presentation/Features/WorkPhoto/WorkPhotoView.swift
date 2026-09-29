@@ -13,6 +13,8 @@ struct WorkPhotoView: View {
     let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
     let onPhotoRequired: (HGRecordDraft) -> Void
     let onMenuTap: () -> Void
+    private let teamName: String?
+    private let workplace: String?
 
     init(
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
@@ -20,12 +22,16 @@ struct WorkPhotoView: View {
         onPhotoRequired: @escaping (HGRecordDraft) -> Void = { _ in },
         initialMemo: String = "",
         initialPhotos: [UIImage] = [],
+        teamName: String? = nil,
+        workplace: String? = nil,
         onMenuTap: @escaping () -> Void = {}
     ) {
         self.onSave = onSave
         self.onFailure = onFailure
         self.onPhotoRequired = onPhotoRequired
         self.onMenuTap = onMenuTap
+        self.teamName = teamName
+        self.workplace = workplace
         _memo = State(initialValue: initialMemo)
         _photos = State(initialValue: initialPhotos)
     }
@@ -85,7 +91,7 @@ struct WorkPhotoView: View {
 
     private func saveRecord() {
         UIApplication.shared.dismissKeyboard()
-        let draft = HGRecordDraft(type: .work, memo: memo)
+        let draft = HGRecordDraft(type: .work, memo: memo, teamName: teamName, workplace: workplace)
         isSaving = true
         Task {
             defer { isSaving = false }

@@ -12,14 +12,15 @@ struct HGMenuProfile: Equatable {
     }
 
     static let preview = HGMenuProfile(
-        name: "김현장",
-        role: "이음산업건설 · 현장작업자",
-        email: "worker@ieum.co.kr"
+        name: "사용자 정보 없음",
+        role: "",
+        email: ""
     )
 
     nonisolated init(profile: HGTeamProfile) {
         name = profile.name
-        role = profile.role == "TEAM_MEMBER" ? "현장작업자" : profile.role
+        let roleTitle = profile.role == "TEAM_MEMBER" ? "현장작업자" : profile.role
+        role = [profile.companyName, roleTitle].compactMap { $0 }.joined(separator: " · ")
         email = profile.email
     }
 
@@ -86,12 +87,16 @@ struct HGMenuDrawer: View {
                 Text(profile.name)
                     .font(HGFont.bold(15, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
-                Text(profile.role)
-                    .font(HGFont.regular(11, relativeTo: .caption2))
-                    .foregroundStyle(HGColor.secondaryText)
-                Text(profile.email)
-                    .font(HGFont.regular(11, relativeTo: .caption2))
-                    .foregroundStyle(HGColor.secondaryText)
+                if !profile.role.isEmpty {
+                    Text(profile.role)
+                        .font(HGFont.regular(11, relativeTo: .caption2))
+                        .foregroundStyle(HGColor.secondaryText)
+                }
+                if !profile.email.isEmpty {
+                    Text(profile.email)
+                        .font(HGFont.regular(11, relativeTo: .caption2))
+                        .foregroundStyle(HGColor.secondaryText)
+                }
             }
             Spacer()
             Button(action: onDismiss) {

@@ -3,9 +3,7 @@ import Foundation
 struct HGDashboardService {
     private let client: HGAPIClient
 
-    init(client: HGAPIClient = HGAPIClient()) {
-        self.client = client
-    }
+    init(client: HGAPIClient = HGAPIClient()) { self.client = client }
 
     func fetchHomeDashboard() async throws -> HomeDashboard {
         let response: WorkerHomeDashboardResponse = try await client.get(
@@ -17,91 +15,171 @@ struct HGDashboardService {
 }
 
 private struct WorkerHomeDashboardResponse: Decodable {
+    let company: WorkerHomeCompany?
     let site: WorkerHomeSite?
+    let team: WorkerHomeTeam?
     let weather: WorkerHomeWeather?
-    let heatLevel: Int?
     let checkTimes: [String]?
     let checklistSummary: WorkerChecklistSummary?
+    let unreadNotificationCount: Int?
 }
 
-private struct WorkerHomeSite: Decodable {
-    let managerPhone: String?
-}
+private struct WorkerHomeCompany: Decodable { let name: String?; let phone: String? }
+private struct WorkerHomeSite: Decodable { let managerPhone: String? }
+private struct WorkerHomeTeam: Decodable { let name: String?; let workplace: String? }
 
 private struct WorkerHomeWeather: Decodable {
     let temperature: Double?
     let humidity: Double?
     let apparentTemperature: Double?
-    let heatLevel: Int?
+    let heatLevel: Double?
+    let temperatureDelta: Double?
+    let comparisonTemperature: Double?
+    let observedAt: String?
+    let skyStatus: String?
+    let comparisonObservedAt: String?
+    let comparisonBasis: String?
 }
 
-private struct WorkerChecklistSummary: Decodable {
-    let total: Int?
-    let completed: Int?
-}
+private struct WorkerChecklistSummary: Decodable { let total: Int?; let completed: Int? }
 
 struct HomeDashboard: Equatable {
+    let companyName: String?
+    let companyPhone: String?
     let managerPhone: String?
+    let teamName: String?
+    let workplace: String?
     let weather: HomeWeather
     let checklist: HGChecklistSummary
+    let unreadNotificationCount: Int
 
     fileprivate init(response: WorkerHomeDashboardResponse) {
+        companyName = response.company?.name
+        companyPhone = response.company?.phone
         managerPhone = response.site?.managerPhone
+        teamName = response.team?.name
+        workplace = response.team?.workplace
+        let source = response.weather
         weather = HomeWeather(
-            temperature: response.weather?.temperature,
-            humidity: response.weather?.humidity,
-            apparentTemperature: response.weather?.apparentTemperature,
-            heatLevel: response.heatLevel ?? response.weather?.heatLevel ?? 0
+            temperature: source?.temperature,
+            humidity: source?.humidity,
+            apparentTemperature: source?.apparentTemperature,
+            heatLevel: source?.heatLevel,
+            temperatureDelta: source?.temperatureDelta,
+            comparisonTemperature: source?.comparisonTemperature,
+            observedAt: source?.observedAt,
+            skyStatus: source?.skyStatus,
+            comparisonObservedAt: source?.comparisonObservedAt,
+            comparisonBasis: source?.comparisonBasis
         )
         checklist = HGChecklistSummary(
             times: response.checkTimes ?? [],
-            checkedCount: response.checklistSummary?.completed ?? 0,
-            totalCount: response.checklistSummary?.total ?? 0
+            checkedCount: response.checklistSummary?.completed,
+            totalCount: response.checklistSummary?.total
         )
+        unreadNotificationCount = max(0, response.unreadNotificationCount ?? 0)
     }
 
     static let unavailable = HomeDashboard(
+        companyName: nil,
+        companyPhone: nil,
         managerPhone: nil,
-        weather: HomeWeather(
-            temperature: nil,
-            humidity: nil,
-            apparentTemperature: nil,
-            heatLevel: 0
-        ),
-        checklist: HGChecklistSummary(times: [], checkedCount: 0, totalCount: 0)
+        teamName: nil,
+        workplace: nil,
+        weather: .unavailable,
+        checklist: HGChecklistSummary(times: [], checkedCount: nil, totalCount: nil),
+        unreadNotificationCount: 0
     )
 
     private init(
-        managerPhone: String?,
-        weather: HomeWeather,
-        checklist: HGChecklistSummary
+        companyName: String?, companyPhone: String?, managerPhone: String?,
+        teamName: String?, workplace: String?, weather: HomeWeather,
+        checklist: HGChecklistSummary, unreadNotificationCount: Int
     ) {
+        self.companyName = companyName
+        self.companyPhone = companyPhone
         self.managerPhone = managerPhone
+        self.teamName = teamName
+        self.workplace = workplace
         self.weather = weather
         self.checklist = checklist
+        self.unreadNotificationCount = unreadNotificationCount
     }
-
 }
 
 struct HomeWeather: Equatable {
     let temperature: Double?
     let humidity: Double?
     let apparentTemperature: Double?
-    let heatLevel: Int
+    let heatLevel: Double?
+    let temperatureDelta: Double?
+    let comparisonTemperature: Double?
+    let observedAt: String?
+    let skyStatus: String?
+    let comparisonObservedAt: String?
+    let comparisonBasis: String?
 
     var heatLevelTitle: String {
         switch heatLevel {
-        case 3: "폭염 위험 단계"
-        case 2: "폭염 주의 단계"
-        case 1: "폭염 관심 단계"
-        default: "폭염 안전 단계"
+        case let value? where value >= 3: "폭염 위험 단계"
+        case let value? where value >= 2: "폭염 주의 단계"
+        case let value? where value >= 1: "폭염 관심 단계"
+        case .some: "폭염 안전 단계"
+        case .none: "폭염 단계 정보 없음"
         }
     }
 
     var temperatureText: String { measurementText(temperature, suffix: "°C") }
     var humidityText: String { measurementText(humidity, suffix: "%") }
     var apparentTemperatureText: String { measurementText(apparentTemperature, suffix: "°C") }
-    var weatherStatusText: String { temperature == nil ? "정보 없음" : "현장 입력" }
+
+    var weatherStatusText: String {
+        switch skyStatus {
+        case "CLEAR": "맑음"
+        case "PARTLY_CLOUDY": "구름 조금"
+        case "CLOUDY": "흐림"
+        case "RAIN": "비"
+        case "SNOW": "눈"
+        default: "정보 없음"
+        }
+    }
+
+    var skySymbol: String {
+        switch skyStatus {
+        case "CLEAR": "sun.max.fill"
+        case "PARTLY_CLOUDY": "cloud.sun.fill"
+        case "CLOUDY": "cloud.fill"
+        case "RAIN": "cloud.rain.fill"
+        case "SNOW": "cloud.snow.fill"
+        default: "cloud.questionmark.fill"
+        }
+    }
+
+    var temperatureDeltaText: String? {
+        guard let temperatureDelta else { return nil }
+        let sign = temperatureDelta > 0 ? "+" : ""
+        var details: [String] = []
+        if let comparisonTemperature {
+            details.append("이전 \(String(format: "%.1f", comparisonTemperature))°C")
+        }
+        if let comparisonDate = comparisonObservedAt?.hgISO8601Date {
+            details.append("\(comparisonDate.formatted(date: .omitted, time: .shortened)) 기준")
+        }
+        let reference = details.isEmpty ? "" : " · " + details.joined(separator: " · ")
+        let title = comparisonBasis == "PREVIOUS_OBSERVATION" ? "직전 측정 대비" : "온도 변화"
+        return "\(title) \(sign)\(String(format: "%.1f", temperatureDelta))°C\(reference)"
+    }
+
+    var observationTimeText: String? {
+        guard let observedDate = observedAt?.hgISO8601Date else { return nil }
+        return "측정 \(observedDate.formatted(date: .numeric, time: .shortened))"
+    }
+
+    static let unavailable = HomeWeather(
+        temperature: nil, humidity: nil, apparentTemperature: nil, heatLevel: nil,
+        temperatureDelta: nil, comparisonTemperature: nil, observedAt: nil,
+        skyStatus: nil, comparisonObservedAt: nil, comparisonBasis: nil
+    )
 
     private func measurementText(_ value: Double?, suffix: String) -> String {
         guard let value else { return "—" }

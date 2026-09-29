@@ -204,7 +204,7 @@ private struct InquiryRow: View {
     }
 }
 
-private struct InquiryDetailView: View {
+struct InquiryDetailView: View {
     let inquiryID: String
     @State private var inquiry: HGInquiryDetail?
     @State private var isLoading = true

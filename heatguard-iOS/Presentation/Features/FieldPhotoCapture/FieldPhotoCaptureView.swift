@@ -105,8 +105,7 @@ struct FieldPhotoCaptureView: View {
     private var measurements: [FieldMeasurement] {
         [
             FieldMeasurement(title: "온도 ( ℃ )", value: formattedMeasurement(draft.temperature)),
-            FieldMeasurement(title: "습도 ( % )", value: formattedMeasurement(draft.humidity)),
-            FieldMeasurement(title: "체감온도 ( ℃ )", value: "자동 계산")
+            FieldMeasurement(title: "습도 ( % )", value: formattedMeasurement(draft.humidity))
         ]
     }
 
