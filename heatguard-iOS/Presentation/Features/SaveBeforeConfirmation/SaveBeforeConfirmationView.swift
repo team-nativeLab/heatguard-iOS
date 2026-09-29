@@ -41,7 +41,10 @@ struct SaveBeforeConfirmationView: View {
                         .padding(.top, 35)
 
                     if draft.type == .thermometer {
-                        DisabledManualInputCard()
+                        DisabledManualInputCard(
+                            temperature: draft.temperature.map { String(format: "%.1f", $0) } ?? "",
+                            humidity: draft.humidity.map { String(format: "%.0f", $0) } ?? ""
+                        )
                             .padding(.top, 20)
                     }
 
@@ -128,8 +131,16 @@ struct SaveBeforeConfirmationView: View {
 }
 
 private struct DisabledManualInputCard: View {
+    let temperature: String
+    let humidity: String
+
     var body: some View {
-        HGManualInputCard(isEnabled: .constant(false), isLocked: true)
+        HGManualInputCard(
+            isEnabled: .constant(false),
+            temperature: .constant(temperature),
+            humidity: .constant(humidity),
+            isLocked: true
+        )
     }
 }
 

@@ -1,8 +1,6 @@
 import SwiftUI
 
 struct RestPhotoView: View {
-    private let restPeriod = "13 : 00 ~ 13 : 30 (중간 휴식)"
-
     @State private var memo: String
     @State private var photos: [UIImage]
     @State private var isSaving = false
@@ -72,7 +70,7 @@ struct RestPhotoView: View {
     private var restForm: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("휴식 시간").font(HGFont.semiBold(16))
-            Text(restPeriod)
+            Text("휴식 시간 정보 없음")
                 .font(HGFont.bold(13, relativeTo: .caption))
                 .frame(maxWidth: .infinity, minHeight: 45, alignment: .leading)
                 .padding(.horizontal, 15)
