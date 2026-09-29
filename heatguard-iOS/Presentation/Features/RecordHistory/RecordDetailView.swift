@@ -56,7 +56,7 @@ struct RecordDetailView: View {
                 HStack(spacing: 0) {
                     DetailMetric(title: "습도", value: record.humidityText)
                     DetailMetric(title: "체감온도", value: record.apparentTemperatureText)
-                    DetailMetric(title: "온도계", value: "설치됨")
+                    DetailMetric(title: "온도계", value: "정보 없음")
                 }
             }}
             photoCard(record.photoURLs, title: "현장 사진", height: 200)
@@ -70,8 +70,8 @@ struct RecordDetailView: View {
             HGCard { VStack(spacing: 0) {
                 DetailInfoRow(title: "유형", value: record.type.historyTitle)
                 Divider(); DetailInfoRow(title: "촬영 시간", value: record.formattedMeasuredAt)
-                Divider(); DetailInfoRow(title: "위치", value: "현장 기록")
-                if record.type == .rest { Divider(); DetailInfoRow(title: "휴식 시간", value: "기록된 휴식 시간") }
+                Divider(); DetailInfoRow(title: "위치", value: "위치 정보 없음")
+                if record.type == .rest { Divider(); DetailInfoRow(title: "휴식 시간", value: "휴식 시간 정보 없음") }
             }}
             memoCard(record)
         }
