@@ -22,7 +22,6 @@ private struct WorkerHomeDashboardResponse: Decodable {
     let heatLevel: Int?
     let checkTimes: [String]?
     let checklistSummary: WorkerChecklistSummary?
-    let activeEmergencyCall: WorkerEmergencyCall?
 }
 
 private struct WorkerHomeSite: Decodable {
@@ -41,13 +40,9 @@ private struct WorkerChecklistSummary: Decodable {
     let completed: Int?
 }
 
-private struct WorkerEmergencyCall: Decodable {}
-
 struct HomeDashboard: Equatable {
     let managerPhone: String?
     let weather: HomeWeather
-    let todayRecordCount: Int
-    let activeEmergencyCount: Int
     let checklist: HGChecklistSummary
 
     fileprivate init(response: WorkerHomeDashboardResponse) {
@@ -58,8 +53,6 @@ struct HomeDashboard: Equatable {
             apparentTemperature: response.weather?.apparentTemperature,
             heatLevel: response.heatLevel ?? response.weather?.heatLevel ?? 0
         )
-        todayRecordCount = response.checklistSummary?.completed ?? 0
-        activeEmergencyCount = response.activeEmergencyCall == nil ? 0 : 1
         checklist = HGChecklistSummary(
             times: response.checkTimes ?? [],
             checkedCount: response.checklistSummary?.completed ?? 0,
@@ -75,28 +68,19 @@ struct HomeDashboard: Equatable {
             apparentTemperature: nil,
             heatLevel: 0
         ),
-        todayRecordCount: 0,
-        activeEmergencyCount: 0,
         checklist: HGChecklistSummary(times: [], checkedCount: 0, totalCount: 0)
     )
 
     private init(
         managerPhone: String?,
         weather: HomeWeather,
-        todayRecordCount: Int,
-        activeEmergencyCount: Int,
         checklist: HGChecklistSummary
     ) {
         self.managerPhone = managerPhone
         self.weather = weather
-        self.todayRecordCount = todayRecordCount
-        self.activeEmergencyCount = activeEmergencyCount
         self.checklist = checklist
     }
 
-    var recordStatusText: String {
-        "오늘 기록 \(todayRecordCount)건 · 긴급 호출 \(activeEmergencyCount)건"
-    }
 }
 
 struct HomeWeather: Equatable {

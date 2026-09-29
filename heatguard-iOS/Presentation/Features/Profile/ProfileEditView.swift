@@ -89,21 +89,121 @@ private struct PasswordChangeView: View {
     @State private var isSubmitting = false
     @State private var error: HGErrorPresentation?
     @State private var isComplete = false
+
     var body: some View {
-        VStack(spacing: 20) {
-            HGTextField(title: "현재 비밀번호", placeholder: "현재 비밀번호를 입력해주세요", text: $currentPassword, isSecure: true, fieldHeight: 48)
-            HGTextField(title: "새 비밀번호", placeholder: "새 비밀번호를 입력해주세요", text: $newPassword, isSecure: true, fieldHeight: 48)
-            HGTextField(title: "새 비밀번호 확인", placeholder: "새 비밀번호를 다시 입력해주세요", text: $confirmation, isSecure: true, fieldHeight: 48)
-            Spacer()
-            HGPrimaryButton(title: isSubmitting ? "변경 중..." : "비밀번호 변경", isEnabled: isValid && !isSubmitting) {
-                Task { await changePassword() }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("현재 비밀번호를 확인한 뒤\n새 비밀번호로 변경할 수 있어요")
+                    .font(HGFont.regular(13, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .lineSpacing(3)
+
+                HGTextField(
+                    title: "현재 비밀번호",
+                    placeholder: "현재 비밀번호 입력",
+                    text: $currentPassword,
+                    isSecure: true,
+                    fieldHeight: 48,
+                    inputType: .currentPassword
+                )
+                .padding(.top, 20)
+
+                HGTextField(
+                    title: "새 비밀번호",
+                    placeholder: "새 비밀번호 입력",
+                    text: $newPassword,
+                    isSecure: true,
+                    fieldHeight: 48,
+                    inputType: .newPassword
+                )
+                .padding(.top, 20)
+
+                passwordRuleFeedback
+                    .padding(.top, 8)
+
+                HGTextField(
+                    title: "새 비밀번호 확인",
+                    placeholder: "새 비밀번호 다시 입력",
+                    text: $confirmation,
+                    isSecure: true,
+                    errorMessage: confirmationError,
+                    fieldHeight: 48,
+                    inputType: .newPassword
+                )
+                .padding(.top, 20)
+
+                if passwordsMatch {
+                    Text("✓ 새 비밀번호가 일치해요")
+                        .font(HGFont.regular(12, relativeTo: .caption))
+                        .foregroundStyle(HGColor.primary)
+                        .padding(.top, 8)
+                }
             }
-        }.padding(24).background(HGColor.appBackground).navigationTitle("비밀번호 변경").navigationBarTitleDisplayMode(.inline).dismissKeyboardOnBackgroundTap()
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 24)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .background(HGColor.appBackground)
+        .navigationTitle("비밀번호 변경")
+        .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                Task { await changePassword() }
+            } label: {
+                Text(isSubmitting ? "변경 중..." : "변경하기")
+                    .font(HGFont.semiBold(16, relativeTo: .body))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(
+                        HGColor.primary.opacity(isValid && !isSubmitting ? 1 : 0.35),
+                        in: RoundedRectangle(cornerRadius: 12)
+                    )
+            }
+            .buttonStyle(.plain)
+            .disabled(!isValid || isSubmitting)
+            .padding(.horizontal, 28)
+            .padding(.vertical, 10)
+            .background(HGColor.appBackground)
+        }
+        .dismissKeyboardOnBackgroundTap()
         .alert(error?.title ?? "비밀번호 변경 오류", isPresented: errorAlert) { Button("확인", role: .cancel) {} } message: { Text(error?.alertMessage ?? "") }
         .alert("비밀번호가 변경되었습니다.", isPresented: $isComplete) { Button("확인", role: .cancel) {} }
     }
 
-    private var isValid: Bool { !currentPassword.isEmpty && newPassword.count >= 8 && newPassword == confirmation }
+    private var meetsPasswordRule: Bool {
+        newPassword.count >= 8
+            && newPassword.range(of: "[A-Za-z]", options: .regularExpression) != nil
+            && newPassword.range(of: "[0-9]", options: .regularExpression) != nil
+    }
+
+    private var passwordsMatch: Bool {
+        !confirmation.isEmpty && confirmation == newPassword
+    }
+
+    private var confirmationError: String? {
+        guard !confirmation.isEmpty, !passwordsMatch else { return nil }
+        return "새 비밀번호가 일치하지 않아요"
+    }
+
+    private var passwordRuleFeedback: some View {
+        Group {
+            if meetsPasswordRule {
+                Text("✓ 영문, 숫자를 포함해 8자 이상")
+                    .foregroundStyle(HGColor.primary)
+            } else {
+                Text("영문, 숫자를 포함해 8자 이상 입력해 주세요")
+                    .foregroundStyle(HGColor.secondaryText)
+            }
+        }
+        .font(HGFont.regular(12, relativeTo: .caption))
+    }
+
+    private var isValid: Bool {
+        !currentPassword.isEmpty && meetsPasswordRule && passwordsMatch
+    }
+
     private var errorAlert: Binding<Bool> { Binding(get: { error != nil }, set: { if !$0 { error = nil } }) }
     @MainActor private func changePassword() async {
         isSubmitting = true; defer { isSubmitting = false }

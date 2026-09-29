@@ -232,7 +232,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 0) {
             Text("오늘 체크 시간")
                 .font(HGFont.bold(14, relativeTo: .subheadline))
-            Text(checklist.times.isEmpty ? dashboard.recordStatusText : checklist.statusText)
+            Text(checklist.statusText)
                 .font(HGFont.regular(11, relativeTo: .caption2))
                 .foregroundStyle(HGColor.secondaryText)
                 .padding(.top, 7)
@@ -594,6 +594,17 @@ struct HomeView: View {
             dashboard = loadedDashboard
             checklist = loadedDashboard.checklist
             dashboardError = nil
+
+            do {
+                let items = try await HGChecklistService().fetchItems()
+                checklist = HGChecklistSummary(
+                    times: loadedDashboard.checklist.times,
+                    checkedCount: items.filter(\.checked).count,
+                    totalCount: items.count
+                )
+            } catch {
+                checklist = loadedDashboard.checklist
+            }
         } catch {
             dashboardError = HGErrorPresentation(error: error)
         }

@@ -9,11 +9,14 @@ import UIKit
 enum HGTextFieldInputType {
     case standard
     case email
+    case currentPassword
+    case newPassword
 
     var keyboardType: UIKeyboardType {
         switch self {
         case .standard: .default
         case .email: .default
+        case .currentPassword, .newPassword: .default
         }
     }
 
@@ -21,6 +24,8 @@ enum HGTextFieldInputType {
         switch self {
         case .standard: nil
         case .email: .emailAddress
+        case .currentPassword: .password
+        case .newPassword: .newPassword
         }
     }
 
@@ -28,11 +33,12 @@ enum HGTextFieldInputType {
         switch self {
         case .standard: nil
         case .email: .never
+        case .currentPassword, .newPassword: .never
         }
     }
 
     var disablesAutocorrection: Bool {
-        self == .email
+        self == .email || self == .currentPassword || self == .newPassword
     }
 }
 
