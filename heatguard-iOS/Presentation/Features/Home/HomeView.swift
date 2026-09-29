@@ -199,19 +199,28 @@ struct HomeView: View {
                         Text(dashboard.weather.temperatureText)
                             .font(HGFont.bold(40, relativeTo: .largeTitle))
 
-                        Text("현장 기준")
-                            .font(HGFont.bold(9, relativeTo: .caption2))
-                            .foregroundStyle(HGColor.error)
-                            .padding(.horizontal, 7)
-                            .frame(height: 20)
-                            .background(HGColor.homeBaselineBackground, in: Capsule())
+                        if let changeText = dashboard.weather.temperatureChangeText {
+                            Text(changeText)
+                                .font(HGFont.bold(9, relativeTo: .caption2))
+                                .foregroundStyle(changeText.hasPrefix("▲") ? HGColor.error : HGColor.primary)
+                                .padding(.horizontal, 7)
+                                .frame(height: 20)
+                                .background(HGColor.homeBaselineBackground, in: Capsule())
+                        }
                     }
 
                     Text("습도 \(dashboard.weather.humidityText) · 체감온도 \(dashboard.weather.apparentTemperatureText)")
                         .font(HGFont.regular(12, relativeTo: .caption))
                         .padding(.top, 8)
                 }
-                Spacer(); Image("WeatherPartlyCloudy").resizable().scaledToFit().frame(width: 145, height: 120).offset(x: 9, y: 2)
+                Spacer()
+                if dashboard.weather.weatherCondition != nil {
+                    Image(dashboard.weather.weatherCondition == "SUNNY" ? "WeatherSunny" : "WeatherPartlyCloudy")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 145, height: 120)
+                        .offset(x: 9, y: 2)
+                }
             }
             HStack(spacing: 0) {
                 HomeMetric(icon: "HomeHumidity", title: "습도", value: dashboard.weather.humidityText)
@@ -257,8 +266,8 @@ struct HomeView: View {
             Divider().padding(.leading, 16)
             HomeActionRow(
                 icon: "HomeEmergencyPhone",
-                title: "긴급 전화",
-                subtitle: "본사와 즉시 연결"
+                title: "긴급 호출",
+                subtitle: "관리자 화면에 호출 전달"
             ) {
                 showEmergencyCall()
             }
@@ -393,6 +402,8 @@ struct HomeView: View {
                 onPhotoRequired: showPhotoRequired,
                 initialMemo: resumedDraft(for: .rest)?.memo ?? "",
                 initialPhotos: resumedImages(for: .rest),
+                initialRestStartedAt: resumedDraft(for: .rest)?.restStartedAt,
+                initialRestEndedAt: resumedDraft(for: .rest)?.restEndedAt,
                 onMenuTap: showMenuDrawer
             )
         case let .fieldPhoto(draft):
@@ -435,8 +446,8 @@ struct HomeView: View {
         case .inquiry:
             InquiryView()
         case .withdrawalGuide:
-            WithdrawalGuideView { password in
-                Task { await withdraw(password: password) }
+            WithdrawalGuideView { password, reason in
+                Task { await withdraw(password: password, reason: reason) }
             }
         case .withdrawalCompleted:
             WithdrawalCompletedView(onConfirm: finishWithdrawal)
@@ -476,9 +487,9 @@ struct HomeView: View {
     }
 
     @MainActor
-    private func withdraw(password: String) async {
+    private func withdraw(password: String, reason: String?) async {
         do {
-            try await HGAuthenticationService().withdraw(currentPassword: password)
+            try await HGAuthenticationService().withdraw(currentPassword: password, reason: reason)
             flowPath.append(HomeFlowRoute.withdrawalCompleted)
         } catch {
             withdrawalError = HGErrorPresentation(error: error)

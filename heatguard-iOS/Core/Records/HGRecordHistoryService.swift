@@ -40,6 +40,10 @@ struct HGRecordHistoryItem: Decodable, Identifiable {
     let apparentTemperature: Double?
     let memo: String?
     let measuredAt: String
+    let location: String?
+    let teamName: String?
+    let restStartedAt: String?
+    let restEndedAt: String?
 
     enum CodingKeys: String, CodingKey {
         case recordID = "recordId"
@@ -49,6 +53,10 @@ struct HGRecordHistoryItem: Decodable, Identifiable {
         case apparentTemperature
         case memo
         case measuredAt
+        case location
+        case teamName
+        case restStartedAt
+        case restEndedAt
     }
 
     var id: String { recordID }
@@ -63,6 +71,10 @@ struct HGRecordDetail: Decodable {
     let memo: String?
     let measuredAt: String
     let photoURLs: [String]
+    let location: String?
+    let teamName: String?
+    let restStartedAt: String?
+    let restEndedAt: String?
 
     enum CodingKeys: String, CodingKey {
         case recordID = "recordId"
@@ -73,6 +85,10 @@ struct HGRecordDetail: Decodable {
         case memo
         case measuredAt
         case photoURLs = "photoUrls"
+        case location
+        case teamName
+        case restStartedAt
+        case restEndedAt
     }
 }
 

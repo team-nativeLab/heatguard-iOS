@@ -34,6 +34,8 @@ private struct WorkerHomeWeather: Decodable {
     let humidity: Double?
     let apparentTemperature: Double?
     let heatLevel: Int?
+    let weatherCondition: String?
+    let temperatureChange: Double?
 }
 
 private struct WorkerChecklistSummary: Decodable {
@@ -56,7 +58,9 @@ struct HomeDashboard: Equatable {
             temperature: response.weather?.temperature,
             humidity: response.weather?.humidity,
             apparentTemperature: response.weather?.apparentTemperature,
-            heatLevel: response.heatLevel ?? response.weather?.heatLevel ?? 0
+            heatLevel: response.heatLevel ?? response.weather?.heatLevel ?? 0,
+            weatherCondition: response.weather?.weatherCondition,
+            temperatureChange: response.weather?.temperatureChange
         )
         todayRecordCount = response.checklistSummary?.completed ?? 0
         activeEmergencyCount = response.activeEmergencyCall == nil ? 0 : 1
@@ -73,7 +77,9 @@ struct HomeDashboard: Equatable {
             temperature: nil,
             humidity: nil,
             apparentTemperature: nil,
-            heatLevel: 0
+            heatLevel: 0,
+            weatherCondition: nil,
+            temperatureChange: nil
         ),
         todayRecordCount: 0,
         activeEmergencyCount: 0,
@@ -104,6 +110,8 @@ struct HomeWeather: Equatable {
     let humidity: Double?
     let apparentTemperature: Double?
     let heatLevel: Int
+    let weatherCondition: String?
+    let temperatureChange: Double?
 
     var heatLevelTitle: String {
         switch heatLevel {
@@ -117,7 +125,18 @@ struct HomeWeather: Equatable {
     var temperatureText: String { measurementText(temperature, suffix: "°C") }
     var humidityText: String { measurementText(humidity, suffix: "%") }
     var apparentTemperatureText: String { measurementText(apparentTemperature, suffix: "°C") }
-    var weatherStatusText: String { temperature == nil ? "정보 없음" : "현장 입력" }
+    var weatherStatusText: String {
+        switch weatherCondition {
+        case "SUNNY": "맑음"
+        case "CLOUDY": "흐림"
+        default: "정보 없음"
+        }
+    }
+    var temperatureChangeText: String? {
+        guard let temperatureChange else { return nil }
+        let indicator = temperatureChange >= 0 ? "▲ +" : "▼ "
+        return "\(indicator)\(String(format: "%.1f", abs(temperatureChange)))°C"
+    }
 
     private func measurementText(_ value: Double?, suffix: String) -> String {
         guard let value else { return "—" }
