@@ -75,7 +75,7 @@ struct InquiryView: View {
                 Text("내 문의 목록")
                     .font(HGFont.bold(16, relativeTo: .headline))
                 Spacer()
-                Text("\(inquiries.count)건")
+                Text(hasMore ? "\(inquiries.count)건 이상" : "\(inquiries.count)건")
                     .font(HGFont.regular(12, relativeTo: .caption))
                     .foregroundStyle(HGColor.secondaryText)
             }

@@ -122,14 +122,21 @@ struct RecordHistoryView: View {
     }
 
     private var summaryCard: some View {
-        HStack(spacing: 0) {
-            RecordCountMetric(title: "전체", count: periodRecords.count)
-            Divider().frame(height: 28)
-            RecordCountMetric(title: "온도계", count: periodRecords.count(where: { $0.type == .thermometer }))
-            Divider().frame(height: 28)
-            RecordCountMetric(title: "작업 사진", count: periodRecords.count(where: { $0.type == .work }))
-            Divider().frame(height: 28)
-            RecordCountMetric(title: "휴식 사진", count: periodRecords.count(where: { $0.type == .rest }))
+        VStack(spacing: 8) {
+            HStack(spacing: 0) {
+                RecordCountMetric(title: "전체", count: periodRecords.count)
+                Divider().frame(height: 28)
+                RecordCountMetric(title: "온도계", count: periodRecords.count(where: { $0.type == .thermometer }))
+                Divider().frame(height: 28)
+                RecordCountMetric(title: "작업 사진", count: periodRecords.count(where: { $0.type == .work }))
+                Divider().frame(height: 28)
+                RecordCountMetric(title: "휴식 사진", count: periodRecords.count(where: { $0.type == .rest }))
+            }
+            if hasMore {
+                Text("현재 불러온 기록 기준")
+                    .font(HGFont.regular(11, relativeTo: .caption2))
+                    .foregroundStyle(HGColor.secondaryText)
+            }
         }
         .padding(.vertical, 16)
         .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
@@ -141,9 +148,9 @@ struct RecordHistoryView: View {
                 Image(systemName: "doc.text.magnifyingglass")
                     .font(.system(size: 30, weight: .medium)).foregroundStyle(HGColor.primary)
                     .frame(width: 72, height: 72).background(HGColor.homeMetricIconBackground, in: Circle())
-                Text("해당 기간에 \(selectedFilter.emptyDescription) 기록이 없어요")
+                Text(hasMore ? "불러온 기록 중 해당 항목이 없어요" : "해당 기간에 \(selectedFilter.emptyDescription) 기록이 없어요")
                     .font(HGFont.bold(15, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
-                Text("기간이나 유형을 바꾸거나 새 기록을 남겨보세요")
+                Text(hasMore ? "더 보기를 눌러 이전 기록을 확인해 보세요" : "기간이나 유형을 바꾸거나 새 기록을 남겨보세요")
                     .font(HGFont.regular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
             }.frame(maxWidth: .infinity, minHeight: 247)
         } else {
