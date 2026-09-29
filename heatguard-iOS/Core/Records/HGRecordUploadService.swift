@@ -42,9 +42,7 @@ struct HGRecordUploadService {
                 memo: draft.memo.nilIfEmpty,
                 measuredAt: ISO8601DateFormatter.heatGuard.string(from: draft.measuredAt),
                 temperature: draft.temperature,
-                humidity: draft.humidity,
-                restStartedAt: draft.restStartedAt.map { ISO8601DateFormatter.heatGuard.string(from: $0) },
-                restEndedAt: draft.restEndedAt.map { ISO8601DateFormatter.heatGuard.string(from: $0) }
+                humidity: draft.humidity
             ),
             method: "POST",
             path: HGAPIPath.teamRecords,
@@ -82,25 +80,13 @@ struct HGRecordDraft: Hashable, Codable {
     let measuredAt: Date
     let temperature: Double?
     let humidity: Double?
-    let restStartedAt: Date?
-    let restEndedAt: Date?
 
-    init(
-        type: HGRecordType,
-        memo: String,
-        measuredAt: Date = .now,
-        temperature: Double? = nil,
-        humidity: Double? = nil,
-        restStartedAt: Date? = nil,
-        restEndedAt: Date? = nil
-    ) {
+    init(type: HGRecordType, memo: String, measuredAt: Date = .now, temperature: Double? = nil, humidity: Double? = nil) {
         self.type = type
         self.memo = memo
         self.measuredAt = measuredAt
         self.temperature = temperature
         self.humidity = humidity
-        self.restStartedAt = restStartedAt
-        self.restEndedAt = restEndedAt
     }
 }
 
@@ -164,8 +150,6 @@ private struct HGRecordSaveRequest: Encodable {
     let measuredAt: String
     let temperature: Double?
     let humidity: Double?
-    let restStartedAt: String?
-    let restEndedAt: String?
 }
 
 private struct HGRecordSaveResponse: Decodable {

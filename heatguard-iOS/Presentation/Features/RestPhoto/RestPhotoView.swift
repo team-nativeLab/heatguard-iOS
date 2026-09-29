@@ -1,10 +1,10 @@
 import SwiftUI
 
 struct RestPhotoView: View {
+    private let restPeriod = "13 : 00 ~ 13 : 30 (중간 휴식)"
+
     @State private var memo: String
     @State private var photos: [UIImage]
-    @State private var restStartedAt = Calendar.current.date(bySettingHour: 13, minute: 0, second: 0, of: .now) ?? .now
-    @State private var restEndedAt = Calendar.current.date(bySettingHour: 13, minute: 30, second: 0, of: .now) ?? .now
     @State private var isSaving = false
     let onSave: (HGRecordSaveResult) -> Void
     let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
@@ -17,8 +17,6 @@ struct RestPhotoView: View {
         onPhotoRequired: @escaping (HGRecordDraft) -> Void = { _ in },
         initialMemo: String = "",
         initialPhotos: [UIImage] = [],
-        initialRestStartedAt: Date? = nil,
-        initialRestEndedAt: Date? = nil,
         onMenuTap: @escaping () -> Void = {}
     ) {
         self.onSave = onSave
@@ -27,8 +25,6 @@ struct RestPhotoView: View {
         self.onMenuTap = onMenuTap
         _memo = State(initialValue: initialMemo)
         _photos = State(initialValue: initialPhotos)
-        _restStartedAt = State(initialValue: initialRestStartedAt ?? Calendar.current.date(bySettingHour: 13, minute: 0, second: 0, of: .now) ?? .now)
-        _restEndedAt = State(initialValue: initialRestEndedAt ?? Calendar.current.date(bySettingHour: 13, minute: 30, second: 0, of: .now) ?? .now)
     }
 
     var body: some View {
@@ -55,7 +51,7 @@ struct RestPhotoView: View {
 
             HGPrimaryButton(
                 title: isSaving ? "저장 중..." : "기록 저장",
-                isEnabled: !isSaving && isRestPeriodValid,
+                isEnabled: !isSaving,
                 height: HGLayout.primaryButtonHeight,
                 action: saveRecord
             )
@@ -76,31 +72,13 @@ struct RestPhotoView: View {
     private var restForm: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("휴식 시간").font(HGFont.semiBold(16))
-            HStack(spacing: 8) {
-                DatePicker("휴식 시작 시간", selection: $restStartedAt, displayedComponents: .hourAndMinute)
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .accessibilityLabel("휴식 시작 시간")
-                Text("~")
-                    .font(HGFont.regular(13, relativeTo: .caption))
-                    .foregroundStyle(HGColor.secondaryText)
-                DatePicker("휴식 종료 시간", selection: $restEndedAt, displayedComponents: .hourAndMinute)
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .accessibilityLabel("휴식 종료 시간")
-                Spacer(minLength: 0)
-            }
-            .frame(maxWidth: .infinity, minHeight: 45, alignment: .leading)
-            .padding(.horizontal, 12)
-            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: HGLayout.inputCardCornerRadius))
-            .overlay { RoundedRectangle(cornerRadius: HGLayout.inputCardCornerRadius).stroke(isRestPeriodValid ? HGColor.inputBorder : HGColor.error, lineWidth: 1) }
-            .padding(.top, 12)
-            if !isRestPeriodValid {
-                Text("종료 시간은 시작 시간 이후로 설정해주세요")
-                    .font(HGFont.regular(12, relativeTo: .caption))
-                    .foregroundStyle(HGColor.error)
-                    .padding(.top, 8)
-            }
+            Text(restPeriod)
+                .font(HGFont.bold(13, relativeTo: .caption))
+                .frame(maxWidth: .infinity, minHeight: 45, alignment: .leading)
+                .padding(.horizontal, 15)
+                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: HGLayout.inputCardCornerRadius))
+                .overlay { RoundedRectangle(cornerRadius: HGLayout.inputCardCornerRadius).stroke(HGColor.inputBorder, lineWidth: 1) }
+                .padding(.top, 12)
             HGOptionalMemoSection(
                 placeholder: "휴식 관련 메모를 입력해주세요",
                 height: 74,
@@ -113,12 +91,7 @@ struct RestPhotoView: View {
 
     private func saveRecord() {
         UIApplication.shared.dismissKeyboard()
-        let draft = HGRecordDraft(
-            type: .rest,
-            memo: memo,
-            restStartedAt: restStartedAt,
-            restEndedAt: restEndedAt
-        )
+        let draft = HGRecordDraft(type: .rest, memo: memo)
         isSaving = true
         Task {
             defer { isSaving = false }
@@ -132,8 +105,6 @@ struct RestPhotoView: View {
             }
         }
     }
-
-    private var isRestPeriodValid: Bool { restEndedAt > restStartedAt }
 
 }
 

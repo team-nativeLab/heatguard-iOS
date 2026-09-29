@@ -40,7 +40,7 @@ struct RecordDetailView: View {
             HGCard { VStack(alignment: .leading, spacing: 7) {
                 RecordTypeBadge(type: record.type)
                 Text(record.formattedMeasuredAt).font(HGFont.bold(18, relativeTo: .title3))
-                Text(record.locationTeamText).font(HGFont.regular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
+                Text("현장 기록").font(HGFont.regular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
             }}
             HGCard { VStack(alignment: .leading, spacing: 15) {
                 Text("측정값").font(HGFont.bold(15, relativeTo: .subheadline))
@@ -70,8 +70,8 @@ struct RecordDetailView: View {
             HGCard { VStack(spacing: 0) {
                 DetailInfoRow(title: "유형", value: record.type.historyTitle)
                 Divider(); DetailInfoRow(title: "촬영 시간", value: record.formattedMeasuredAt)
-                Divider(); DetailInfoRow(title: "위치", value: record.locationTeamText)
-                if record.type == .rest { Divider(); DetailInfoRow(title: "휴식 시간", value: record.restIntervalText) }
+                Divider(); DetailInfoRow(title: "위치", value: "현장 기록")
+                if record.type == .rest { Divider(); DetailInfoRow(title: "휴식 시간", value: "기록된 휴식 시간") }
             }}
             memoCard(record)
         }
@@ -136,25 +136,4 @@ private extension HGRecordDetail {
     var temperatureText: String { temperature.map { String(format: "%.1f°C", $0) } ?? "-" }
     var humidityText: String { humidity.map { String(format: "%.0f%%", $0) } ?? "-" }
     var apparentTemperatureText: String { apparentTemperature.map { String(format: "%.1f°C", $0) } ?? "-" }
-    var locationTeamText: String {
-        [location, teamName].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: " · ").nonEmptyOrFallback("현장 정보 없음")
-    }
-    var restIntervalText: String {
-        guard let startDate = restStartedAt?.hgISO8601Date,
-              let endDate = restEndedAt?.hgISO8601Date,
-              endDate > startDate else { return "-" }
-        let minutes = Int(endDate.timeIntervalSince(startDate) / 60)
-        return "\(minutes)분 (\(startDate.hgHourMinute) ~ \(endDate.hgHourMinute))"
-    }
-}
-
-private extension String {
-    func nonEmptyOrFallback(_ fallback: String) -> String { isEmpty ? fallback : self }
-}
-
-private extension Date {
-    var hgHourMinute: String {
-        let calendar = Calendar.current
-        return String(format: "%02d:%02d", calendar.component(.hour, from: self), calendar.component(.minute, from: self))
-    }
 }

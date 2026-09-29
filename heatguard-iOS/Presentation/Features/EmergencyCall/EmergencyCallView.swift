@@ -59,7 +59,7 @@ struct EmergencyCallView: View {
                 .font(HGFont.bold(20, relativeTo: .title2))
                 .foregroundStyle(HGColor.emergencyCallText)
 
-            Text("버튼을 누르면\n관리자 화면에 긴급 호출이 전달됩니다")
+            Text("버튼을 누르면 즉시\n관리자에게 전화가 연결됩니다")
                 .font(HGFont.semiBold(15))
                 .foregroundStyle(HGColor.secondaryText)
                 .multilineTextAlignment(.center)

@@ -1,14 +1,14 @@
 import SwiftUI
 
 struct WithdrawalGuideView: View {
-    let onRequestConfirmation: (String, String?) -> Void
+    let onRequestConfirmation: (String) -> Void
 
     @State private var selectedReason: WithdrawalReason?
     @State private var password = ""
     @State private var hasAgreed = false
     @State private var showsConfirmation = false
 
-    init(onRequestConfirmation: @escaping (String, String?) -> Void = { _, _ in }) {
+    init(onRequestConfirmation: @escaping (String) -> Void = { _ in }) {
         self.onRequestConfirmation = onRequestConfirmation
     }
 
@@ -147,7 +147,7 @@ struct WithdrawalGuideView: View {
     }
 
     private var canRequestWithdrawal: Bool {
-        !password.isEmpty && hasAgreed
+        selectedReason != nil && !password.isEmpty && hasAgreed
     }
 
     private func dismissConfirmation() {
@@ -156,7 +156,7 @@ struct WithdrawalGuideView: View {
 
     private func confirmWithdrawal() {
         showsConfirmation = false
-        onRequestConfirmation(password, selectedReason?.rawValue)
+        onRequestConfirmation(password)
     }
 
     private func noticeText(_ text: String) -> some View {
@@ -169,11 +169,11 @@ struct WithdrawalGuideView: View {
     }
 }
 
-private enum WithdrawalReason: String, CaseIterable, Identifiable {
-    case workEnded = "WORK_ENDED"
-    case changedCompany = "CHANGED_COMPANY"
-    case inconvenientApp = "INCONVENIENT_APP"
-    case other = "OTHER"
+private enum WithdrawalReason: CaseIterable, Identifiable {
+    case workEnded
+    case changedCompany
+    case inconvenientApp
+    case other
 
     var id: Self { self }
 

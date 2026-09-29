@@ -74,9 +74,9 @@ struct HGAuthenticationService {
         )
     }
 
-    func withdraw(currentPassword: String, reason: String? = nil) async throws {
+    func withdraw(currentPassword: String) async throws {
         try await client.sendVoid(
-            WithdrawalRequest(currentPassword: currentPassword, reason: reason),
+            WithdrawalRequest(currentPassword: currentPassword),
             method: "DELETE",
             path: HGAPIPath.teamProfile,
             requiresAuthentication: true
@@ -122,14 +122,12 @@ struct HGTeamProfile: Decodable, Equatable {
     let phone: String?
     let role: String
     let teamID: String?
-    let companyName: String?
     let version: Int?
 
     enum CodingKeys: String, CodingKey {
         case userID = "userId"
         case name, email, phone, role, version
         case teamID = "teamId"
-        case companyName
     }
 }
 
@@ -149,10 +147,7 @@ private struct PasswordChangeResponse: Decodable {
     let changedAt: String?
 }
 
-private struct WithdrawalRequest: Encodable {
-    let currentPassword: String
-    let reason: String?
-}
+private struct WithdrawalRequest: Encodable { let currentPassword: String }
 
 struct TeamSession: Equatable {}
 
