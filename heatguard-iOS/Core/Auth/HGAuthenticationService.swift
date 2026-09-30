@@ -43,7 +43,7 @@ struct HGAuthenticationService {
 
     func updateProfile(
         name: String,
-        email: String,
+        email: String?,
         phone: String,
         version: Int?
     ) async throws -> HGTeamProfile {
@@ -142,7 +142,7 @@ private struct PasswordChangeRequest: Encodable {
 
 private struct TeamProfileUpdateRequest: Encodable {
     let name: String
-    let email: String
+    let email: String?
     let phone: String
     let version: Int?
 }
