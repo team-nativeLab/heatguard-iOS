@@ -37,7 +37,8 @@ struct HGEmergencyCallService {
             requiresAuthentication: true
         )
 
-        guard response.status != .none, let callID = response.callID, !callID.isEmpty else {
+        guard response.status == .active || response.status == .acknowledged,
+              let callID = response.callID, !callID.isEmpty else {
             return nil
         }
 
