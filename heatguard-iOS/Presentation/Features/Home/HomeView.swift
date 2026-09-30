@@ -414,6 +414,7 @@ struct HomeView: View {
             ThermometerRecordView(weather: dashboard.weather,
                 teamName: dashboard.teamName,
                 workplace: dashboard.workplace,
+                siteName: dashboard.siteName,
                 onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) },
                 onMenuTap: showMenuDrawer
             )
@@ -426,6 +427,7 @@ struct HomeView: View {
                 initialPhotos: resumedImages(for: .work),
                 teamName: dashboard.teamName,
                 workplace: dashboard.workplace,
+                siteName: dashboard.siteName,
                 onMenuTap: showMenuDrawer
             )
         case .restPhoto:
@@ -439,6 +441,7 @@ struct HomeView: View {
                 initialRestEndedAt: resumedDraft(for: .rest)?.restEndedAt,
                 teamName: dashboard.teamName,
                 workplace: dashboard.workplace,
+                siteName: dashboard.siteName,
                 onMenuTap: showMenuDrawer
             )
         case let .fieldPhoto(draft):

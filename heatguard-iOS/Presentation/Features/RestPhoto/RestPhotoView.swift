@@ -14,6 +14,7 @@ struct RestPhotoView: View {
     let onMenuTap: () -> Void
     private let teamName: String?
     private let workplace: String?
+    private let siteName: String?
 
     init(
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
@@ -25,6 +26,7 @@ struct RestPhotoView: View {
         initialRestEndedAt: Date? = nil,
         teamName: String? = nil,
         workplace: String? = nil,
+        siteName: String? = nil,
         onMenuTap: @escaping () -> Void = {}
     ) {
         self.onSave = onSave
@@ -33,6 +35,7 @@ struct RestPhotoView: View {
         self.onMenuTap = onMenuTap
         self.teamName = teamName
         self.workplace = workplace
+        self.siteName = siteName
         _memo = State(initialValue: initialMemo)
         _photos = State(initialValue: initialPhotos)
         _restStartedAt = State(initialValue: initialRestStartedAt ?? .now.addingTimeInterval(-30 * 60))
@@ -133,7 +136,8 @@ struct RestPhotoView: View {
             restStartedAt: recordsRestInterval ? minutePrecisionDate(restStartedAt) : nil,
             restEndedAt: recordsRestInterval ? minutePrecisionDate(restEndedAt) : nil,
             teamName: teamName,
-            workplace: workplace
+            workplace: workplace,
+            siteName: siteName
         )
         isSaving = true
         Task {
