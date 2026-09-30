@@ -52,7 +52,15 @@ struct ProfileEditView: View {
 
     private var isValid: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && email.contains("@")
+            && (emailIsUnchanged || normalizedEmail.contains("@"))
+    }
+
+    private var normalizedEmail: String {
+        email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var emailIsUnchanged: Bool {
+        profile.map { normalizedEmail == $0.email } ?? false
     }
 
     private var errorAlert: Binding<Bool> {
@@ -67,7 +75,7 @@ struct ProfileEditView: View {
         do {
             let updatedProfile = try await HGAuthenticationService().updateProfile(
                 name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+                email: emailIsUnchanged ? nil : normalizedEmail,
                 phone: phone.trimmingCharacters(in: .whitespacesAndNewlines),
                 version: profile?.version
             )
