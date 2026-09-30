@@ -7,10 +7,15 @@ struct HGRecordHistoryService {
         self.client = client
     }
 
-    func fetchRecords() async throws -> HGRecordPage {
-        try await client.get(
+    func fetchRecords(limit: Int = 20, cursor: String? = nil) async throws -> HGRecordPage {
+        var queryItems = [URLQueryItem(name: "limit", value: String(limit))]
+        if let cursor {
+            queryItems.append(URLQueryItem(name: "cursor", value: cursor))
+        }
+        return try await client.get(
             path: HGAPIPath.teamRecords,
-            requiresAuthentication: true
+            requiresAuthentication: true,
+            queryItems: queryItems
         )
     }
 
@@ -40,6 +45,12 @@ struct HGRecordHistoryItem: Decodable, Identifiable {
     let apparentTemperature: Double?
     let memo: String?
     let measuredAt: String
+    let restStartedAt: String?
+    let restEndedAt: String?
+    let restMinutes: Int?
+    let teamName: String?
+    let workplace: String?
+    let siteName: String?
 
     enum CodingKeys: String, CodingKey {
         case recordID = "recordId"
@@ -49,6 +60,7 @@ struct HGRecordHistoryItem: Decodable, Identifiable {
         case apparentTemperature
         case memo
         case measuredAt
+        case restStartedAt, restEndedAt, restMinutes, teamName, workplace, siteName
     }
 
     var id: String { recordID }
@@ -63,6 +75,12 @@ struct HGRecordDetail: Decodable {
     let memo: String?
     let measuredAt: String
     let photoURLs: [String]
+    let restStartedAt: String?
+    let restEndedAt: String?
+    let restMinutes: Int?
+    let teamName: String?
+    let workplace: String?
+    let siteName: String?
 
     enum CodingKeys: String, CodingKey {
         case recordID = "recordId"
@@ -73,6 +91,7 @@ struct HGRecordDetail: Decodable {
         case memo
         case measuredAt
         case photoURLs = "photoUrls"
+        case restStartedAt, restEndedAt, restMinutes, teamName, workplace, siteName
     }
 }
 

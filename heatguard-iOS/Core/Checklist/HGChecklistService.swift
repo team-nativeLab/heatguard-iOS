@@ -16,7 +16,7 @@ struct HGChecklistService {
             path: HGAPIPath.teamChecklist,
             requiresAuthentication: true
         )
-        return HGChecklistSummary(times: home.checkTimes, checkedCount: checklist.items.filter(\.checked).count, totalCount: checklist.items.count)
+        return HGChecklistSummary(times: home.checkTimes ?? [], checkedCount: checklist.items.filter(\.checked).count, totalCount: checklist.items.count)
     }
 
     func fetchItems() async throws -> [HGChecklistItem] {
@@ -39,12 +39,15 @@ struct HGChecklistService {
 
 struct HGChecklistSummary: Equatable {
     let times: [String]
-    let checkedCount: Int
-    let totalCount: Int
-    var statusText: String { "체크리스트 \(checkedCount) / \(totalCount) 완료" }
+    let checkedCount: Int?
+    let totalCount: Int?
+    var statusText: String {
+        guard let checkedCount, let totalCount else { return "체크리스트 정보 없음" }
+        return "체크리스트 \(checkedCount) / \(totalCount) 완료"
+    }
 }
 
-private struct HGWorkerHomeChecklistResponse: Decodable { let checkTimes: [String] }
+private struct HGWorkerHomeChecklistResponse: Decodable { let checkTimes: [String]? }
 private struct HGChecklistResponse: Decodable { let items: [HGChecklistItem] }
 struct HGChecklistItem: Decodable, Identifiable, Equatable {
     let id: String

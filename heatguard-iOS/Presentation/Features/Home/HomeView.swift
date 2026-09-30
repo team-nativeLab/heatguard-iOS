@@ -22,10 +22,11 @@ struct HomeView: View {
     @State private var dashboard = HomeDashboard.unavailable
     @State private var teamProfile: HGTeamProfile?
     @State private var dashboardError: HGErrorPresentation?
+    @State private var unreadNotificationCount = 0
     @State private var emergencyError: HGErrorPresentation?
     @State private var managerPhoneError: HGErrorPresentation?
     @State private var withdrawalError: HGErrorPresentation?
-    @State private var checklist = HGChecklistSummary(times: [], checkedCount: 0, totalCount: 0)
+    @State private var checklist = HGChecklistSummary(times: [], checkedCount: nil, totalCount: nil)
     @State private var storedDraft: HGStoredRecordDraft?
     @State private var failedDraft: HGRecordDraft?
     @State private var failedImages: [UIImage] = []
@@ -93,13 +94,18 @@ struct HomeView: View {
             case .alert:
                 EmergencyAlertView(
                     isCalling: isCreatingEmergencyCall,
+                    contact: HGEmergencyContact(name: "본사", phoneNumber: dashboard.companyPhone),
+                    error: $emergencyStatusError,
+                    onPhoneCall: callCompanyPhone,
                     onCall: beginEmergencyCall
                 )
             case .calling:
                 EmergencyCallView(
                     isCancelling: isUpdatingEmergencyCall,
                     canCancel: activeEmergencyCallStatus?.canCancel ?? false,
+                    contact: HGEmergencyContact(name: "본사", phoneNumber: dashboard.companyPhone),
                     error: $emergencyStatusError,
+                    onPhoneCall: callCompanyPhone,
                     onCancel: cancelEmergencyCall
                 )
             }
@@ -177,7 +183,11 @@ struct HomeView: View {
     }
 
     private var header: some View {
-        HGScreenHeader(onMenuTap: showMenuDrawer)
+        HGScreenHeader(
+            onMenuTap: showMenuDrawer,
+            notificationCount: unreadNotificationCount,
+            onNotificationsTap: { flowPath.append(HomeFlowRoute.notifications) }
+        )
     }
 
     private var weatherSummary: some View {
@@ -198,20 +208,33 @@ struct HomeView: View {
                     HStack(spacing: 8) {
                         Text(dashboard.weather.temperatureText)
                             .font(HGFont.bold(40, relativeTo: .largeTitle))
+                    }
 
-                        Text("현장 기준")
-                            .font(HGFont.bold(9, relativeTo: .caption2))
-                            .foregroundStyle(HGColor.error)
-                            .padding(.horizontal, 7)
-                            .frame(height: 20)
-                            .background(HGColor.homeBaselineBackground, in: Capsule())
+                    if let deltaText = dashboard.weather.temperatureDeltaText {
+                        Text(deltaText)
+                            .font(HGFont.medium(11, relativeTo: .caption2))
+                            .foregroundStyle(HGColor.secondaryText)
+                            .padding(.top, 2)
                     }
 
                     Text("습도 \(dashboard.weather.humidityText) · 체감온도 \(dashboard.weather.apparentTemperatureText)")
                         .font(HGFont.regular(12, relativeTo: .caption))
                         .padding(.top, 8)
+
+                    if let observationTime = dashboard.weather.observationTimeText {
+                        Text(observationTime)
+                            .font(HGFont.regular(10, relativeTo: .caption2))
+                            .foregroundStyle(HGColor.secondaryText)
+                            .padding(.top, 4)
+                    }
                 }
-                Spacer(); Image("WeatherPartlyCloudy").resizable().scaledToFit().frame(width: 145, height: 120).offset(x: 9, y: 2)
+                Spacer()
+                Image(systemName: dashboard.weather.skySymbol)
+                    .font(.system(size: 62, weight: .regular))
+                    .symbolRenderingMode(.multicolor)
+                    .foregroundStyle(HGColor.primary)
+                    .frame(width: 90, height: 90)
+                    .offset(x: 4, y: 2)
             }
             HStack(spacing: 0) {
                 HomeMetric(icon: "HomeHumidity", title: "습도", value: dashboard.weather.humidityText)
@@ -232,7 +255,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 0) {
             Text("오늘 체크 시간")
                 .font(HGFont.bold(14, relativeTo: .subheadline))
-            Text(checklist.times.isEmpty ? dashboard.recordStatusText : checklist.statusText)
+            Text(checklist.statusText)
                 .font(HGFont.regular(11, relativeTo: .caption2))
                 .foregroundStyle(HGColor.secondaryText)
                 .padding(.top, 7)
@@ -250,7 +273,8 @@ struct HomeView: View {
             HomeActionRow(
                 icon: "HomeManagerPhone",
                 title: "관리자 전화",
-                subtitle: "현장 관리자에게 연락"
+                subtitle: "현장 관리자에게 연락",
+                isEnabled: dashboard.managerPhone?.telephoneURL != nil
             ) {
                 contactSiteManager()
             }
@@ -369,11 +393,27 @@ struct HomeView: View {
         }
     }
 
+    private func callCompanyPhone() {
+        guard let phoneURL = dashboard.companyPhone?.telephoneURL else { return }
+        UIApplication.shared.open(phoneURL, options: [:]) { didOpen in
+            guard !didOpen else { return }
+            Task { @MainActor in
+                emergencyStatusError = HGErrorPresentation(
+                    title: "본사 전화 오류",
+                    message: "전화 기능을 사용할 수 있는 기기에서 다시 시도해주세요.",
+                    diagnosticCode: "COMPANY_PHONE_OPEN_FAILED"
+                )
+            }
+        }
+    }
+
     @ViewBuilder
     private func destinationView(for route: HomeFlowRoute) -> some View {
         switch route {
         case .thermometer:
             ThermometerRecordView(weather: dashboard.weather,
+                teamName: dashboard.teamName,
+                workplace: dashboard.workplace,
                 onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) },
                 onMenuTap: showMenuDrawer
             )
@@ -384,6 +424,8 @@ struct HomeView: View {
                 onPhotoRequired: showPhotoRequired,
                 initialMemo: resumedDraft(for: .work)?.memo ?? "",
                 initialPhotos: resumedImages(for: .work),
+                teamName: dashboard.teamName,
+                workplace: dashboard.workplace,
                 onMenuTap: showMenuDrawer
             )
         case .restPhoto:
@@ -393,6 +435,10 @@ struct HomeView: View {
                 onPhotoRequired: showPhotoRequired,
                 initialMemo: resumedDraft(for: .rest)?.memo ?? "",
                 initialPhotos: resumedImages(for: .rest),
+                initialRestStartedAt: resumedDraft(for: .rest)?.restStartedAt,
+                initialRestEndedAt: resumedDraft(for: .rest)?.restEndedAt,
+                teamName: dashboard.teamName,
+                workplace: dashboard.workplace,
                 onMenuTap: showMenuDrawer
             )
         case let .fieldPhoto(draft):
@@ -434,9 +480,22 @@ struct HomeView: View {
             }
         case .inquiry:
             InquiryView()
+        case let .inquiryDetail(inquiryID):
+            InquiryDetailView(inquiryID: inquiryID)
+        case .notifications:
+            NotificationsView { notification in
+                switch notification.type {
+                case .recordCreated:
+                    flowPath.append(HomeFlowRoute.recordDetail(notification.resourceID))
+                case .inquiryAnswered:
+                    flowPath.append(HomeFlowRoute.inquiryDetail(notification.resourceID))
+                case .emergencyAcknowledged, .unknown:
+                    break
+                }
+            } onUnreadCountChanged: { unreadNotificationCount = $0 }
         case .withdrawalGuide:
-            WithdrawalGuideView { password in
-                Task { await withdraw(password: password) }
+            WithdrawalGuideView { password, reason in
+                Task { await withdraw(password: password, reason: reason) }
             }
         case .withdrawalCompleted:
             WithdrawalCompletedView(onConfirm: finishWithdrawal)
@@ -476,9 +535,9 @@ struct HomeView: View {
     }
 
     @MainActor
-    private func withdraw(password: String) async {
+    private func withdraw(password: String, reason: String?) async {
         do {
-            try await HGAuthenticationService().withdraw(currentPassword: password)
+            try await HGAuthenticationService().withdraw(currentPassword: password, reason: reason)
             flowPath.append(HomeFlowRoute.withdrawalCompleted)
         } catch {
             withdrawalError = HGErrorPresentation(error: error)
@@ -592,8 +651,20 @@ struct HomeView: View {
         do {
             let loadedDashboard = try await HGDashboardService().fetchHomeDashboard()
             dashboard = loadedDashboard
+            unreadNotificationCount = loadedDashboard.unreadNotificationCount
             checklist = loadedDashboard.checklist
             dashboardError = nil
+
+            do {
+                let items = try await HGChecklistService().fetchItems()
+                checklist = HGChecklistSummary(
+                    times: loadedDashboard.checklist.times,
+                    checkedCount: items.filter(\.checked).count,
+                    totalCount: items.count
+                )
+            } catch {
+                checklist = loadedDashboard.checklist
+            }
         } catch {
             dashboardError = HGErrorPresentation(error: error)
         }
@@ -602,22 +673,6 @@ struct HomeView: View {
     @MainActor
     private func loadProfile() async {
         teamProfile = try? await HGAuthenticationService().currentProfile()
-    }
-}
-
-private extension String {
-    var telephoneURL: URL? {
-        let allowedCharacters = CharacterSet(charactersIn: "+0123456789")
-        let sanitized = unicodeScalars.filter(allowedCharacters.contains).map(String.init).joined()
-        let normalized = sanitized.hasPrefix("+")
-            ? "+" + sanitized.dropFirst().filter { $0.isNumber }
-            : sanitized.filter { $0.isNumber }
-
-        guard !normalized.isEmpty, normalized.rangeOfCharacter(from: .decimalDigits) != nil else {
-            return nil
-        }
-
-        return URL(string: "tel:\\(normalized)")
     }
 }
 
@@ -640,6 +695,8 @@ private enum HomeFlowRoute: Hashable {
     case recordDetail(String)
     case profileEdit
     case inquiry
+    case inquiryDetail(String)
+    case notifications
     case withdrawalGuide
     case withdrawalCompleted
 
@@ -687,6 +744,7 @@ private struct HomeActionRow: View {
     let icon: String
     let title: String
     let subtitle: String
+    var isEnabled = true
     let action: () -> Void
 
     var body: some View {
@@ -721,6 +779,8 @@ private struct HomeActionRow: View {
             .frame(height: 65)
         }
         .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.5)
         .foregroundStyle(HGColor.primaryText)
     }
 }

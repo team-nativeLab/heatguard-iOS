@@ -56,7 +56,6 @@ struct RecordDetailView: View {
                 HStack(spacing: 0) {
                     DetailMetric(title: "습도", value: record.humidityText)
                     DetailMetric(title: "체감온도", value: record.apparentTemperatureText)
-                    DetailMetric(title: "온도계", value: "설치됨")
                 }
             }}
             photoCard(record.photoURLs, title: "현장 사진", height: 200)
@@ -70,8 +69,16 @@ struct RecordDetailView: View {
             HGCard { VStack(spacing: 0) {
                 DetailInfoRow(title: "유형", value: record.type.historyTitle)
                 Divider(); DetailInfoRow(title: "촬영 시간", value: record.formattedMeasuredAt)
-                Divider(); DetailInfoRow(title: "위치", value: "현장 기록")
-                if record.type == .rest { Divider(); DetailInfoRow(title: "휴식 시간", value: "기록된 휴식 시간") }
+                Divider(); DetailInfoRow(title: "팀", value: record.teamName ?? "정보 없음")
+                if let workplace = record.workplace {
+                    Divider(); DetailInfoRow(title: "작업 장소", value: workplace)
+                }
+                if let siteName = record.siteName {
+                    Divider(); DetailInfoRow(title: "현장", value: siteName)
+                }
+                if record.type == .rest {
+                    Divider(); DetailInfoRow(title: "휴식 시간", value: record.restDurationText)
+                }
             }}
             memoCard(record)
         }
@@ -136,4 +143,12 @@ private extension HGRecordDetail {
     var temperatureText: String { temperature.map { String(format: "%.1f°C", $0) } ?? "-" }
     var humidityText: String { humidity.map { String(format: "%.0f%%", $0) } ?? "-" }
     var apparentTemperatureText: String { apparentTemperature.map { String(format: "%.1f°C", $0) } ?? "-" }
+    var restDurationText: String {
+        if let restMinutes { return "\(restMinutes)분" }
+        guard let restStartedAt, let restEndedAt,
+              let start = restStartedAt.hgISO8601Date,
+              let end = restEndedAt.hgISO8601Date,
+              end > start else { return "정보 없음" }
+        return "\(Int(end.timeIntervalSince(start) / 60))분"
+    }
 }

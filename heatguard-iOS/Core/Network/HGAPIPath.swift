@@ -13,9 +13,11 @@ enum HGAPIPath {
     static let teamEmergencyCalls = "/api/v1/team/emergency-calls"
     static let teamCurrentEmergencyCall = "\(teamEmergencyCalls)/current"
     static let teamInquiries = "/api/v1/team/inquiries"
+    static let teamNotifications = "/api/v1/team/notifications"
 
     static func teamChecklistItem(id: String) -> String { "\(teamChecklist)/items/\(id)" }
     static func teamRecord(id: String) -> String { "\(teamRecords)/\(id)" }
     static func teamEmergencyCall(id: String) -> String { "\(teamEmergencyCalls)/\(id)" }
     static func teamInquiry(id: String) -> String { "\(teamInquiries)/\(id)" }
+    static func teamNotificationRead(id: String) -> String { "\(teamNotifications)/\(id)/read" }
 }

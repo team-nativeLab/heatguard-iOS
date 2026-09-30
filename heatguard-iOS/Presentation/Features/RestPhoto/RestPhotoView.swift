@@ -1,15 +1,19 @@
 import SwiftUI
 
 struct RestPhotoView: View {
-    private let restPeriod = "13 : 00 ~ 13 : 30 (중간 휴식)"
-
     @State private var memo: String
     @State private var photos: [UIImage]
     @State private var isSaving = false
+    @State private var recordsRestInterval = false
+    @State private var restStartedAt: Date
+    @State private var restEndedAt: Date
+    @State private var validationMessage: String?
     let onSave: (HGRecordSaveResult) -> Void
     let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
     let onPhotoRequired: (HGRecordDraft) -> Void
     let onMenuTap: () -> Void
+    private let teamName: String?
+    private let workplace: String?
 
     init(
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
@@ -17,14 +21,23 @@ struct RestPhotoView: View {
         onPhotoRequired: @escaping (HGRecordDraft) -> Void = { _ in },
         initialMemo: String = "",
         initialPhotos: [UIImage] = [],
+        initialRestStartedAt: Date? = nil,
+        initialRestEndedAt: Date? = nil,
+        teamName: String? = nil,
+        workplace: String? = nil,
         onMenuTap: @escaping () -> Void = {}
     ) {
         self.onSave = onSave
         self.onFailure = onFailure
         self.onPhotoRequired = onPhotoRequired
         self.onMenuTap = onMenuTap
+        self.teamName = teamName
+        self.workplace = workplace
         _memo = State(initialValue: initialMemo)
         _photos = State(initialValue: initialPhotos)
+        _restStartedAt = State(initialValue: initialRestStartedAt ?? .now.addingTimeInterval(-30 * 60))
+        _restEndedAt = State(initialValue: initialRestEndedAt ?? .now)
+        _recordsRestInterval = State(initialValue: initialRestStartedAt != nil && initialRestEndedAt != nil)
     }
 
     var body: some View {
@@ -63,6 +76,11 @@ struct RestPhotoView: View {
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .dismissKeyboardOnBackgroundTap()
+        .alert("휴식 시간을 확인해주세요", isPresented: validationAlert) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(validationMessage ?? "")
+        }
     }
 
     private var header: some View {
@@ -72,13 +90,22 @@ struct RestPhotoView: View {
     private var restForm: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("휴식 시간").font(HGFont.semiBold(16))
-            Text(restPeriod)
-                .font(HGFont.bold(13, relativeTo: .caption))
-                .frame(maxWidth: .infinity, minHeight: 45, alignment: .leading)
-                .padding(.horizontal, 15)
-                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: HGLayout.inputCardCornerRadius))
-                .overlay { RoundedRectangle(cornerRadius: HGLayout.inputCardCornerRadius).stroke(HGColor.inputBorder, lineWidth: 1) }
+            Toggle("휴식 시간 입력", isOn: $recordsRestInterval)
+                .font(HGFont.medium(13, relativeTo: .subheadline))
                 .padding(.top, 12)
+
+            if recordsRestInterval {
+                DatePicker("시작", selection: $restStartedAt, displayedComponents: [.date, .hourAndMinute])
+                    .environment(\.timeZone, koreanTimeZone)
+                DatePicker("종료", selection: $restEndedAt, displayedComponents: [.date, .hourAndMinute])
+                    .environment(\.timeZone, koreanTimeZone)
+                    .padding(.top, 8)
+            } else {
+                Text("휴식 시간은 선택 입력이에요")
+                    .font(HGFont.regular(12, relativeTo: .caption))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .padding(.top, 10)
+            }
             HGOptionalMemoSection(
                 placeholder: "휴식 관련 메모를 입력해주세요",
                 height: 74,
@@ -91,7 +118,23 @@ struct RestPhotoView: View {
 
     private func saveRecord() {
         UIApplication.shared.dismissKeyboard()
-        let draft = HGRecordDraft(type: .rest, memo: memo)
+        if recordsRestInterval {
+            let normalizedStart = minutePrecisionDate(restStartedAt)
+            let normalizedEnd = minutePrecisionDate(restEndedAt)
+            let duration = normalizedEnd.timeIntervalSince(normalizedStart)
+            guard duration >= 60, duration <= 24 * 60 * 60 else {
+                validationMessage = "시작과 종료 시각을 확인해주세요. 휴식 시간은 1분에서 24시간 사이여야 해요."
+                return
+            }
+        }
+        let draft = HGRecordDraft(
+            type: .rest,
+            memo: memo,
+            restStartedAt: recordsRestInterval ? minutePrecisionDate(restStartedAt) : nil,
+            restEndedAt: recordsRestInterval ? minutePrecisionDate(restEndedAt) : nil,
+            teamName: teamName,
+            workplace: workplace
+        )
         isSaving = true
         Task {
             defer { isSaving = false }
@@ -104,6 +147,22 @@ struct RestPhotoView: View {
                 onFailure(failure, draft, photos)
             }
         }
+    }
+
+    private var validationAlert: Binding<Bool> {
+        Binding(get: { validationMessage != nil }, set: { if !$0 { validationMessage = nil } })
+    }
+
+    private func minutePrecisionDate(_ date: Date) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        var components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        components.second = 0
+        return calendar.date(from: components) ?? date
+    }
+
+    private var koreanTimeZone: TimeZone {
+        TimeZone(identifier: "Asia/Seoul") ?? .current
     }
 
 }

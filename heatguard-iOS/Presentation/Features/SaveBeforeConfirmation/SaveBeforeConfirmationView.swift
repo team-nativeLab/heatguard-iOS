@@ -33,7 +33,7 @@ struct SaveBeforeConfirmationView: View {
                     Text("현장 사진")
                         .font(HGFont.bold(20, relativeTo: .title2))
 
-                    Text("온도계 데이터를 입력하고 현장 사진을\n촬영해 주세요.")
+                    Text(photoInstruction)
                         .font(HGFont.regular(14, relativeTo: .subheadline))
                         .padding(.top, 10)
 
@@ -41,7 +41,10 @@ struct SaveBeforeConfirmationView: View {
                         .padding(.top, 35)
 
                     if draft.type == .thermometer {
-                        DisabledManualInputCard()
+                        DisabledManualInputCard(
+                            temperature: draft.temperature.map { String(format: "%.1f", $0) } ?? "",
+                            humidity: draft.humidity.map { String(format: "%.0f", $0) } ?? ""
+                        )
                             .padding(.top, 20)
                     }
 
@@ -92,7 +95,18 @@ struct SaveBeforeConfirmationView: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: 290)
-        .accessibilityLabel("온도계가 아직 저장되지 않았습니다")
+        .accessibilityLabel("\(draft.type.savedRecordTitle)에 필요한 사진을 추가해주세요")
+    }
+
+    private var photoInstruction: String {
+        switch draft.type {
+        case .thermometer:
+            "온도계 데이터를 입력하고 현장 사진을\n촬영해 주세요."
+        case .work:
+            "작업 현장과 보호조치를 확인할 수 있는\n사진을 선택해 주세요."
+        case .rest:
+            "휴식시간과 휴식 환경을 기록할\n사진을 선택해 주세요."
+        }
     }
 
     private var photoSelector: some View {
@@ -117,8 +131,16 @@ struct SaveBeforeConfirmationView: View {
 }
 
 private struct DisabledManualInputCard: View {
+    let temperature: String
+    let humidity: String
+
     var body: some View {
-        HGManualInputCard(isEnabled: .constant(false), isLocked: true)
+        HGManualInputCard(
+            isEnabled: .constant(false),
+            temperature: .constant(temperature),
+            humidity: .constant(humidity),
+            isLocked: true
+        )
     }
 }
 

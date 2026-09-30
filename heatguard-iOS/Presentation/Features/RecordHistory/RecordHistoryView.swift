@@ -6,6 +6,10 @@ struct RecordHistoryView: View {
 
     @State private var records: [HGRecordHistoryItem] = []
     @State private var isLoading = true
+    @State private var isLoadingMore = false
+    @State private var nextCursor: String?
+    @State private var hasMore = false
+    @State private var failedToLoadMore = false
     @State private var error: HGErrorPresentation?
     @State private var selectedFilter: RecordFilter = .all
     @State private var selectedPeriodEnd = Date.now
@@ -27,6 +31,21 @@ struct RecordHistoryView: View {
                         filterSelector.padding(.top, 14)
                         summaryCard.padding(.top, 14)
                         historyContent.padding(.top, 20)
+                        if hasMore {
+                            Button {
+                                Task { await loadMoreRecords() }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    if isLoadingMore { ProgressView() }
+                                    Text(isLoadingMore ? "불러오는 중..." : "더 보기")
+                                }
+                                .font(HGFont.medium(13, relativeTo: .subheadline))
+                                .foregroundStyle(HGColor.primary)
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                            }
+                            .disabled(isLoadingMore)
+                            .padding(.top, 12)
+                        }
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 96)
@@ -62,7 +81,12 @@ struct RecordHistoryView: View {
             .presentationDetents([.medium])
         }
         .alert(error?.title ?? "기록 조회 오류", isPresented: errorAlert) {
-            Button("다시 시도") { Task { await loadRecords() } }
+            Button("다시 시도") {
+                Task {
+                    if failedToLoadMore { await loadMoreRecords() }
+                    else { await loadRecords() }
+                }
+            }
             Button("확인", role: .cancel) {}
         } message: { Text(error?.alertMessage ?? "") }
     }
@@ -98,14 +122,21 @@ struct RecordHistoryView: View {
     }
 
     private var summaryCard: some View {
-        HStack(spacing: 0) {
-            RecordCountMetric(title: "전체", count: periodRecords.count)
-            Divider().frame(height: 28)
-            RecordCountMetric(title: "온도계", count: periodRecords.count(where: { $0.type == .thermometer }))
-            Divider().frame(height: 28)
-            RecordCountMetric(title: "작업 사진", count: periodRecords.count(where: { $0.type == .work }))
-            Divider().frame(height: 28)
-            RecordCountMetric(title: "휴식 사진", count: periodRecords.count(where: { $0.type == .rest }))
+        VStack(spacing: 8) {
+            HStack(spacing: 0) {
+                RecordCountMetric(title: "전체", count: periodRecords.count)
+                Divider().frame(height: 28)
+                RecordCountMetric(title: "온도계", count: periodRecords.count(where: { $0.type == .thermometer }))
+                Divider().frame(height: 28)
+                RecordCountMetric(title: "작업 사진", count: periodRecords.count(where: { $0.type == .work }))
+                Divider().frame(height: 28)
+                RecordCountMetric(title: "휴식 사진", count: periodRecords.count(where: { $0.type == .rest }))
+            }
+            if hasMore {
+                Text("현재 불러온 기록 기준")
+                    .font(HGFont.regular(11, relativeTo: .caption2))
+                    .foregroundStyle(HGColor.secondaryText)
+            }
         }
         .padding(.vertical, 16)
         .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
@@ -117,9 +148,9 @@ struct RecordHistoryView: View {
                 Image(systemName: "doc.text.magnifyingglass")
                     .font(.system(size: 30, weight: .medium)).foregroundStyle(HGColor.primary)
                     .frame(width: 72, height: 72).background(HGColor.homeMetricIconBackground, in: Circle())
-                Text("해당 기간에 \(selectedFilter.emptyDescription) 기록이 없어요")
+                Text(hasMore ? "불러온 기록 중 해당 항목이 없어요" : "해당 기간에 \(selectedFilter.emptyDescription) 기록이 없어요")
                     .font(HGFont.bold(15, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
-                Text("기간이나 유형을 바꾸거나 새 기록을 남겨보세요")
+                Text(hasMore ? "더 보기를 눌러 이전 기록을 확인해 보세요" : "기간이나 유형을 바꾸거나 새 기록을 남겨보세요")
                     .font(HGFont.regular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
             }.frame(maxWidth: .infinity, minHeight: 247)
         } else {
@@ -157,9 +188,35 @@ struct RecordHistoryView: View {
     }
 
     @MainActor private func loadRecords() async {
-        isLoading = true; defer { isLoading = false }
-        do { records = try await HGRecordHistoryService().fetchRecords().items; error = nil }
+        failedToLoadMore = false
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let page = try await HGRecordHistoryService().fetchRecords()
+            records = page.items
+            nextCursor = page.page.nextCursor
+            hasMore = page.page.hasMore && page.page.nextCursor != nil
+            error = nil
+        }
         catch { self.error = HGErrorPresentation(error: error) }
+    }
+
+    @MainActor private func loadMoreRecords() async {
+        guard !isLoadingMore, hasMore, let nextCursor else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        do {
+            let page = try await HGRecordHistoryService().fetchRecords(cursor: nextCursor)
+            let existingIDs = Set(records.map(\.recordID))
+            records.append(contentsOf: page.items.filter { !existingIDs.contains($0.recordID) })
+            self.nextCursor = page.page.nextCursor
+            hasMore = page.page.hasMore && page.page.nextCursor != nil
+            failedToLoadMore = false
+            error = nil
+        } catch {
+            failedToLoadMore = true
+            self.error = HGErrorPresentation(error: error)
+        }
     }
 
     private var errorAlert: Binding<Bool> { Binding(get: { error != nil }, set: { if !$0 { error = nil } }) }

@@ -76,9 +76,9 @@ struct SaveSuccessView: View {
 
     private var records: [SavedRecord] {
         [
-            SavedRecord(title: result.draft.type.savedRecordTitle, detail: recordDetail, isNavigable: true),
-            SavedRecord(title: "첨부 사진", detail: "\(result.photoCount)장", isNavigable: true),
-            SavedRecord(title: "저장 시간", detail: result.savedAt.formatted(date: .numeric, time: .shortened), isNavigable: false)
+            SavedRecord(title: result.draft.type.savedRecordTitle, detail: recordDetail),
+            SavedRecord(title: "첨부 사진", detail: "\(result.photoCount)장"),
+            SavedRecord(title: "저장 시간", detail: result.savedAt.formatted(date: .numeric, time: .shortened))
         ]
     }
 
@@ -94,7 +94,6 @@ struct SaveSuccessView: View {
 private struct SavedRecord: Identifiable {
     let title: String
     let detail: String
-    let isNavigable: Bool
 
     var id: String { title }
 }
@@ -114,13 +113,6 @@ private struct SavedRecordRow: View {
             }
 
             Spacer()
-
-            if record.isNavigable {
-                Image("ChevronRight")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 24, height: 24)
-            }
         }
         .padding(.vertical, 10)
     }

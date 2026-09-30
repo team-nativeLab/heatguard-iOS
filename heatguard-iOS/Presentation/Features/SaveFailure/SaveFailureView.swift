@@ -59,10 +59,10 @@ struct SaveFailureView: View {
                         .scaledToFit()
                         .frame(width: 59, height: 59)
                 }
-                Text("기록이 저장하지 못했어요")
+            Text("기록을 저장하지 못했어요")
                     .font(HGFont.bold(20, relativeTo: .title2))
                     .padding(.top, 34)
-                Text("네트워크 연결을 확인한 후 다시시도 해주세요")
+                Text("네트워크 연결을 확인한 후 다시 시도해 주세요")
                     .font(HGFont.semiBold(15))
                     .foregroundStyle(HGColor.secondaryText)
                     .padding(.top, 15)

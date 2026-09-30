@@ -7,8 +7,18 @@ struct HGInquiryService {
         self.client = client
     }
 
-    func fetchInquiries(status: HGInquiryStatus? = nil) async throws -> HGInquiryPage {
-        let queryItems = status.map { [URLQueryItem(name: "status", value: $0.rawValue)] } ?? []
+    func fetchInquiries(
+        status: HGInquiryStatus? = nil,
+        limit: Int = 20,
+        cursor: String? = nil
+    ) async throws -> HGInquiryPage {
+        var queryItems = [URLQueryItem(name: "limit", value: String(limit))]
+        if let cursor {
+            queryItems.append(URLQueryItem(name: "cursor", value: cursor))
+        }
+        if let status {
+            queryItems.append(URLQueryItem(name: "status", value: status.rawValue))
+        }
         return try await client.get(
             path: HGAPIPath.teamInquiries,
             requiresAuthentication: true,

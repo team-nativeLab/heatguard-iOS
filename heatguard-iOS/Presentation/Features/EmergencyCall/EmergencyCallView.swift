@@ -1,21 +1,26 @@
 import SwiftUI
 
 struct EmergencyCallView: View {
-    private let contact = HGEmergencyContact.siteManager
+    private let contact: HGEmergencyContact
     let isCancelling: Bool
     let canCancel: Bool
     @Binding var error: HGErrorPresentation?
+    let onPhoneCall: () -> Void
     let onCancel: () -> Void
 
     init(
         isCancelling: Bool = false,
         canCancel: Bool = true,
+        contact: HGEmergencyContact = .siteManager,
         error: Binding<HGErrorPresentation?> = .constant(nil),
+        onPhoneCall: @escaping () -> Void = {},
         onCancel: @escaping () -> Void = {}
     ) {
         self.isCancelling = isCancelling
         self.canCancel = canCancel
+        self.contact = contact
         _error = error
+        self.onPhoneCall = onPhoneCall
         self.onCancel = onCancel
     }
 
@@ -67,7 +72,7 @@ struct EmergencyCallView: View {
     }
 
     private var contactCard: some View {
-        HGEmergencyContactCard(contact: contact)
+        HGEmergencyContactCard(contact: contact, onPhoneCall: onPhoneCall)
     }
 
     private var errorAlert: Binding<Bool> {

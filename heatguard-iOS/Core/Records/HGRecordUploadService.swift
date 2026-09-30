@@ -42,7 +42,13 @@ struct HGRecordUploadService {
                 memo: draft.memo.nilIfEmpty,
                 measuredAt: ISO8601DateFormatter.heatGuard.string(from: draft.measuredAt),
                 temperature: draft.temperature,
-                humidity: draft.humidity
+                humidity: draft.humidity,
+                restStartedAt: draft.restStartedAt.map(Self.restTimestamp),
+                restEndedAt: draft.restEndedAt.map(Self.restTimestamp),
+                restMinutes: draft.restMinutes,
+                teamName: draft.teamName,
+                workplace: draft.workplace,
+                siteName: draft.siteName
             ),
             method: "POST",
             path: HGAPIPath.teamRecords,
@@ -55,6 +61,18 @@ struct HGRecordUploadService {
             photoCount: photos.count,
             savedAt: .now
         )
+    }
+
+    private static func restTimestamp(_ date: Date) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        var components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        components.second = 0
+        let minutePrecisionDate = calendar.date(from: components) ?? date
+        let formatter = ISO8601DateFormatter()
+        formatter.timeZone = TimeZone(identifier: "Asia/Seoul")
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.string(from: minutePrecisionDate)
     }
 
     private func upload(_ photos: [HGUploadPhoto], to destinations: [HGUploadDestination]) async throws {
@@ -80,13 +98,37 @@ struct HGRecordDraft: Hashable, Codable {
     let measuredAt: Date
     let temperature: Double?
     let humidity: Double?
+    let restStartedAt: Date?
+    let restEndedAt: Date?
+    let restMinutes: Int?
+    let teamName: String?
+    let workplace: String?
+    let siteName: String?
 
-    init(type: HGRecordType, memo: String, measuredAt: Date = .now, temperature: Double? = nil, humidity: Double? = nil) {
+    init(
+        type: HGRecordType,
+        memo: String,
+        measuredAt: Date = .now,
+        temperature: Double? = nil,
+        humidity: Double? = nil,
+        restStartedAt: Date? = nil,
+        restEndedAt: Date? = nil,
+        restMinutes: Int? = nil,
+        teamName: String? = nil,
+        workplace: String? = nil,
+        siteName: String? = nil
+    ) {
         self.type = type
         self.memo = memo
         self.measuredAt = measuredAt
         self.temperature = temperature
         self.humidity = humidity
+        self.restStartedAt = restStartedAt
+        self.restEndedAt = restEndedAt
+        self.restMinutes = restMinutes
+        self.teamName = teamName
+        self.workplace = workplace
+        self.siteName = siteName
     }
 }
 
@@ -150,6 +192,12 @@ private struct HGRecordSaveRequest: Encodable {
     let measuredAt: String
     let temperature: Double?
     let humidity: Double?
+    let restStartedAt: String?
+    let restEndedAt: String?
+    let restMinutes: Int?
+    let teamName: String?
+    let workplace: String?
+    let siteName: String?
 }
 
 private struct HGRecordSaveResponse: Decodable {
