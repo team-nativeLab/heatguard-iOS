@@ -29,27 +29,60 @@ struct NotificationsView: View {
             if isLoading && notifications.isEmpty {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if notifications.isEmpty {
-                ContentUnavailableView("알림이 없어요", systemImage: "bell", description: Text("새로운 기록과 답변이 도착하면 여기에 표시돼요."))
-            } else {
-                List {
-                    ForEach(notifications) { notification in
-                        Button { Task { await open(notification) } } label: {
-                            NotificationRow(notification: notification)
-                        }
-                        .buttonStyle(.plain)
-                        .listRowSeparator(.visible)
+                VStack(spacing: 0) {
+                    VStack(spacing: 10) {
+                        Image("bell")
+                            .resizable().scaledToFit().frame(width: 36, height: 36)
+                            .frame(width: 72, height: 72)
+                            .background(HGColor.homeActionIconBackground, in: Circle())
+                        Text("아직 받은 알림이 없어요")
+                            .font(HGFont.bold(16, relativeTo: .headline))
+                            .foregroundStyle(HGColor.primaryText)
+                        Text("폭염 경보나 기록 알림이 오면 여기에 모아서 보여드려요")
+                            .font(HGFont.regular(13, relativeTo: .subheadline))
+                            .foregroundStyle(HGColor.secondaryText)
+                            .multilineTextAlignment(.center)
                     }
-                    if hasMore && nextCursor != nil {
-                        HStack {
-                            Spacer()
-                            if isLoadingMore { ProgressView() }
-                            else { Button("더 보기") { Task { await loadMore() } } }
-                            Spacer()
-                        }
-                        .listRowSeparator(.hidden)
-                    }
+                    .padding(.top, 120)
+                    Spacer()
                 }
-                .listStyle(.plain)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, 24)
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 14) {
+                        ForEach(groupedNotifications, id: \.date) { group in
+                            Text(group.dateLabel)
+                                .font(HGFont.medium(12, relativeTo: .caption))
+                                .foregroundStyle(HGColor.secondaryText)
+                            VStack(spacing: 0) {
+                                ForEach(group.items) { notification in
+                                    Button { Task { await open(notification) } } label: {
+                                        NotificationRow(notification: notification)
+                                    }
+                                    .buttonStyle(.plain)
+                                    if notification.id != group.items.last?.id { Divider() }
+                                }
+                            }
+                            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                        }
+                        if hasMore && nextCursor != nil {
+                            Button { Task { await loadMore() } } label: {
+                                HStack(spacing: 8) {
+                                    if isLoadingMore { ProgressView() }
+                                    Text(isLoadingMore ? "불러오는 중..." : "더 보기")
+                                }
+                                .font(HGFont.medium(13, relativeTo: .subheadline))
+                                .foregroundStyle(HGColor.primary)
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                            }
+                            .disabled(isLoadingMore)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 14)
+                }
                 .refreshable { await loadFirstPage() }
             }
         }
@@ -88,6 +121,24 @@ struct NotificationsView: View {
             }
         }
         .padding(.vertical, 6)
+    }
+
+    private var groupedNotifications: [NotificationDayGroup] {
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: notifications) { notification in
+            notification.createdAt.hgISO8601Date.map(calendar.startOfDay(for:)) ?? .distantPast
+        }
+        return grouped.keys.sorted(by: >).map { date in
+            let label: String
+            if calendar.isDateInToday(date) { label = "오늘" }
+            else if calendar.isDateInYesterday(date) { label = "어제" }
+            else { label = "" }
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "ko_KR")
+            formatter.dateFormat = "M월 d일 (E)"
+            let dateLabel = label.isEmpty ? formatter.string(from: date) : "\(label) · \(formatter.string(from: date))"
+            return NotificationDayGroup(date: date, dateLabel: dateLabel, items: grouped[date] ?? [])
+        }
     }
 
     @MainActor private func loadFirstPage() async {
@@ -178,40 +229,48 @@ struct NotificationsView: View {
     }
 }
 
+private struct NotificationDayGroup {
+    let date: Date
+    let dateLabel: String
+    let items: [HGNotification]
+}
+
 private struct NotificationRow: View {
     let notification: HGNotification
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Circle()
-                .fill(notification.read ? Color.clear : HGColor.primary)
-                .frame(width: 8, height: 8)
-                .padding(.top, 7)
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: notification.category == .emergency ? "exclamationmark.triangle.fill" : notification.category == .record ? "thermometer.medium" : "bell.fill")
+                .font(.system(size: 20))
+                .foregroundStyle(notification.category == .emergency ? HGColor.error : HGColor.primary)
+                .frame(width: 44, height: 44)
+                .background(notification.category == .emergency ? HGColor.saveFailureIconBackground : HGColor.homeActionIconBackground, in: RoundedRectangle(cornerRadius: 14))
             VStack(alignment: .leading, spacing: 6) {
                 Text(notification.title)
                     .font(HGFont.semiBold(14, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
-                HStack {
-                    Text(notification.category.title)
-                    Spacer()
-                    Text(notification.createdAt.notificationDateText)
-                }
-                .font(HGFont.regular(11, relativeTo: .caption2))
-                .foregroundStyle(HGColor.secondaryText)
             }
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
+            Spacer(minLength: 4)
+            Text(notification.createdAt.notificationTimeText)
+                .font(HGFont.regular(12, relativeTo: .caption))
                 .foregroundStyle(HGColor.secondaryText)
-                .padding(.top, 3)
+            if !notification.read {
+                Circle().fill(HGColor.primary).frame(width: 8, height: 8)
+            }
         }
-        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(notification.read ? HGColor.surface : Color(red: 244 / 255, green: 247 / 255, blue: 254 / 255))
         .contentShape(Rectangle())
     }
 }
 
 private extension String {
-    var notificationDateText: String {
+    var notificationTimeText: String {
         guard let date = hgISO8601Date else { return self }
-        return date.formatted(date: .numeric, time: .shortened)
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
 }

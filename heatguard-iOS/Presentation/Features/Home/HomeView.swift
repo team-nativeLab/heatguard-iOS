@@ -186,8 +186,12 @@ struct HomeView: View {
         HGScreenHeader(
             onMenuTap: showMenuDrawer,
             notificationCount: unreadNotificationCount,
-            onNotificationsTap: { flowPath.append(HomeFlowRoute.notifications) }
+            onNotificationsTap: showNotifications
         )
+    }
+
+    private func showNotifications() {
+        flowPath.append(HomeFlowRoute.notifications)
     }
 
     private var weatherSummary: some View {
@@ -416,7 +420,9 @@ struct HomeView: View {
                 workplace: dashboard.workplace,
                 siteName: dashboard.siteName,
                 onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) },
-                onMenuTap: showMenuDrawer
+                onMenuTap: showMenuDrawer,
+                onNotificationsTap: showNotifications,
+                notificationCount: unreadNotificationCount
             )
         case .workPhoto:
             WorkPhotoView(
@@ -428,7 +434,9 @@ struct HomeView: View {
                 teamName: dashboard.teamName,
                 workplace: dashboard.workplace,
                 siteName: dashboard.siteName,
-                onMenuTap: showMenuDrawer
+                onMenuTap: showMenuDrawer,
+                onNotificationsTap: showNotifications,
+                notificationCount: unreadNotificationCount
             )
         case .restPhoto:
             RestPhotoView(
@@ -442,7 +450,9 @@ struct HomeView: View {
                 teamName: dashboard.teamName,
                 workplace: dashboard.workplace,
                 siteName: dashboard.siteName,
-                onMenuTap: showMenuDrawer
+                onMenuTap: showMenuDrawer,
+                onNotificationsTap: showNotifications,
+                notificationCount: unreadNotificationCount
             )
         case let .fieldPhoto(draft):
             FieldPhotoCaptureView(
@@ -451,7 +461,9 @@ struct HomeView: View {
                 onFailure: showSaveFailure,
                 onPhotoRequired: showPhotoRequired,
                 initialPhotos: resumedImages(for: .thermometer),
-                onMenuTap: showMenuDrawer
+                onMenuTap: showMenuDrawer,
+                onNotificationsTap: showNotifications,
+                notificationCount: unreadNotificationCount
             )
         case let .saveBeforeConfirmation(draft):
             SaveBeforeConfirmationView(
@@ -459,7 +471,9 @@ struct HomeView: View {
                 onRetry: removeCurrentRoute,
                 onSave: showSaveSuccess,
                 onFailure: showSaveFailure,
-                onMenuTap: showMenuDrawer
+                onMenuTap: showMenuDrawer,
+                onNotificationsTap: showNotifications,
+                notificationCount: unreadNotificationCount
             )
         case let .saveSuccess(result):
             SaveSuccessView(result: result, onConfirm: returnToHome)
