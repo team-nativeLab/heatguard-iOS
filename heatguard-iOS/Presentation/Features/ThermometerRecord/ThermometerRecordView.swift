@@ -12,6 +12,7 @@ struct ThermometerRecordView: View {
     private let apparentTemperature: Double?
     private let teamName: String?
     private let workplace: String?
+    private let siteName: String?
     @State private var validationMessage: String?
 
     let onContinue: (HGRecordDraft) -> Void
@@ -21,6 +22,7 @@ struct ThermometerRecordView: View {
         weather: HomeWeather = .unavailable,
         teamName: String? = nil,
         workplace: String? = nil,
+        siteName: String? = nil,
         onContinue: @escaping (HGRecordDraft) -> Void = { _ in },
         onMenuTap: @escaping () -> Void = {}
     ) {
@@ -29,6 +31,7 @@ struct ThermometerRecordView: View {
         apparentTemperature = weather.apparentTemperature
         self.teamName = teamName
         self.workplace = workplace
+        self.siteName = siteName
         self.onContinue = onContinue
         self.onMenuTap = onMenuTap
     }
@@ -174,7 +177,8 @@ struct ThermometerRecordView: View {
             temperature: temperature,
             humidity: humidity,
             teamName: teamName,
-            workplace: workplace
+            workplace: workplace,
+            siteName: siteName
         ))
     }
 

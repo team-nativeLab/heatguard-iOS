@@ -15,6 +15,7 @@ struct WorkPhotoView: View {
     let onMenuTap: () -> Void
     private let teamName: String?
     private let workplace: String?
+    private let siteName: String?
 
     init(
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
@@ -24,6 +25,7 @@ struct WorkPhotoView: View {
         initialPhotos: [UIImage] = [],
         teamName: String? = nil,
         workplace: String? = nil,
+        siteName: String? = nil,
         onMenuTap: @escaping () -> Void = {}
     ) {
         self.onSave = onSave
@@ -32,6 +34,7 @@ struct WorkPhotoView: View {
         self.onMenuTap = onMenuTap
         self.teamName = teamName
         self.workplace = workplace
+        self.siteName = siteName
         _memo = State(initialValue: initialMemo)
         _photos = State(initialValue: initialPhotos)
     }
@@ -91,7 +94,7 @@ struct WorkPhotoView: View {
 
     private func saveRecord() {
         UIApplication.shared.dismissKeyboard()
-        let draft = HGRecordDraft(type: .work, memo: memo, teamName: teamName, workplace: workplace)
+        let draft = HGRecordDraft(type: .work, memo: memo, teamName: teamName, workplace: workplace, siteName: siteName)
         isSaving = true
         Task {
             defer { isSaving = false }
