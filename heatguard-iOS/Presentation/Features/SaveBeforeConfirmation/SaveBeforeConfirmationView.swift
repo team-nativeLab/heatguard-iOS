@@ -9,19 +9,25 @@ struct SaveBeforeConfirmationView: View {
     let onSave: (HGRecordSaveResult) -> Void
     let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
     let onMenuTap: () -> Void
+    let onNotificationsTap: () -> Void
+    let notificationCount: Int
 
     init(
         draft: HGRecordDraft,
         onRetry: @escaping () -> Void = {},
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
         onFailure: @escaping (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void = { _, _, _ in },
-        onMenuTap: @escaping () -> Void = {}
+        onMenuTap: @escaping () -> Void = {},
+        onNotificationsTap: @escaping () -> Void = {},
+        notificationCount: Int = 0
     ) {
         self.draft = draft
         self.onRetry = onRetry
         self.onSave = onSave
         self.onFailure = onFailure
         self.onMenuTap = onMenuTap
+        self.onNotificationsTap = onNotificationsTap
+        self.notificationCount = notificationCount
     }
 
     var body: some View {
@@ -75,7 +81,7 @@ struct SaveBeforeConfirmationView: View {
     }
 
     private var header: some View {
-        HGScreenHeader(onMenuTap: onMenuTap)
+        HGScreenHeader(onMenuTap: onMenuTap, notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
     }
 
     private var missingPhotoNotice: some View {

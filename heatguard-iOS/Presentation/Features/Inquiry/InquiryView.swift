@@ -44,18 +44,26 @@ struct InquiryView: View {
 
     private var inquiryForm: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("문의 등록")
-                .font(HGFont.bold(16, relativeTo: .headline))
             HGTextField(title: "제목", placeholder: "제목을 입력해주세요", text: $title, fieldHeight: 48)
             VStack(alignment: .leading, spacing: 8) {
                 Text("내용")
                     .font(HGFont.semiBold(13, relativeTo: .caption))
-                TextEditor(text: $content)
-                    .font(HGFont.regular(14))
-                    .padding(12)
-                    .frame(height: 140)
-                    .scrollContentBackground(.hidden)
-                    .background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: 12))
+                ZStack(alignment: .topLeading) {
+                    TextEditor(text: $content)
+                        .font(HGFont.regular(14))
+                        .scrollContentBackground(.hidden)
+                    if content.isEmpty {
+                        Text("궁금한 점이나 불편한 점을 자세히 적어주세요")
+                            .font(HGFont.regular(14))
+                            .foregroundStyle(HGColor.secondaryText)
+                            .padding(.top, 8)
+                            .padding(.leading, 5)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .padding(12)
+                .frame(height: 140)
+                .background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: 12))
                 Text("답변은 아래 문의 목록에서 확인할 수 있어요")
                     .font(HGFont.regular(11, relativeTo: .caption2))
                     .foregroundStyle(HGColor.secondaryText)
@@ -354,6 +362,9 @@ struct InquiryDetailView: View {
 private extension String {
     var formattedInquiryDate: String {
         guard let date = hgISO8601Date else { return self }
-        return date.formatted(date: .numeric, time: .shortened)
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "yyyy.MM.dd"
+        return formatter.string(from: date)
     }
 }
