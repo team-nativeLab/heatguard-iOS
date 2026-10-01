@@ -32,7 +32,7 @@ struct ThermometerRecordView: View {
     ) {
         _temperature = State(initialValue: weather.temperature.map { String(format: "%.1f", $0) } ?? "")
         _humidity = State(initialValue: weather.humidity.map { String(format: "%.0f", $0) } ?? "")
-        apparentTemperature = weather.apparentTemperature
+        apparentTemperature = weather.calculatedApparentTemperature
         self.teamName = teamName
         self.workplace = workplace
         self.siteName = siteName
@@ -97,12 +97,14 @@ struct ThermometerRecordView: View {
                     .font(HGFont.semiBold(13, relativeTo: .caption))
                     .foregroundStyle(summaryText)
 
-                Text(temperature.isEmpty ? "—" : "\(temperature) °C")
+                Text(displayedTemperature)
                     .font(HGFont.bold(32, relativeTo: .largeTitle))
                     .foregroundStyle(HGColor.primaryText)
                     .padding(.top, 9)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
 
-                Text("습도 \(humidity.isEmpty ? "—" : "\(humidity)%") · 체감 \(apparentTemperature.map { $0.formatted(.number.precision(.fractionLength(1))) + " °C" } ?? "—")")
+                Text("습도 \(displayedHumidity) · 체감 \(displayedApparentTemperature.map { $0.formatted(.number.precision(.fractionLength(1))) + " °C" } ?? "—")")
                     .font(HGFont.semiBold(13, relativeTo: .caption))
                     .foregroundStyle(summaryText)
                     .padding(.top, 14)
@@ -163,17 +165,32 @@ struct ThermometerRecordView: View {
         HGColor.summaryText
     }
 
+    private var manualMeasurement: HGWeatherMeasurement? {
+        HGWeatherMeasurement(temperatureText: temperature, humidityText: humidity)
+    }
+
+    private var displayedApparentTemperature: Double? {
+        isManualEntryEnabled ? manualMeasurement?.apparentTemperature : apparentTemperature
+    }
+
+    private var displayedTemperature: String {
+        guard !temperature.isEmpty, !isManualEntryEnabled || manualMeasurement != nil else { return "—" }
+        return "\(temperature) °C"
+    }
+
+    private var displayedHumidity: String {
+        guard !humidity.isEmpty, !isManualEntryEnabled || manualMeasurement != nil else { return "—" }
+        return "\(humidity)%"
+    }
+
     private func continueToPhoto() {
         UIApplication.shared.dismissKeyboard()
-        guard
-            let inputTemperature = Double(temperature),
-            let inputHumidity = Double(humidity)
-        else {
-            validationMessage = "온도와 습도를 숫자로 입력해주세요."
+        guard let measurement = manualMeasurement else {
+            validationMessage = "온도는 -50~60°C, 습도는 0~100% 범위의 숫자로 입력해주세요."
             return
         }
 
-        continueWithRecord(temperature: inputTemperature, humidity: inputHumidity)
+        continueWithRecord(temperature: measurement.temperature, humidity: measurement.humidity)
     }
 
     private func continueWithRecord(temperature: Double, humidity: Double) {

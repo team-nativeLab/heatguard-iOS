@@ -10,17 +10,6 @@ extension View {
             }
     }
 
-    /// 숫자 키보드처럼 Return 키가 없는 입력 방식에 완료 버튼을 제공합니다.
-    func keyboardDismissToolbar() -> some View {
-        toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("완료") {
-                    UIApplication.shared.dismissKeyboard()
-                }
-            }
-        }
-    }
 }
 
 extension UIApplication {

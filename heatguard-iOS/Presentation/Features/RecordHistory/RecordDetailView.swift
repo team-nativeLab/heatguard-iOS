@@ -185,7 +185,13 @@ private extension HGRecordDetail {
     }
     var temperatureText: String { temperature.map { String(format: "%.1f°C", $0) } ?? "-" }
     var humidityText: String { humidity.map { String(format: "%.0f%%", $0) } ?? "-" }
-    var apparentTemperatureText: String { apparentTemperature.map { String(format: "%.1f°C", $0) } ?? "-" }
+    var apparentTemperatureText: String {
+        guard let temperature, let humidity,
+              let value = HGWeatherMeasurement(temperature: temperature, humidity: humidity)?.apparentTemperature else {
+            return "-"
+        }
+        return String(format: "%.1f°C", value)
+    }
     var restDurationText: String? {
         guard let restStartedAt, let restEndedAt,
               let start = restStartedAt.hgISO8601Date,
