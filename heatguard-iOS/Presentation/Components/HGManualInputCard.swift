@@ -43,7 +43,7 @@ struct HGManualInputCard: View {
 
             Text(footerText)
                 .font(HGFont.regular(11, relativeTo: .caption2))
-                .foregroundStyle(HGColor.secondaryText)
+                .foregroundStyle(hasInvalidInput ? HGColor.error : HGColor.secondaryText)
                 .padding(.top, 18)
         }
         .padding(HGLayout.cardPadding)
@@ -54,7 +54,6 @@ struct HGManualInputCard: View {
                 .stroke(HGColor.inputBorder, lineWidth: 1)
         }
         .accessibilityElement(children: .contain)
-        .keyboardDismissToolbar()
     }
 
     private func inputField(
@@ -84,9 +83,9 @@ struct HGManualInputCard: View {
                 .font(HGFont.medium(11, relativeTo: .caption2))
                 .foregroundStyle(HGColor.secondaryText)
 
-            Text("자동 계산")
+            Text(measurement.map { String(format: "%.1f", $0.apparentTemperature) } ?? (hasInvalidInput ? "입력값 확인" : "자동 계산"))
                 .font(HGFont.regular(13, relativeTo: .caption))
-                .foregroundStyle(HGColor.secondaryText)
+                .foregroundStyle(measurement == nil ? HGColor.secondaryText : HGColor.primaryText)
                 .padding(.horizontal, 10)
                 .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
                 .background(HGColor.metricBackground, in: RoundedRectangle(cornerRadius: 10))
@@ -99,7 +98,22 @@ struct HGManualInputCard: View {
     }
 
     private var footerText: String {
-        isLocked ? "저장이 확정되면 수정할 수 없습니다." : "미설치 시 자동으로 기록됩니다."
+        if isLocked { return "저장이 확정되면 수정할 수 없습니다." }
+        if hasIncompleteInput { return "온도와 습도를 모두 입력해주세요." }
+        if hasInvalidInput { return "온도는 -50~60°C, 습도는 0~100% 범위로 입력해주세요." }
+        return isEnabled ? "체감온도는 입력값으로 자동 계산됩니다." : "미설치 시 자동으로 기록됩니다."
+    }
+
+    private var measurement: HGWeatherMeasurement? {
+        HGWeatherMeasurement(temperatureText: temperature, humidityText: humidity)
+    }
+
+    private var hasIncompleteInput: Bool {
+        isEnabled && (temperature.isEmpty != humidity.isEmpty)
+    }
+
+    private var hasInvalidInput: Bool {
+        isEnabled && !temperature.isEmpty && !humidity.isEmpty && measurement == nil
     }
 }
 

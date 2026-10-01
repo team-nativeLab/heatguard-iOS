@@ -25,7 +25,6 @@ struct HGPhotoWeatherInput: View {
             RoundedRectangle(cornerRadius: HGLayout.surfaceCardCornerRadius)
                 .stroke(HGColor.inputBorder, lineWidth: 1)
         }
-        .keyboardDismissToolbar()
     }
 
     private func inputField(

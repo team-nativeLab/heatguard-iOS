@@ -135,7 +135,12 @@ struct HomeWeather: Equatable {
 
     var temperatureText: String { measurementText(temperature, suffix: "°C") }
     var humidityText: String { measurementText(humidity, suffix: "%") }
-    var apparentTemperatureText: String { measurementText(apparentTemperature, suffix: "°C") }
+    var calculatedApparentTemperature: Double? {
+        guard let temperature, let humidity else { return nil }
+        return HGWeatherMeasurement(temperature: temperature, humidity: humidity)?.apparentTemperature
+    }
+
+    var apparentTemperatureText: String { measurementText(calculatedApparentTemperature, suffix: "°C") }
 
     var weatherStatusText: String {
         switch skyStatus {
