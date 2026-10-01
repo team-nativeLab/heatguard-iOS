@@ -79,10 +79,27 @@ struct FieldPhotoCaptureView: View {
     }
 
     private var photoPreview: some View {
-        RoundedRectangle(cornerRadius: 25)
-            .fill(HGColor.fieldBackground)
-            .frame(maxWidth: .infinity, minHeight: 290)
-            .accessibilityLabel("현장 사진 미리보기")
+        Group {
+            if photos.isEmpty {
+                RoundedRectangle(cornerRadius: 25)
+                    .fill(HGColor.fieldBackground)
+                    .accessibilityLabel("현장 사진 미리보기")
+            } else {
+                TabView {
+                    ForEach(Array(photos.enumerated()), id: \.offset) { index, photo in
+                        Image(uiImage: photo)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity, minHeight: 290, maxHeight: 290)
+                            .clipped()
+                            .accessibilityLabel("현장 사진 \(index + 1) / \(photos.count)")
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: photos.count > 1 ? .automatic : .never))
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 290, maxHeight: 290)
+        .clipShape(RoundedRectangle(cornerRadius: 25))
     }
 
     private var measurementCard: some View {

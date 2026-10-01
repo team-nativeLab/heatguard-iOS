@@ -26,6 +26,7 @@ struct HomeView: View {
     @State private var emergencyError: HGErrorPresentation?
     @State private var managerPhoneError: HGErrorPresentation?
     @State private var withdrawalError: HGErrorPresentation?
+    @State private var isLoggingOut = false
     @State private var checklist = HGChecklistSummary(times: [], checkedCount: nil, totalCount: nil)
     @State private var storedDraft: HGStoredRecordDraft?
     @State private var failedDraft: HGRecordDraft?
@@ -532,11 +533,22 @@ struct HomeView: View {
 
     private func returnToHome() {
         flowPath = NavigationPath()
+        Task { await loadDashboard() }
     }
 
     private func logout() {
-        HGAuthenticationService().endLocalSession()
-        onSessionEnded()
+        guard !isLoggingOut else { return }
+        isLoggingOut = true
+        Task {
+            defer { isLoggingOut = false }
+            let authentication = HGAuthenticationService()
+            do {
+                try await authentication.logout()
+            } catch {
+                authentication.endLocalSession()
+            }
+            onSessionEnded()
+        }
     }
 
     private func showMenuDrawer() {
