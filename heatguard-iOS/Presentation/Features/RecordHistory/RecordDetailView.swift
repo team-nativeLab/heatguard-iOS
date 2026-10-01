@@ -99,13 +99,29 @@ struct RecordDetailView: View {
 
     private func photoImage(_ urls: [String], height: CGFloat, cornerRadius: CGFloat) -> some View {
         Group {
-            if let url = urls.first, let imageURL = URL(string: url) {
-                AsyncImage(url: imageURL) { phase in
-                    if let image = try? phase.get() { image.resizable().scaledToFill() }
-                    else if case .failure = phase { photoPlaceholder }
-                    else { ProgressView() }
+            if urls.isEmpty {
+                photoPlaceholder
+            } else {
+                TabView {
+                    ForEach(Array(urls.enumerated()), id: \.offset) { index, url in
+                        Group {
+                            if let imageURL = URL(string: url) {
+                                AsyncImage(url: imageURL) { phase in
+                                    if let image = try? phase.get() { image.resizable().scaledToFill() }
+                                    else if case .failure = phase { photoPlaceholder }
+                                    else { ProgressView() }
+                                }
+                            } else {
+                                photoPlaceholder
+                            }
+                        }
+                        .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
+                        .clipped()
+                        .accessibilityLabel("현장 사진 \(index + 1) / \(urls.count)")
+                    }
                 }
-            } else { photoPlaceholder }
+                .tabViewStyle(.page(indexDisplayMode: urls.count > 1 ? .automatic : .never))
+            }
         }
         .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
         .background(HGColor.homeActionIconBackground, in: RoundedRectangle(cornerRadius: cornerRadius))
