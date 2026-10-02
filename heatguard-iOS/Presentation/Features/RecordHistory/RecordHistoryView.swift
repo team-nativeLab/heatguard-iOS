@@ -164,10 +164,10 @@ struct RecordHistoryView: View {
                     VStack(spacing: 0) {
                         ForEach(group.items) { record in
                             Button { onRecordSelected(record) } label: { RecordHistoryRow(record: record) }.buttonStyle(.plain)
-                            if record.id != group.items.last?.id { Divider().padding(.leading, 16) }
+                            if record.id != group.items.last?.id { Divider() }
                         }
                     }
-                    .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                    .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 14))
                 }
             }
         }
@@ -276,19 +276,35 @@ private struct RecordCountMetric: View {
 private struct RecordHistoryRow: View {
     let record: HGRecordHistoryItem
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: record.type.historySymbol).font(.title3).foregroundStyle(HGColor.primary)
-                .frame(width: 44, height: 44).background(HGColor.homeActionIconBackground, in: RoundedRectangle(cornerRadius: 14))
-            VStack(alignment: .leading, spacing: 4) {
-                Text(record.type.historyTitle).font(HGFont.bold(14, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
-                Text(record.summary).font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText).lineLimit(1)
+        HStack(spacing: 10) {
+            Image(record.type.historyImage)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 36, height: 36)
+                .background(HGColor.appBackground, in: RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(record.type.historyTitle)
+                    .font(HGFont.bold(13, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.primaryText)
+                Text(record.summary)
+                    .font(HGFont.regular(10, relativeTo: .caption2))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .lineLimit(1)
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(record.formattedMeasuredAt).font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText)
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(HGColor.homeChevron)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 7) {
+                Text(record.formattedMeasuredAt)
+                    .font(HGFont.regular(10, relativeTo: .caption2))
+                    .foregroundStyle(HGColor.secondaryText)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(HGColor.homeChevron)
             }
-        }.padding(.horizontal, 16).frame(height: 72)
+        }
+        .padding(.horizontal, 12)
+        .frame(minHeight: 56)
+        .contentShape(Rectangle())
     }
 }
 
@@ -296,8 +312,13 @@ private extension HGRecordHistoryItem {
     var summary: String {
         switch type {
         case .thermometer:
-            return [workplace ?? siteName, temperature.map { String(format: "%.1f°C", $0) }, humidity.map { String(format: "습도 %.0f%%", $0) }]
-                .compactMap { $0 }.joined(separator: " · ")
+            return [
+                workplace ?? siteName,
+                temperature.map { $0.formatted(.number.grouping(.never).precision(.fractionLength(0...1))) + "°C" },
+                humidity.map { String(format: "습도 %.0f%%", $0) }
+            ]
+            .compactMap { $0 }
+            .joined(separator: " · ")
         case .work:
             return workplace ?? siteName ?? memo ?? ""
         case .rest:
@@ -315,5 +336,11 @@ private extension HGRecordHistoryItem {
 }
 
 extension HGRecordType {
-    var historySymbol: String { switch self { case .thermometer: "thermometer.medium"; case .work: "camera"; case .rest: "cup.and.saucer" } }
+    var historyImage: String {
+        switch self {
+        case .thermometer: "ThermometerIllustration"
+        case .work: "WorkPhoto"
+        case .rest: "RestPhoto"
+        }
+    }
 }
