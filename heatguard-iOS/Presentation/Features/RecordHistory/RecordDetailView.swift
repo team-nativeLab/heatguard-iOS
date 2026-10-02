@@ -66,6 +66,7 @@ struct RecordDetailView: View {
     private func photoContent(_ record: HGRecordDetail) -> some View {
         VStack(spacing: 12) {
             photoCard(record.photoURLs, title: nil, height: 354)
+            measurementCard(record)
             HGCard { VStack(spacing: 0) {
                 DetailInfoRow(title: "유형", value: record.type.historyTitle)
                 Divider(); DetailInfoRow(title: "촬영 시간", value: record.formattedMeasuredAt)
@@ -81,6 +82,22 @@ struct RecordDetailView: View {
                 }
             }}
             memoCard(record)
+        }
+    }
+
+    @ViewBuilder private func measurementCard(_ record: HGRecordDetail) -> some View {
+        if record.temperature != nil || record.humidity != nil {
+            HGCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("현장 측정값")
+                        .font(HGFont.bold(15, relativeTo: .subheadline))
+
+                    HStack(spacing: 12) {
+                        DetailMetric(title: "온도", value: record.temperatureText)
+                        DetailMetric(title: "습도", value: record.humidityText)
+                    }
+                }
+            }
         }
     }
 
