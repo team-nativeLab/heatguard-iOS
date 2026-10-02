@@ -4,15 +4,18 @@ import Security
 struct HGAuthenticationService {
     private let client: HGAPIClient
     private let tokenStore: HGAuthTokenStore
+    private let credentialStore: HGAuthCredentialStore
     private let sessionState: HGSessionStateStore
 
     init(
         client: HGAPIClient = HGAPIClient(),
         tokenStore: HGAuthTokenStore = .shared,
+        credentialStore: HGAuthCredentialStore = .shared,
         sessionState: HGSessionStateStore = .shared
     ) {
         self.client = client
         self.tokenStore = tokenStore
+        self.credentialStore = credentialStore
         self.sessionState = sessionState
     }
 
@@ -23,12 +26,20 @@ struct HGAuthenticationService {
             path: HGAPIPath.teamLogin
         )
         try tokenStore.save(response.accessToken)
+        if email.caseInsensitiveCompare("test1234") == .orderedSame {
+            try credentialStore.save(email: email, password: password)
+        }
         sessionState.markSignedIn()
         return TeamSession()
     }
 
     func restoreSession() async throws -> TeamSession? {
-        guard !sessionState.isSignedOut, try tokenStore.load() != nil else { return nil }
+        guard !sessionState.isSignedOut else { return nil }
+
+        guard try tokenStore.load() != nil else {
+            guard let credentials = try credentialStore.load() else { return nil }
+            return try await login(email: credentials.email, password: credentials.password)
+        }
 
         let _: TeamSessionResponse = try await client.get(
             path: HGAPIPath.teamMe,
@@ -43,7 +54,7 @@ struct HGAuthenticationService {
 
     func updateProfile(
         name: String,
-        email: String,
+        email: String?,
         phone: String,
         version: Int?
     ) async throws -> HGTeamProfile {
@@ -63,6 +74,7 @@ struct HGAuthenticationService {
     func endLocalSession() {
         sessionState.markSignedOut()
         try? tokenStore.clear()
+        try? credentialStore.clear()
     }
 
     func changePassword(currentPassword: String, newPassword: String) async throws {
@@ -72,6 +84,10 @@ struct HGAuthenticationService {
             path: HGAPIPath.teamPassword,
             requiresAuthentication: true
         )
+        if let credentials = try? credentialStore.load(),
+           credentials.email.caseInsensitiveCompare("test1234") == .orderedSame {
+            try credentialStore.save(email: credentials.email, password: newPassword)
+        }
     }
 
     func withdraw(currentPassword: String, reason: String? = nil) async throws {
@@ -142,7 +158,7 @@ private struct PasswordChangeRequest: Encodable {
 
 private struct TeamProfileUpdateRequest: Encodable {
     let name: String
-    let email: String
+    let email: String?
     let phone: String
     let version: Int?
 }
@@ -154,6 +170,75 @@ private struct PasswordChangeResponse: Decodable {
 private struct WithdrawalRequest: Encodable { let currentPassword: String; let reason: String? }
 
 struct TeamSession: Equatable {}
+
+struct HGLoginCredentials: Codable {
+    let email: String
+    let password: String
+}
+
+final class HGAuthCredentialStore {
+    static let shared = HGAuthCredentialStore()
+
+    private let service = "aa.heatguard-iOS"
+    private let account = "team-test-login-credentials"
+
+    private init() {}
+
+    func save(email: String, password: String) throws {
+        let data = try JSONEncoder().encode(HGLoginCredentials(email: email, password: password))
+        let updateStatus = SecItemUpdate(itemQuery as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        if updateStatus == errSecSuccess { return }
+        guard updateStatus == errSecItemNotFound else {
+            throw keychainError(operation: "저장", status: updateStatus)
+        }
+
+        let item: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+            kSecValueData as String: data
+        ]
+        let status = SecItemAdd(item as CFDictionary, nil)
+        guard status == errSecSuccess else {
+            throw keychainError(operation: "저장", status: status)
+        }
+    }
+
+    func load() throws -> HGLoginCredentials? {
+        let query = itemQuery.merging([
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]) { _, new in new }
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound { return nil }
+        guard status == errSecSuccess, let data = result as? Data else {
+            throw keychainError(operation: "불러오기", status: status)
+        }
+        return try JSONDecoder().decode(HGLoginCredentials.self, from: data)
+    }
+
+    func clear() throws {
+        let status = SecItemDelete(itemQuery as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw keychainError(operation: "삭제", status: status)
+        }
+    }
+
+    private var itemQuery: [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+    }
+
+    private func keychainError(operation: String, status: OSStatus) -> HGAPIError {
+        let detail = SecCopyErrorMessageString(status, nil) as String? ?? "OSStatus \(status)"
+        return .keychain(message: "로그인 정보를 \(operation)하지 못했습니다. \(detail)", status: status)
+    }
+}
 
 final class HGAuthTokenStore {
     static let shared = HGAuthTokenStore()

@@ -12,25 +12,34 @@ struct ThermometerRecordView: View {
     private let apparentTemperature: Double?
     private let teamName: String?
     private let workplace: String?
+    private let siteName: String?
     @State private var validationMessage: String?
 
     let onContinue: (HGRecordDraft) -> Void
     let onMenuTap: () -> Void
+    let onNotificationsTap: () -> Void
+    let notificationCount: Int
 
     init(
         weather: HomeWeather = .unavailable,
         teamName: String? = nil,
         workplace: String? = nil,
+        siteName: String? = nil,
         onContinue: @escaping (HGRecordDraft) -> Void = { _ in },
-        onMenuTap: @escaping () -> Void = {}
+        onMenuTap: @escaping () -> Void = {},
+        onNotificationsTap: @escaping () -> Void = {},
+        notificationCount: Int = 0
     ) {
         _temperature = State(initialValue: weather.temperature.map { String(format: "%.1f", $0) } ?? "")
         _humidity = State(initialValue: weather.humidity.map { String(format: "%.0f", $0) } ?? "")
-        apparentTemperature = weather.apparentTemperature
+        apparentTemperature = weather.calculatedApparentTemperature
         self.teamName = teamName
         self.workplace = workplace
+        self.siteName = siteName
         self.onContinue = onContinue
         self.onMenuTap = onMenuTap
+        self.onNotificationsTap = onNotificationsTap
+        self.notificationCount = notificationCount
     }
 
     var body: some View {
@@ -73,7 +82,7 @@ struct ThermometerRecordView: View {
     }
 
     private var header: some View {
-        HGScreenHeader(onMenuTap: onMenuTap)
+        HGScreenHeader(onMenuTap: onMenuTap, notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
     }
 
     private var temperatureSummaryCard: some View {
@@ -88,12 +97,14 @@ struct ThermometerRecordView: View {
                     .font(HGFont.semiBold(13, relativeTo: .caption))
                     .foregroundStyle(summaryText)
 
-                Text(temperature.isEmpty ? "—" : "\(temperature) °C")
+                Text(displayedTemperature)
                     .font(HGFont.bold(32, relativeTo: .largeTitle))
                     .foregroundStyle(HGColor.primaryText)
                     .padding(.top, 9)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
 
-                Text("습도 \(humidity.isEmpty ? "—" : "\(humidity)%") · 체감 \(apparentTemperature.map { $0.formatted(.number.precision(.fractionLength(1))) + " °C" } ?? "—")")
+                Text("습도 \(displayedHumidity) · 체감 \(displayedApparentTemperature.map { $0.formatted(.number.precision(.fractionLength(1))) + " °C" } ?? "—")")
                     .font(HGFont.semiBold(13, relativeTo: .caption))
                     .foregroundStyle(summaryText)
                     .padding(.top, 14)
@@ -154,17 +165,32 @@ struct ThermometerRecordView: View {
         HGColor.summaryText
     }
 
+    private var manualMeasurement: HGWeatherMeasurement? {
+        HGWeatherMeasurement(temperatureText: temperature, humidityText: humidity)
+    }
+
+    private var displayedApparentTemperature: Double? {
+        isManualEntryEnabled ? manualMeasurement?.apparentTemperature : apparentTemperature
+    }
+
+    private var displayedTemperature: String {
+        guard !temperature.isEmpty, !isManualEntryEnabled || manualMeasurement != nil else { return "—" }
+        return "\(temperature) °C"
+    }
+
+    private var displayedHumidity: String {
+        guard !humidity.isEmpty, !isManualEntryEnabled || manualMeasurement != nil else { return "—" }
+        return "\(humidity)%"
+    }
+
     private func continueToPhoto() {
         UIApplication.shared.dismissKeyboard()
-        guard
-            let inputTemperature = Double(temperature),
-            let inputHumidity = Double(humidity)
-        else {
-            validationMessage = "온도와 습도를 숫자로 입력해주세요."
+        guard let measurement = manualMeasurement else {
+            validationMessage = "온도는 -50~60°C, 습도는 0~100% 범위의 숫자로 입력해주세요."
             return
         }
 
-        continueWithRecord(temperature: inputTemperature, humidity: inputHumidity)
+        continueWithRecord(temperature: measurement.temperature, humidity: measurement.humidity)
     }
 
     private func continueWithRecord(temperature: Double, humidity: Double) {
@@ -174,7 +200,8 @@ struct ThermometerRecordView: View {
             temperature: temperature,
             humidity: humidity,
             teamName: teamName,
-            workplace: workplace
+            workplace: workplace,
+            siteName: siteName
         ))
     }
 

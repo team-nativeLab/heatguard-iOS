@@ -26,6 +26,7 @@ struct HomeView: View {
     @State private var emergencyError: HGErrorPresentation?
     @State private var managerPhoneError: HGErrorPresentation?
     @State private var withdrawalError: HGErrorPresentation?
+    @State private var isLoggingOut = false
     @State private var checklist = HGChecklistSummary(times: [], checkedCount: nil, totalCount: nil)
     @State private var storedDraft: HGStoredRecordDraft?
     @State private var failedDraft: HGRecordDraft?
@@ -186,8 +187,12 @@ struct HomeView: View {
         HGScreenHeader(
             onMenuTap: showMenuDrawer,
             notificationCount: unreadNotificationCount,
-            onNotificationsTap: { flowPath.append(HomeFlowRoute.notifications) }
+            onNotificationsTap: showNotifications
         )
+    }
+
+    private func showNotifications() {
+        flowPath.append(HomeFlowRoute.notifications)
     }
 
     private var weatherSummary: some View {
@@ -414,8 +419,11 @@ struct HomeView: View {
             ThermometerRecordView(weather: dashboard.weather,
                 teamName: dashboard.teamName,
                 workplace: dashboard.workplace,
+                siteName: dashboard.siteName,
                 onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) },
-                onMenuTap: showMenuDrawer
+                onMenuTap: showMenuDrawer,
+                onNotificationsTap: showNotifications,
+                notificationCount: unreadNotificationCount
             )
         case .workPhoto:
             WorkPhotoView(
@@ -424,9 +432,15 @@ struct HomeView: View {
                 onPhotoRequired: showPhotoRequired,
                 initialMemo: resumedDraft(for: .work)?.memo ?? "",
                 initialPhotos: resumedImages(for: .work),
+                initialTemperature: resumedDraft(for: .work)?.temperature,
+                initialHumidity: resumedDraft(for: .work)?.humidity,
+                weather: dashboard.weather,
                 teamName: dashboard.teamName,
                 workplace: dashboard.workplace,
-                onMenuTap: showMenuDrawer
+                siteName: dashboard.siteName,
+                onMenuTap: showMenuDrawer,
+                onNotificationsTap: showNotifications,
+                notificationCount: unreadNotificationCount
             )
         case .restPhoto:
             RestPhotoView(
@@ -435,11 +449,17 @@ struct HomeView: View {
                 onPhotoRequired: showPhotoRequired,
                 initialMemo: resumedDraft(for: .rest)?.memo ?? "",
                 initialPhotos: resumedImages(for: .rest),
+                initialTemperature: resumedDraft(for: .rest)?.temperature,
+                initialHumidity: resumedDraft(for: .rest)?.humidity,
+                weather: dashboard.weather,
                 initialRestStartedAt: resumedDraft(for: .rest)?.restStartedAt,
                 initialRestEndedAt: resumedDraft(for: .rest)?.restEndedAt,
                 teamName: dashboard.teamName,
                 workplace: dashboard.workplace,
-                onMenuTap: showMenuDrawer
+                siteName: dashboard.siteName,
+                onMenuTap: showMenuDrawer,
+                onNotificationsTap: showNotifications,
+                notificationCount: unreadNotificationCount
             )
         case let .fieldPhoto(draft):
             FieldPhotoCaptureView(
@@ -448,7 +468,9 @@ struct HomeView: View {
                 onFailure: showSaveFailure,
                 onPhotoRequired: showPhotoRequired,
                 initialPhotos: resumedImages(for: .thermometer),
-                onMenuTap: showMenuDrawer
+                onMenuTap: showMenuDrawer,
+                onNotificationsTap: showNotifications,
+                notificationCount: unreadNotificationCount
             )
         case let .saveBeforeConfirmation(draft):
             SaveBeforeConfirmationView(
@@ -456,7 +478,9 @@ struct HomeView: View {
                 onRetry: removeCurrentRoute,
                 onSave: showSaveSuccess,
                 onFailure: showSaveFailure,
-                onMenuTap: showMenuDrawer
+                onMenuTap: showMenuDrawer,
+                onNotificationsTap: showNotifications,
+                notificationCount: unreadNotificationCount
             )
         case let .saveSuccess(result):
             SaveSuccessView(result: result, onConfirm: returnToHome)
@@ -509,11 +533,22 @@ struct HomeView: View {
 
     private func returnToHome() {
         flowPath = NavigationPath()
+        Task { await loadDashboard() }
     }
 
     private func logout() {
-        HGAuthenticationService().endLocalSession()
-        onSessionEnded()
+        guard !isLoggingOut else { return }
+        isLoggingOut = true
+        Task {
+            defer { isLoggingOut = false }
+            let authentication = HGAuthenticationService()
+            do {
+                try await authentication.logout()
+            } catch {
+                authentication.endLocalSession()
+            }
+            onSessionEnded()
+        }
     }
 
     private func showMenuDrawer() {

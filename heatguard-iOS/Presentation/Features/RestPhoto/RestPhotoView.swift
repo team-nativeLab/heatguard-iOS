@@ -3,6 +3,8 @@ import SwiftUI
 struct RestPhotoView: View {
     @State private var memo: String
     @State private var photos: [UIImage]
+    @State private var temperature: String
+    @State private var humidity: String
     @State private var isSaving = false
     @State private var recordsRestInterval = false
     @State private var restStartedAt: Date
@@ -12,8 +14,12 @@ struct RestPhotoView: View {
     let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
     let onPhotoRequired: (HGRecordDraft) -> Void
     let onMenuTap: () -> Void
+    let onNotificationsTap: () -> Void
+    let notificationCount: Int
     private let teamName: String?
     private let workplace: String?
+    private let siteName: String?
+    private let needsWeatherInput: Bool
 
     init(
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
@@ -21,20 +27,32 @@ struct RestPhotoView: View {
         onPhotoRequired: @escaping (HGRecordDraft) -> Void = { _ in },
         initialMemo: String = "",
         initialPhotos: [UIImage] = [],
+        initialTemperature: Double? = nil,
+        initialHumidity: Double? = nil,
+        weather: HomeWeather? = nil,
         initialRestStartedAt: Date? = nil,
         initialRestEndedAt: Date? = nil,
         teamName: String? = nil,
         workplace: String? = nil,
-        onMenuTap: @escaping () -> Void = {}
+        siteName: String? = nil,
+        onMenuTap: @escaping () -> Void = {},
+        onNotificationsTap: @escaping () -> Void = {},
+        notificationCount: Int = 0
     ) {
         self.onSave = onSave
         self.onFailure = onFailure
         self.onPhotoRequired = onPhotoRequired
         self.onMenuTap = onMenuTap
+        self.onNotificationsTap = onNotificationsTap
+        self.notificationCount = notificationCount
         self.teamName = teamName
         self.workplace = workplace
+        self.siteName = siteName
+        self.needsWeatherInput = weather?.temperature == nil || weather?.humidity == nil
         _memo = State(initialValue: initialMemo)
         _photos = State(initialValue: initialPhotos)
+        _temperature = State(initialValue: (initialTemperature ?? weather?.temperature).map { String($0) } ?? "")
+        _humidity = State(initialValue: (initialHumidity ?? weather?.humidity).map { String($0) } ?? "")
         _restStartedAt = State(initialValue: initialRestStartedAt ?? .now.addingTimeInterval(-30 * 60))
         _restEndedAt = State(initialValue: initialRestEndedAt ?? .now)
         _recordsRestInterval = State(initialValue: initialRestStartedAt != nil && initialRestEndedAt != nil)
@@ -44,23 +62,12 @@ struct RestPhotoView: View {
         VStack(spacing: 0) {
             header
 
-            VStack(alignment: .leading, spacing: 0) {
-                Text("휴식시간 사진")
-                    .font(HGFont.bold(20, relativeTo: .title2))
-
-                Text("휴식시간과 휴식 환경을 기록해주세요")
-                    .font(HGFont.regular(14, relativeTo: .subheadline))
-                    .padding(.top, 10)
-
-                HGPhotoCaptureSection(images: $photos)
-                    .padding(.top, 34)
-
-                restForm
-                    .padding(.top, 26)
+            if needsWeatherInput {
+                ScrollView { formContent }
+            } else {
+                formContent
+                Spacer(minLength: 0)
             }
-            .padding(.top, HGLayout.screenContentTopPadding)
-
-            Spacer(minLength: 0)
 
             HGPrimaryButton(
                 title: isSaving ? "저장 중..." : "기록 저장",
@@ -76,15 +83,38 @@ struct RestPhotoView: View {
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .dismissKeyboardOnBackgroundTap()
-        .alert("휴식 시간을 확인해주세요", isPresented: validationAlert) {
+        .alert("입력값을 확인해주세요", isPresented: validationAlert) {
             Button("확인", role: .cancel) {}
         } message: {
             Text(validationMessage ?? "")
         }
     }
 
+    private var formContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("휴식시간 사진")
+                .font(HGFont.bold(20, relativeTo: .title2))
+
+            Text("휴식시간과 휴식 환경을 기록해주세요")
+                .font(HGFont.regular(14, relativeTo: .subheadline))
+                .padding(.top, 10)
+
+            HGPhotoCaptureSection(images: $photos)
+                .padding(.top, 34)
+
+            restForm
+                .padding(.top, 26)
+            if needsWeatherInput {
+                HGPhotoWeatherInput(temperature: $temperature, humidity: $humidity)
+                    .padding(.top, 25)
+            }
+        }
+        .padding(.top, HGLayout.screenContentTopPadding)
+        .padding(.bottom, needsWeatherInput ? 16 : 0)
+    }
+
     private var header: some View {
-        HGScreenHeader(onMenuTap: onMenuTap)
+        HGScreenHeader(onMenuTap: onMenuTap, notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
     }
 
     private var restForm: some View {
@@ -118,6 +148,10 @@ struct RestPhotoView: View {
 
     private func saveRecord() {
         UIApplication.shared.dismissKeyboard()
+        guard let values = HGPhotoWeatherInput.validatedValues(temperature: temperature, humidity: humidity) else {
+            validationMessage = "온도는 -50~60°C, 습도는 0~100% 범위의 숫자로 입력해주세요."
+            return
+        }
         if recordsRestInterval {
             let normalizedStart = minutePrecisionDate(restStartedAt)
             let normalizedEnd = minutePrecisionDate(restEndedAt)
@@ -130,10 +164,13 @@ struct RestPhotoView: View {
         let draft = HGRecordDraft(
             type: .rest,
             memo: memo,
+            temperature: values.temperature,
+            humidity: values.humidity,
             restStartedAt: recordsRestInterval ? minutePrecisionDate(restStartedAt) : nil,
             restEndedAt: recordsRestInterval ? minutePrecisionDate(restEndedAt) : nil,
             teamName: teamName,
-            workplace: workplace
+            workplace: workplace,
+            siteName: siteName
         )
         isSaving = true
         Task {

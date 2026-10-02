@@ -29,8 +29,10 @@ struct RecordHistoryView: View {
                     VStack(spacing: 0) {
                         periodSelector
                         filterSelector.padding(.top, 14)
-                        summaryCard.padding(.top, 14)
-                        historyContent.padding(.top, 20)
+                        if !filteredRecords.isEmpty {
+                            summaryCard.padding(.top, 14)
+                        }
+                        historyContent.padding(.top, filteredRecords.isEmpty ? 14 : 20)
                         if hasMore {
                             Button {
                                 Task { await loadMoreRecords() }
@@ -124,7 +126,7 @@ struct RecordHistoryView: View {
     private var summaryCard: some View {
         VStack(spacing: 8) {
             HStack(spacing: 0) {
-                RecordCountMetric(title: "전체", count: periodRecords.count)
+                RecordCountMetric(title: hasMore ? "불러온 기록" : "전체", count: periodRecords.count)
                 Divider().frame(height: 28)
                 RecordCountMetric(title: "온도계", count: periodRecords.count(where: { $0.type == .thermometer }))
                 Divider().frame(height: 28)
@@ -145,8 +147,8 @@ struct RecordHistoryView: View {
     @ViewBuilder private var historyContent: some View {
         if filteredRecords.isEmpty {
             VStack(spacing: 10) {
-                Image(systemName: "doc.text.magnifyingglass")
-                    .font(.system(size: 30, weight: .medium)).foregroundStyle(HGColor.primary)
+                Image("RecordPhotoPlaceholder")
+                    .resizable().frame(width: 36, height: 36)
                     .frame(width: 72, height: 72).background(HGColor.homeMetricIconBackground, in: Circle())
                 Text(hasMore ? "불러온 기록 중 해당 항목이 없어요" : "해당 기간에 \(selectedFilter.emptyDescription) 기록이 없어요")
                     .font(HGFont.bold(15, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
@@ -154,15 +156,37 @@ struct RecordHistoryView: View {
                     .font(HGFont.regular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
             }.frame(maxWidth: .infinity, minHeight: 247)
         } else {
-            LazyVStack(alignment: .leading, spacing: 12) {
-                Text("최근 기록").font(HGFont.medium(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
-                VStack(spacing: 0) {
-                    ForEach(filteredRecords) { record in
-                        Button { onRecordSelected(record) } label: { RecordHistoryRow(record: record) }.buttonStyle(.plain)
-                        if record.id != filteredRecords.last?.id { Divider().padding(.leading, 16) }
+            LazyVStack(alignment: .leading, spacing: 14) {
+                ForEach(recordGroups, id: \.date) { group in
+                    Text(group.label)
+                        .font(HGFont.medium(12, relativeTo: .caption))
+                        .foregroundStyle(HGColor.secondaryText)
+                    VStack(spacing: 0) {
+                        ForEach(group.items) { record in
+                            Button { onRecordSelected(record) } label: { RecordHistoryRow(record: record) }.buttonStyle(.plain)
+                            if record.id != group.items.last?.id { Divider() }
+                        }
                     }
-                }.background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                    .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 14))
+                }
             }
+        }
+    }
+
+    private var recordGroups: [RecordDayGroup] {
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: filteredRecords) { record in
+            record.measuredAt.hgISO8601Date.map(calendar.startOfDay(for:)) ?? .distantPast
+        }
+        return grouped.keys.sorted(by: >).map { date in
+            let prefix: String
+            if calendar.isDateInToday(date) { prefix = "오늘 · " }
+            else if calendar.isDateInYesterday(date) { prefix = "어제 · " }
+            else { prefix = "" }
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "ko_KR")
+            formatter.dateFormat = "M월 d일 (E)"
+            return RecordDayGroup(date: date, label: prefix + formatter.string(from: date), items: grouped[date] ?? [])
         }
     }
 
@@ -184,7 +208,10 @@ struct RecordHistoryView: View {
 
     private var currentWeekRange: String {
         let start = Calendar.current.date(byAdding: .day, value: -6, to: selectedPeriodEnd) ?? selectedPeriodEnd
-        return "\(start.formatted(.dateTime.year().month().day())) ~ \(selectedPeriodEnd.formatted(.dateTime.year().month().day()))"
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "yyyy. MM. dd."
+        return "\(formatter.string(from: start)) ~ \(formatter.string(from: selectedPeriodEnd))"
     }
 
     @MainActor private func loadRecords() async {
@@ -222,6 +249,12 @@ struct RecordHistoryView: View {
     private var errorAlert: Binding<Bool> { Binding(get: { error != nil }, set: { if !$0 { error = nil } }) }
 }
 
+private struct RecordDayGroup {
+    let date: Date
+    let label: String
+    let items: [HGRecordHistoryItem]
+}
+
 private enum RecordFilter: CaseIterable, Identifiable {
     case all, thermometer, work, rest
     var id: Self { self }
@@ -243,30 +276,71 @@ private struct RecordCountMetric: View {
 private struct RecordHistoryRow: View {
     let record: HGRecordHistoryItem
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: record.type.historySymbol).font(.title3).foregroundStyle(HGColor.primary)
-                .frame(width: 44, height: 44).background(HGColor.homeActionIconBackground, in: RoundedRectangle(cornerRadius: 14))
-            VStack(alignment: .leading, spacing: 4) {
-                Text(record.type.historyTitle).font(HGFont.bold(14, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
-                Text(record.summary).font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText).lineLimit(1)
+        HStack(spacing: 10) {
+            Image(record.type.historyImage)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 36, height: 36)
+                .background(HGColor.appBackground, in: RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(record.type.historyTitle)
+                    .font(HGFont.bold(13, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.primaryText)
+                Text(record.summary)
+                    .font(HGFont.regular(10, relativeTo: .caption2))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .lineLimit(1)
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(record.formattedMeasuredAt).font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText)
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(HGColor.homeChevron)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 7) {
+                Text(record.formattedMeasuredAt)
+                    .font(HGFont.regular(10, relativeTo: .caption2))
+                    .foregroundStyle(HGColor.secondaryText)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(HGColor.homeChevron)
             }
-        }.padding(.horizontal, 16).frame(height: 72)
+        }
+        .padding(.horizontal, 12)
+        .frame(minHeight: 56)
+        .contentShape(Rectangle())
     }
 }
 
 private extension HGRecordHistoryItem {
-    var summary: String { [temperature.map { String(format: "%.1f°C", $0) }, memo].compactMap { $0 }.joined(separator: " · ") }
+    var summary: String {
+        switch type {
+        case .thermometer:
+            return [
+                workplace ?? siteName,
+                temperature.map { $0.formatted(.number.grouping(.never).precision(.fractionLength(0...1))) + "°C" },
+                humidity.map { String(format: "습도 %.0f%%", $0) }
+            ]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+        case .work:
+            return workplace ?? siteName ?? memo ?? ""
+        case .rest:
+            return [workplace ?? siteName, restMinutes.map { "\($0)분 휴식" }]
+                .compactMap { $0 }.joined(separator: " · ")
+        }
+    }
     var formattedMeasuredAt: String {
         guard let date = measuredAt.hgISO8601Date else { return measuredAt }
-        return date.formatted(date: .omitted, time: .shortened)
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
 }
 
 extension HGRecordType {
-    var historySymbol: String { switch self { case .thermometer: "thermometer.medium"; case .work: "camera"; case .rest: "cup.and.saucer" } }
+    var historyImage: String {
+        switch self {
+        case .thermometer: "ThermometerIllustration"
+        case .work: "WorkPhoto"
+        case .rest: "RestPhoto"
+        }
+    }
 }

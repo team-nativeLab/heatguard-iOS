@@ -16,9 +16,10 @@ struct RecordDetailView: View {
                         if record.type == .thermometer { thermometerContent(record) }
                         else { photoContent(record) }
                         Text("제출한 기록은 수정할 수 없어요. 수정이 필요하면 현장 관리자에게 문의해주세요.")
-                            .font(HGFont.regular(11, relativeTo: .caption2))
+                            .font(HGFont.regular(12, relativeTo: .caption))
                             .foregroundStyle(HGColor.secondaryText)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity)
                             .padding(.top, 4)
                     }
                     .padding(24)
@@ -40,10 +41,11 @@ struct RecordDetailView: View {
             HGCard { VStack(alignment: .leading, spacing: 7) {
                 RecordTypeBadge(type: record.type)
                 Text(record.formattedMeasuredAt).font(HGFont.bold(18, relativeTo: .title3))
-                Text("현장 기록").font(HGFont.regular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
+                if let location = record.locationText {
+                    Text(location).font(HGFont.regular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
+                }
             }}
             HGCard { VStack(alignment: .leading, spacing: 15) {
-                Text("측정값").font(HGFont.bold(15, relativeTo: .subheadline))
                 HStack(spacing: 12) {
                     Image(systemName: "thermometer.medium").font(.title2).foregroundStyle(HGColor.primary)
                     VStack(alignment: .leading, spacing: 2) {
@@ -67,18 +69,14 @@ struct RecordDetailView: View {
         VStack(spacing: 12) {
             photoCard(record.photoURLs, title: nil, height: 354)
             measurementCard(record)
-            HGCard { VStack(spacing: 0) {
-                DetailInfoRow(title: "유형", value: record.type.historyTitle)
+            HGCard(padding: 20) { VStack(spacing: 0) {
+                DetailInfoRow(title: "유형", value: record.type.historyTitle, type: record.type)
                 Divider(); DetailInfoRow(title: "촬영 시간", value: record.formattedMeasuredAt)
-                Divider(); DetailInfoRow(title: "팀", value: record.teamName ?? "정보 없음")
-                if let workplace = record.workplace {
-                    Divider(); DetailInfoRow(title: "작업 장소", value: workplace)
+                if let location = record.locationText {
+                    Divider(); DetailInfoRow(title: "위치", value: location)
                 }
-                if let siteName = record.siteName {
-                    Divider(); DetailInfoRow(title: "현장", value: siteName)
-                }
-                if record.type == .rest {
-                    Divider(); DetailInfoRow(title: "휴식 시간", value: record.restDurationText)
+                if record.type == .rest, let duration = record.restDurationText {
+                    Divider(); DetailInfoRow(title: "휴식 시간", value: duration)
                 }
             }}
             memoCard(record)
@@ -102,26 +100,56 @@ struct RecordDetailView: View {
     }
 
     private func photoCard(_ urls: [String], title: String?, height: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if let title { Text(title).font(HGFont.bold(15, relativeTo: .subheadline)) }
-            Group {
-                if let url = urls.first, let imageURL = URL(string: url) {
-                    AsyncImage(url: imageURL) { phase in
-                        if let image = try? phase.get() { image.resizable().scaledToFill() }
-                        else if case .failure = phase { photoPlaceholder }
-                        else { ProgressView() }
+        Group {
+            if let title {
+                HGCard {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(title).font(HGFont.bold(15, relativeTo: .subheadline))
+                        photoImage(urls, height: height, cornerRadius: 12)
                     }
-                } else { photoPlaceholder }
+                }
+            } else {
+                photoImage(urls, height: height, cornerRadius: 20)
             }
-            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
-            .background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: 16))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
         }
+    }
+
+    private func photoImage(_ urls: [String], height: CGFloat, cornerRadius: CGFloat) -> some View {
+        Group {
+            if urls.isEmpty {
+                photoPlaceholder
+            } else {
+                TabView {
+                    ForEach(Array(urls.enumerated()), id: \.offset) { index, url in
+                        Group {
+                            if let imageURL = URL(string: url) {
+                                AsyncImage(url: imageURL) { phase in
+                                    if let image = try? phase.get() { image.resizable().scaledToFill() }
+                                    else if case .failure = phase { photoPlaceholder }
+                                    else { ProgressView() }
+                                }
+                            } else {
+                                photoPlaceholder
+                            }
+                        }
+                        .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
+                        .clipped()
+                        .accessibilityLabel("현장 사진 \(index + 1) / \(urls.count)")
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: urls.count > 1 ? .automatic : .never))
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
+        .background(HGColor.homeActionIconBackground, in: RoundedRectangle(cornerRadius: cornerRadius))
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
     }
 
     private var photoPlaceholder: some View {
         VStack(spacing: 8) {
-            Image(systemName: "photo").font(.title).foregroundStyle(HGColor.primary)
+            Image("RecordPhotoPlaceholder")
+                .resizable()
+                .frame(width: 36, height: 36)
             Text("촬영한 현장 사진").font(HGFont.regular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
         }
     }
@@ -151,21 +179,65 @@ private struct DetailMetric: View {
     var body: some View { VStack(alignment: .leading, spacing: 4) { Text(title).font(HGFont.regular(10, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText); Text(value).font(HGFont.bold(13, relativeTo: .caption)) }.frame(maxWidth: .infinity, alignment: .leading) }
 }
 private struct DetailInfoRow: View {
-    let title: String; let value: String
-    var body: some View { HStack { Text(title).font(HGFont.medium(13, relativeTo: .subheadline)); Spacer(); Text(value).font(HGFont.regular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText) }.frame(height: 45) }
+    let title: String
+    let value: String
+    var type: HGRecordType? = nil
+
+    var body: some View {
+        HStack {
+            Text(title).font(HGFont.regular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
+            Spacer(minLength: 8)
+            if let type {
+                Text(value)
+                    .font(HGFont.bold(11, relativeTo: .caption2))
+                    .foregroundStyle(type == .rest ? Color(red: 33 / 255, green: 153 / 255, blue: 89 / 255) : HGColor.primary)
+                    .padding(.horizontal, 8).padding(.vertical, 2)
+                    .background(type == .rest ? HGColor.successBackground : HGColor.homeMetricIconBackground, in: Capsule())
+            } else {
+                Text(value)
+                    .font(HGFont.medium(13, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.primaryText)
+                    .multilineTextAlignment(.trailing)
+            }
+        }
+        .frame(minHeight: 45)
+    }
 }
 private extension AsyncImagePhase { func get() throws -> Image { if case let .success(image) = self { return image }; throw URLError(.cannotDecodeContentData) } }
 private extension HGRecordDetail {
-    var formattedMeasuredAt: String { guard let date = measuredAt.hgISO8601Date else { return measuredAt }; return date.formatted(date: .long, time: .shortened) }
+    var formattedMeasuredAt: String {
+        guard let date = measuredAt.hgISO8601Date else { return measuredAt }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "yyyy.MM.dd (E) HH:mm"
+        return formatter.string(from: date)
+    }
+    var locationText: String? {
+        let location = workplace ?? siteName
+        return [location, teamName].compactMap { $0 }.joined(separator: " · ").nilIfEmpty
+    }
     var temperatureText: String { temperature.map { String(format: "%.1f°C", $0) } ?? "-" }
     var humidityText: String { humidity.map { String(format: "%.0f%%", $0) } ?? "-" }
-    var apparentTemperatureText: String { apparentTemperature.map { String(format: "%.1f°C", $0) } ?? "-" }
-    var restDurationText: String {
-        if let restMinutes { return "\(restMinutes)분" }
+    var apparentTemperatureText: String {
+        guard let temperature, let humidity,
+              let value = HGWeatherMeasurement(temperature: temperature, humidity: humidity)?.apparentTemperature else {
+            return "-"
+        }
+        return String(format: "%.1f°C", value)
+    }
+    var restDurationText: String? {
         guard let restStartedAt, let restEndedAt,
               let start = restStartedAt.hgISO8601Date,
               let end = restEndedAt.hgISO8601Date,
-              end > start else { return "정보 없음" }
-        return "\(Int(end.timeIntervalSince(start) / 60))분"
+              end > start else { return restMinutes.map { "\($0)분" } }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "HH:mm"
+        let minutes = restMinutes ?? Int(end.timeIntervalSince(start) / 60)
+        return "\(minutes)분 (\(formatter.string(from: start)) ~ \(formatter.string(from: end)))"
     }
+}
+
+private extension String {
+    var nilIfEmpty: String? { isEmpty ? nil : self }
 }

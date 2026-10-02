@@ -25,7 +25,7 @@ private struct WorkerHomeDashboardResponse: Decodable {
 }
 
 private struct WorkerHomeCompany: Decodable { let name: String?; let phone: String? }
-private struct WorkerHomeSite: Decodable { let managerPhone: String? }
+private struct WorkerHomeSite: Decodable { let name: String?; let managerPhone: String? }
 private struct WorkerHomeTeam: Decodable { let name: String?; let workplace: String? }
 
 private struct WorkerHomeWeather: Decodable {
@@ -47,6 +47,7 @@ struct HomeDashboard: Equatable {
     let companyName: String?
     let companyPhone: String?
     let managerPhone: String?
+    let siteName: String?
     let teamName: String?
     let workplace: String?
     let weather: HomeWeather
@@ -57,6 +58,7 @@ struct HomeDashboard: Equatable {
         companyName = response.company?.name
         companyPhone = response.company?.phone
         managerPhone = response.site?.managerPhone
+        siteName = response.site?.name
         teamName = response.team?.name
         workplace = response.team?.workplace
         let source = response.weather
@@ -84,6 +86,7 @@ struct HomeDashboard: Equatable {
         companyName: nil,
         companyPhone: nil,
         managerPhone: nil,
+        siteName: nil,
         teamName: nil,
         workplace: nil,
         weather: .unavailable,
@@ -92,13 +95,14 @@ struct HomeDashboard: Equatable {
     )
 
     private init(
-        companyName: String?, companyPhone: String?, managerPhone: String?,
+        companyName: String?, companyPhone: String?, managerPhone: String?, siteName: String?,
         teamName: String?, workplace: String?, weather: HomeWeather,
         checklist: HGChecklistSummary, unreadNotificationCount: Int
     ) {
         self.companyName = companyName
         self.companyPhone = companyPhone
         self.managerPhone = managerPhone
+        self.siteName = siteName
         self.teamName = teamName
         self.workplace = workplace
         self.weather = weather
@@ -131,7 +135,12 @@ struct HomeWeather: Equatable {
 
     var temperatureText: String { measurementText(temperature, suffix: "°C") }
     var humidityText: String { measurementText(humidity, suffix: "%") }
-    var apparentTemperatureText: String { measurementText(apparentTemperature, suffix: "°C") }
+    var calculatedApparentTemperature: Double? {
+        guard let temperature, let humidity else { return nil }
+        return HGWeatherMeasurement(temperature: temperature, humidity: humidity)?.apparentTemperature
+    }
+
+    var apparentTemperatureText: String { measurementText(calculatedApparentTemperature, suffix: "°C") }
 
     var weatherStatusText: String {
         switch skyStatus {

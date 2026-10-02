@@ -28,8 +28,22 @@ struct ProfileEditView: View {
                     Text("현장작업자").font(HGFont.regular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
                 }
                 VStack(spacing: 20) {
+                    if let companyName = profile?.companyName, !companyName.isEmpty {
+                        HGTextField(title: "회사명", placeholder: "", text: .constant(companyName), fieldHeight: 48)
+                            .disabled(true)
+                    }
                     HGTextField(title: "이름", placeholder: "이름을 입력해주세요", text: $name, fieldHeight: 48)
                     HGTextField(title: "이메일", placeholder: "example@email.com", text: $email, fieldHeight: 48, inputType: .email)
+                        .disabled(true)
+                        .overlay(alignment: .topTrailing) {
+                            Text("변경 불가")
+                                .font(HGFont.regular(12, relativeTo: .caption))
+                                .foregroundStyle(HGColor.secondaryText)
+                        }
+                    Text("로그인에 쓰는 이메일은 변경할 수 없어요")
+                        .font(HGFont.regular(12, relativeTo: .caption))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     HGTextField(title: "전화번호", placeholder: "전화번호를 입력해주세요", text: $phone, fieldHeight: 48)
                     NavigationLink { PasswordChangeView() } label: {
                         HStack { VStack(alignment: .leading, spacing: 3) { Text("비밀번호 변경").font(HGFont.semiBold(14, relativeTo: .subheadline)); Text("현재 비밀번호 확인 후 변경할 수 있어요").font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText) }; Spacer(); Image(systemName: "chevron.right").foregroundStyle(HGColor.homeChevron) }
@@ -52,7 +66,6 @@ struct ProfileEditView: View {
 
     private var isValid: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && email.contains("@")
     }
 
     private var errorAlert: Binding<Bool> {
@@ -67,7 +80,7 @@ struct ProfileEditView: View {
         do {
             let updatedProfile = try await HGAuthenticationService().updateProfile(
                 name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+                email: nil,
                 phone: phone.trimmingCharacters(in: .whitespacesAndNewlines),
                 version: profile?.version
             )
