@@ -238,6 +238,25 @@ private final class HGAuthSessionRecovery {
 
 private struct HGRecoveredLoginResponse: Decodable {
     let accessToken: String
+
+    private enum CodingKeys: String, CodingKey {
+        case accessToken
+        case token
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let accessToken = try container.decodeIfPresent(String.self, forKey: .accessToken) {
+            self.accessToken = accessToken
+        } else if let token = try container.decodeIfPresent(String.self, forKey: .token) {
+            self.accessToken = token
+        } else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.accessToken,
+                .init(codingPath: decoder.codingPath, debugDescription: "로그인 토큰이 없습니다.")
+            )
+        }
+    }
 }
 
 struct HGAPIEnvelope<Payload: Decodable>: Decodable {
