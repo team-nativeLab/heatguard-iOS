@@ -9,7 +9,7 @@ struct HGScreenHeader: View {
         HStack {
             headerButton("menu", action: onMenuTap)
             Spacer()
-            Text("폭염가드")
+            Text("현장가드")
                 .font(HGFont.bold(20, relativeTo: .title2))
                 .foregroundStyle(HGColor.primaryText)
             Spacer()

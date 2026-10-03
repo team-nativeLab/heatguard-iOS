@@ -36,7 +36,7 @@ struct WithdrawalCompletedView: View {
                     .foregroundStyle(HGColor.primaryText)
                     .padding(.top, 24)
 
-                Text("그동안 폭염가드를 이용해주셔서 감사해요")
+                Text("그동안 현장가드를 이용해주셔서 감사해요")
                     .font(HGFont.regular(13, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.secondaryText)
                     .multilineTextAlignment(.center)
