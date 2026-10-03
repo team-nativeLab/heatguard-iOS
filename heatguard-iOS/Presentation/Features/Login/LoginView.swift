@@ -26,7 +26,6 @@ struct LoginView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 80, height: 80)
-                        .clipShape(RoundedRectangle(cornerRadius: 20))
                         .padding(.top, min(max(geometry.size.height * 0.1, 32), 72))
 
                     VStack(alignment: .leading, spacing: 0) {
