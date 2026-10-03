@@ -4,6 +4,8 @@ struct RecordHistoryView: View {
     let onRecordSelected: (HGRecordHistoryItem) -> Void
     let onCreateRecord: () -> Void
 
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
     @State private var records: [HGRecordHistoryItem] = []
     @State private var isLoading = true
     @State private var isLoadingMore = false
@@ -65,13 +67,17 @@ struct RecordHistoryView: View {
         .task { await loadRecords() }
         .sheet(isPresented: $showsPeriodPicker) {
             NavigationStack {
-                DatePicker(
-                    "기준일",
-                    selection: $selectedPeriodEnd,
-                    displayedComponents: .date
-                )
-                .datePickerStyle(.graphical)
-                .padding(24)
+                ScrollView {
+                    DatePicker(
+                        "기준일",
+                        selection: $selectedPeriodEnd,
+                        displayedComponents: .date
+                    )
+                    .datePickerStyle(.graphical)
+                    .padding(24)
+                    .frame(minHeight: 360, alignment: .top)
+                }
+                .scrollIndicators(.hidden)
                 .navigationTitle("기록 기간 선택")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -80,7 +86,7 @@ struct RecordHistoryView: View {
                     }
                 }
             }
-            .presentationDetents([.medium])
+            .presentationDetents(verticalSizeClass == .compact ? [.large] : [.medium])
         }
         .alert(error?.title ?? "기록 조회 오류", isPresented: errorAlert) {
             Button("다시 시도") {

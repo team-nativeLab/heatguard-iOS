@@ -62,25 +62,23 @@ struct RestPhotoView: View {
         VStack(spacing: 0) {
             header
 
-            if needsWeatherInput {
-                ScrollView { formContent }
-            } else {
-                formContent
-                Spacer(minLength: 0)
-            }
-
+            ScrollView { formContent }
+                .scrollIndicators(.hidden)
+        }
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
+        .padding(.top, HGLayout.screenTopPadding)
+        .background(HGColor.appBackground)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             HGPrimaryButton(
                 title: isSaving ? "저장 중..." : "기록 저장",
                 isEnabled: !isSaving,
                 height: HGLayout.primaryButtonHeight,
                 action: saveRecord
             )
-            .padding(.horizontal, 4)
-            .padding(.bottom, 4)
+            .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
+            .padding(.vertical, 8)
+            .background(HGColor.appBackground)
         }
-        .padding(.horizontal, HGLayout.screenHorizontalPadding)
-        .padding(.top, HGLayout.screenTopPadding)
-        .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .dismissKeyboardOnBackgroundTap()
         .alert("입력값을 확인해주세요", isPresented: validationAlert) {

@@ -48,43 +48,50 @@ struct HomeView: View {
     }
 
     private var homeContent: some View {
-        VStack(spacing: 0) {
-            header
-            weatherSummary
-                .padding(.top, 15)
-            sectionLabel("데이터 기록")
-                .padding(.top, 20)
-            checkCard
+        ScrollView {
+            VStack(spacing: 0) {
+                header
+                weatherSummary
+                    .padding(.top, 15)
+                sectionLabel("데이터 기록")
+                    .padding(.top, 20)
+                checkCard
+                    .padding(.top, 8)
+                contactCard
+                    .padding(.top, 16)
+                sectionLabel("추가 기록")
+                    .padding(.top, 16)
+                VStack(spacing: 9) {
+                    HomeActionRow(
+                        icon: "HomeCamera",
+                        title: "현장 사진",
+                        subtitle: "사진 촬영 또는 앨범에서 선택"
+                    ) {
+                        showsRecordTypes = true
+                    }
+                    HomeActionRow(
+                        icon: "HomeHistory",
+                        title: "기록 내역",
+                        subtitle: "지금까지의 기록을 확인하세요"
+                    ) {
+                        flowPath.append(HomeFlowRoute.recordHistory)
+                    }
+                }
                 .padding(.top, 8)
-            contactCard
-                .padding(.top, 16)
-            sectionLabel("추가 기록")
-                .padding(.top, 16)
-            VStack(spacing: 9) {
-                HomeActionRow(
-                    icon: "HomeCamera",
-                    title: "현장 사진",
-                    subtitle: "사진 촬영 또는 앨범에서 선택"
-                ) {
-                    showsRecordTypes = true
-                }
-                HomeActionRow(
-                    icon: "HomeHistory",
-                    title: "기록 내역",
-                    subtitle: "지금까지의 기록을 확인하세요"
-                ) {
-                    flowPath.append(HomeFlowRoute.recordHistory)
-                }
             }
-            .padding(.top, 8)
-            Spacer(minLength: 8)
+            .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
+            .padding(.top, HGLayout.screenTopPadding)
+            .padding(.bottom, 16)
+        }
+        .scrollIndicators(.hidden)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             HGPrimaryButton(title: "기록하기") {
                 showsRecordTypes = true
             }
-            .padding(.bottom, 10)
+            .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
+            .padding(.vertical, 10)
+            .background(HGColor.appBackground)
         }
-        .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
-        .padding(.top, HGLayout.screenTopPadding)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showsRecordTypes, onDismiss: openSelectedRecord) {

@@ -35,42 +35,46 @@ struct FieldPhotoCaptureView: View {
         VStack(spacing: 0) {
             header
 
-            VStack(alignment: .leading, spacing: 0) {
-                Text("현장 사진")
-                    .font(HGFont.bold(20, relativeTo: .title2))
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("현장 사진")
+                        .font(HGFont.bold(20, relativeTo: .title2))
 
-                Text("온도계 데이터를 입력하고 현장 사진을\n촬영해 주세요.")
-                    .font(HGFont.regular(14, relativeTo: .subheadline))
-                    .padding(.top, 10)
+                    Text("온도계 데이터를 입력하고 현장 사진을\n촬영해 주세요.")
+                        .font(HGFont.regular(14, relativeTo: .subheadline))
+                        .padding(.top, 10)
 
-                photoPreview
-                    .padding(.top, 35)
+                    photoPreview
+                        .padding(.top, 35)
 
-                Text("온도계 데이터 입력")
-                    .font(HGFont.bold(20, relativeTo: .title2))
-                    .padding(.top, 28)
+                    Text("온도계 데이터 입력")
+                        .font(HGFont.bold(20, relativeTo: .title2))
+                        .padding(.top, 28)
 
-                measurementCard
-                    .padding(.top, 11)
+                    measurementCard
+                        .padding(.top, 11)
 
-                Text("다시하기")
-                    .font(HGFont.bold(20, relativeTo: .title2))
-                    .padding(.top, 17)
+                    Text("다시하기")
+                        .font(HGFont.bold(20, relativeTo: .title2))
+                        .padding(.top, 17)
 
-                photoSelector
-                    .padding(.top, 15)
+                    photoSelector
+                        .padding(.top, 15)
+                }
+                .padding(.top, HGLayout.screenContentTopPadding)
+                .padding(.bottom, 20)
             }
-            .padding(.top, HGLayout.screenContentTopPadding)
-
-            Spacer(minLength: 0)
-
-            HGPrimaryButton(title: isSaving ? "저장 중..." : "저장", isEnabled: !isSaving, action: saveRecord)
-                .padding(.horizontal, 4)
-                .padding(.bottom, 4)
+            .scrollIndicators(.hidden)
         }
         .padding(.horizontal, HGLayout.screenHorizontalPadding)
         .padding(.top, HGLayout.screenTopPadding)
         .background(HGColor.appBackground)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HGPrimaryButton(title: isSaving ? "저장 중..." : "저장", isEnabled: !isSaving, action: saveRecord)
+                .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
+                .padding(.vertical, 8)
+                .background(HGColor.appBackground)
+        }
         .toolbar(.hidden, for: .navigationBar)
     }
 

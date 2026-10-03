@@ -29,22 +29,18 @@ struct NotificationsView: View {
             if isLoading && notifications.isEmpty {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if notifications.isEmpty {
-                VStack(spacing: 0) {
-                    VStack(spacing: 10) {
-                        Image("bell")
-                            .resizable().scaledToFit().frame(width: 36, height: 36)
-                            .frame(width: 72, height: 72)
-                            .background(HGColor.homeActionIconBackground, in: Circle())
-                        Text("아직 받은 알림이 없어요")
-                            .font(HGFont.bold(16, relativeTo: .headline))
-                            .foregroundStyle(HGColor.primaryText)
-                        Text("폭염 경보나 기록 알림이 오면 여기에 모아서 보여드려요")
-                            .font(HGFont.regular(13, relativeTo: .subheadline))
-                            .foregroundStyle(HGColor.secondaryText)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.top, 120)
-                    Spacer()
+                VStack(spacing: 10) {
+                    Image("bell")
+                        .resizable().scaledToFit().frame(width: 36, height: 36)
+                        .frame(width: 72, height: 72)
+                        .background(HGColor.homeActionIconBackground, in: Circle())
+                    Text("아직 받은 알림이 없어요")
+                        .font(HGFont.bold(16, relativeTo: .headline))
+                        .foregroundStyle(HGColor.primaryText)
+                    Text("폭염 경보나 기록 알림이 오면 여기에 모아서 보여드려요")
+                        .font(HGFont.regular(13, relativeTo: .subheadline))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 24)

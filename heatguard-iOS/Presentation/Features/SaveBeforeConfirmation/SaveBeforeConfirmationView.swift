@@ -63,20 +63,22 @@ struct SaveBeforeConfirmationView: View {
                         .padding(.top, 15)
                 }
                 .padding(.top, HGLayout.screenContentTopPadding)
-
-                HGPrimaryButton(
-                    title: isSaving ? "저장 중..." : "저장",
-                    isEnabled: !photos.isEmpty && !isSaving,
-                    action: saveRecord
-                )
-                    .padding(.top, 46)
-                    .padding(.bottom, 14)
             }
             .padding(.horizontal, HGLayout.screenHorizontalPadding)
             .padding(.top, HGLayout.screenTopPadding)
         }
         .scrollIndicators(.hidden)
         .background(HGColor.appBackground)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HGPrimaryButton(
+                title: isSaving ? "저장 중..." : "저장",
+                isEnabled: !photos.isEmpty && !isSaving,
+                action: saveRecord
+            )
+            .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
+            .padding(.vertical, 8)
+            .background(HGColor.appBackground)
+        }
         .toolbar(.hidden, for: .navigationBar)
     }
 

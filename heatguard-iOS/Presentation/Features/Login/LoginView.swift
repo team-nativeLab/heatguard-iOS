@@ -19,75 +19,86 @@ struct LoginView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Image("BrandIcon")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 80, height: 80)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .padding(.top, 87)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 0) {
+                    Image("BrandIcon")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 80, height: 80)
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .padding(.top, min(max(geometry.size.height * 0.1, 32), 72))
 
-            VStack(alignment: .leading, spacing: 0) {
-                Text("안전한 현장을 위해\n로그인해주세요")
-                    .font(HGFont.bold(25, relativeTo: .title))
-                    .foregroundStyle(HGColor.primaryText)
-                    .lineSpacing(5)
-                    .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("안전한 현장을 위해\n로그인해주세요")
+                            .font(HGFont.bold(25, relativeTo: .title))
+                            .foregroundStyle(HGColor.primaryText)
+                            .lineSpacing(5)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                Text("현장작업자 계정으로 로그인할 수 있어요")
-                    .font(HGFont.regular(14))
-                    .foregroundStyle(HGColor.secondaryText)
-                    .padding(.top, 8)
+                        Text("현장작업자 계정으로 로그인할 수 있어요")
+                            .font(HGFont.regular(14))
+                            .foregroundStyle(HGColor.secondaryText)
+                            .padding(.top, 8)
 
-                VStack(spacing: 26) {
-                    HGTextField(
-                        title: "이메일",
-                        placeholder: "example@email.com",
-                        text: $email,
-                        inputType: .email
-                    )
+                        VStack(spacing: 26) {
+                            HGTextField(
+                                title: "이메일",
+                                placeholder: "example@email.com",
+                                text: $email,
+                                inputType: .email
+                            )
 
-                    HGTextField(
-                        title: "비밀번호",
-                        placeholder: "비밀번호를 입력해주세요",
-                        text: $password,
-                        isSecure: true
-                    )
-                }
-                .padding(.top, 31)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 58)
+                            HGTextField(
+                                title: "비밀번호",
+                                placeholder: "비밀번호를 입력해주세요",
+                                text: $password,
+                                isSecure: true
+                            )
+                        }
+                        .padding(.top, 31)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, min(58, max(24, (geometry.size.width - 280) / 2)))
 
-            Spacer(minLength: 24)
+                    Spacer(minLength: 24)
 
-            HGPrimaryButton(
-                title: isSubmitting ? "로그인 중..." : "로그인",
-                isEnabled: !isSubmitting,
-                height: 42
-            ) {
-                login()
-            }
-                .padding(.horizontal, 40)
+                    HGPrimaryButton(
+                        title: isSubmitting ? "로그인 중..." : "로그인",
+                        isEnabled: !isSubmitting,
+                        height: 42
+                    ) {
+                        login()
+                    }
+                    .padding(.horizontal, min(40, max(20, (geometry.size.width - 280) / 2)))
 
-            if let requestError {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(requestError.title)
-                        .font(HGFont.semiBold(12, relativeTo: .caption))
-                    Text(requestError.message)
+                    if let requestError {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(requestError.title)
+                                .font(HGFont.semiBold(12, relativeTo: .caption))
+                            Text(requestError.message)
+                                .font(HGFont.regular(12, relativeTo: .caption))
+                            Text("오류 코드: \(requestError.diagnosticCode)")
+                                .font(HGFont.regular(10, relativeTo: .caption2))
+                        }
+                        .foregroundStyle(HGColor.error)
+                        .padding(.top, 8)
+                        .padding(.horizontal, 24)
+                    }
+
+                    Text("계정 생성과 재설정은 현장관리자에게 문의해주세요")
                         .font(HGFont.regular(12, relativeTo: .caption))
-                    Text("오류 코드: \(requestError.diagnosticCode)")
-                        .font(HGFont.regular(10, relativeTo: .caption2))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 14)
+                        .padding(.bottom, 10)
                 }
-                .foregroundStyle(HGColor.error)
-                .padding(.top, 8)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: geometry.size.height, alignment: .top)
             }
-
-            Text("계정 생성과 재설정은 현장관리자에게 문의해주세요")
-                .font(HGFont.regular(12, relativeTo: .caption))
-                .foregroundStyle(HGColor.secondaryText)
-                .padding(.top, 14)
-                .padding(.bottom, 10)
+            .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
         }
         .background(HGColor.surface)
         .toolbar(.hidden, for: .navigationBar)
