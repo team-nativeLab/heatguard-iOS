@@ -50,7 +50,7 @@ struct RecordHistoryView: View {
                         }
                     }
                     .padding(.horizontal, 24)
-                    .padding(.bottom, 96)
+                    .padding(.bottom, 16)
                 }
             }
         }
