@@ -87,9 +87,9 @@ struct WithdrawalGuideView: View {
                 .font(HGFont.bold(14, relativeTo: .subheadline))
 
                 VStack(alignment: .leading, spacing: 10) {
-                    noticeText("계정 정보(이름, 이메일, 회사명)는 즉시 삭제되며 복구할 수 없어요")
-                    noticeText("온도계 기록·현장 사진 등 작업 기록은 관계 법령에 따라 회사에 일정 기간 보관될 수 있어요")
-                    noticeText("탈퇴 후 같은 이메일로 다시 가입해도 이전 기록은 연결되지 않아요")
+                    noticeText("탈퇴하면 계정이 비활성화되어 로그인할 수 없어요")
+                    noticeText("계정 정보와 온도계 기록·현장 사진 등 작업 기록은 탈퇴 시 즉시 삭제되지 않아요")
+                    noticeText("계정 및 기록 관련 문의는 현장관리자에게 연락해주세요")
                 }
             }
         }

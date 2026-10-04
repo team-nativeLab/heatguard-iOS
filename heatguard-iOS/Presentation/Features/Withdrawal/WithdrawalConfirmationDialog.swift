@@ -17,7 +17,7 @@ struct WithdrawalConfirmationDialog: View {
                 .foregroundStyle(HGColor.primaryText)
                 .padding(.top, 22)
 
-            Text("탈퇴하면 계정 정보가 즉시 삭제되며\n다시 되돌릴 수 없어요.")
+            Text("탈퇴하면 계정이 비활성화되어\n로그인할 수 없어요.")
                 .font(HGFont.regular(13, relativeTo: .subheadline))
                 .foregroundStyle(HGColor.secondaryText)
                 .multilineTextAlignment(.center)
