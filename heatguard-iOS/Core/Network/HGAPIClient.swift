@@ -297,8 +297,14 @@ enum HGAPIError: LocalizedError {
         switch self {
         case .authenticationRequired:
             return "로그인이 필요합니다"
-        case let .server(_, statusCode, _) where statusCode == 401 || statusCode == 403:
+        case .server(_, _, "INVALID_CREDENTIALS"):
+            return "로그인 정보를 확인해주세요"
+        case .server(_, _, "ACCOUNT_DISABLED"):
+            return "비활성화된 계정입니다"
+        case let .server(_, statusCode, _) where statusCode == 401:
             return "인증이 만료됐습니다"
+        case let .server(_, statusCode, _) where statusCode == 403:
+            return "접근 권한이 없습니다"
         case .configuration:
             return "서버 설정 오류"
         case .keychain:

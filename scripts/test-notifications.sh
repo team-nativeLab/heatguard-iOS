@@ -7,6 +7,7 @@ for source in Network/HGAPIClient.swift Network/HGAPIPath.swift Auth/HGAuthentic
     ln -s "$project_root/heatguard-iOS/Core/$source" "$test_directory/Sources/HeatGuardNotificationCore/$(basename "$source")"
 done
 cp "$project_root/Tests/Notifications/NotificationRoutingTests.swift" "$test_directory/Tests/HeatGuardNotificationCoreTests/"
+cp "$project_root/Tests/Network/AuthenticationErrorTests.swift" "$test_directory/Tests/HeatGuardNotificationCoreTests/"
 cat > "$test_directory/Package.swift" <<'PACKAGE'
 // swift-tools-version: 6.0
 import PackageDescription

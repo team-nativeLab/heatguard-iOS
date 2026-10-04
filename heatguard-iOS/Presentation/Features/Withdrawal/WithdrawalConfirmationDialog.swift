@@ -17,7 +17,7 @@ struct WithdrawalConfirmationDialog: View {
                 .foregroundStyle(HGColor.primaryText)
                 .padding(.top, 22)
 
-            Text("탈퇴하면 계정 정보가 즉시 삭제되며\n다시 되돌릴 수 없어요.")
+            Text("소속 팀과 모든 팀원 계정이 비활성화되고\n모든 팀원의 로그인 세션이 종료돼요.\n이 팀 전체에 대해 탈퇴를 진행하시겠어요?")
                 .font(HGFont.regular(13, relativeTo: .subheadline))
                 .foregroundStyle(HGColor.secondaryText)
                 .multilineTextAlignment(.center)
