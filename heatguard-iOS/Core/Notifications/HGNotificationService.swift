@@ -48,16 +48,32 @@ struct HGNotificationPageInfo: Decodable {
     let hasMore: Bool
 }
 
-struct HGNotification: Decodable, Identifiable {
+struct HGNotification: Decodable, Identifiable, Hashable {
     let notificationID: String
     let title: String
-    let resourceID: String
+    let resourceID: String?
     let createdAt: String
     let type: HGNotificationType
     let category: HGNotificationCategory
     let read: Bool
 
     var id: String { notificationID }
+
+    var destination: HGNotificationDestination {
+        let targetID = resourceID?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let targetID, !targetID.isEmpty else { return .detail }
+        switch type {
+        case .recordCreated: return .record(targetID)
+        case .inquiryAnswered: return .inquiry(targetID)
+        case .emergencyAcknowledged, .unknown: return .detail
+        }
+    }
+
+    func relatedEmergencyCall(_ currentCall: HGEmergencyCall?) -> HGEmergencyCall? {
+        guard type == .emergencyAcknowledged,
+              let currentCall, currentCall.id == resourceID else { return nil }
+        return currentCall
+    }
 
     enum CodingKeys: String, CodingKey {
         case notificationID = "notificationId"
@@ -66,7 +82,13 @@ struct HGNotification: Decodable, Identifiable {
     }
 }
 
-enum HGNotificationType: Equatable, Decodable {
+enum HGNotificationDestination: Equatable {
+    case record(String)
+    case inquiry(String)
+    case detail
+}
+
+enum HGNotificationType: Hashable, Decodable {
     case recordCreated
     case emergencyAcknowledged
     case inquiryAnswered

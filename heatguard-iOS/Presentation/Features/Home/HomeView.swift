@@ -513,15 +513,17 @@ struct HomeView: View {
             InquiryView()
         case let .inquiryDetail(inquiryID):
             InquiryDetailView(inquiryID: inquiryID)
+        case let .notificationDetail(notification):
+            NotificationDetailView(notification: notification)
         case .notifications:
             NotificationsView { notification in
-                switch notification.type {
-                case .recordCreated:
-                    flowPath.append(HomeFlowRoute.recordDetail(notification.resourceID))
-                case .inquiryAnswered:
-                    flowPath.append(HomeFlowRoute.inquiryDetail(notification.resourceID))
-                case .emergencyAcknowledged, .unknown:
-                    break
+                switch notification.destination {
+                case let .record(id):
+                    flowPath.append(HomeFlowRoute.recordDetail(id))
+                case let .inquiry(id):
+                    flowPath.append(HomeFlowRoute.inquiryDetail(id))
+                case .detail:
+                    flowPath.append(HomeFlowRoute.notificationDetail(notification))
                 }
             } onUnreadCountChanged: { unreadNotificationCount = $0 }
         case .withdrawalGuide:
@@ -738,6 +740,7 @@ private enum HomeFlowRoute: Hashable {
     case profileEdit
     case inquiry
     case inquiryDetail(String)
+    case notificationDetail(HGNotification)
     case notifications
     case withdrawalGuide
     case withdrawalCompleted

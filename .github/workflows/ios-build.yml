@@ -23,3 +23,6 @@ jobs:
           -sdk iphonesimulator
           -destination 'generic/platform=iOS Simulator'
           CODE_SIGNING_ALLOWED=NO
+
+      - name: Test notification routing
+        run: sh scripts/test-notifications.sh

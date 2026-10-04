@@ -15,7 +15,6 @@ struct NotificationsView: View {
     @State private var listRequestID = UUID()
     @State private var failedToLoadMore = false
     @State private var error: HGErrorPresentation?
-    @State private var selectedNotice: String?
 
     init(onSelect: @escaping (HGNotification) -> Void = { _ in }, onUnreadCountChanged: @escaping (Int) -> Void = { _ in }) {
         self.onSelect = onSelect
@@ -96,9 +95,6 @@ struct NotificationsView: View {
             }
             Button("확인", role: .cancel) {}
         } message: { Text(error?.alertMessage ?? "") }
-        .alert("알림", isPresented: noticeAlert) {
-            Button("확인", role: .cancel) {}
-        } message: { Text(selectedNotice ?? "") }
     }
 
     private var categoryPicker: some View {
@@ -204,12 +200,7 @@ struct NotificationsView: View {
                     )
                 }
             }
-            switch notification.type {
-            case .recordCreated, .inquiryAnswered:
-                onSelect(notification)
-            case .emergencyAcknowledged, .unknown:
-                selectedNotice = notification.title
-            }
+            onSelect(notification)
         } catch {
             failedToLoadMore = false
             self.error = HGErrorPresentation(error: error)
@@ -220,9 +211,6 @@ struct NotificationsView: View {
         Binding(get: { error != nil }, set: { if !$0 { error = nil } })
     }
 
-    private var noticeAlert: Binding<Bool> {
-        Binding(get: { selectedNotice != nil }, set: { if !$0 { selectedNotice = nil } })
-    }
 }
 
 private struct NotificationDayGroup {
