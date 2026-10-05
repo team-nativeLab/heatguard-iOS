@@ -16,13 +16,18 @@ struct InquiryView: View {
     @State private var isComplete = false
 
     var body: some View {
-        ScrollView {
+        List {
             VStack(alignment: .leading, spacing: 20) {
                 inquiryForm
                 inquiryList
             }
             .padding(24)
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .listRowBackground(HGColor.appBackground)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .background(HGColor.appBackground)
         .navigationTitle("문의하기")
         .navigationBarTitleDisplayMode(.inline)
@@ -282,7 +287,7 @@ struct InquiryDetailView: View {
             if isLoading {
                 ProgressView()
             } else if let inquiry {
-                ScrollView {
+                List {
                     VStack(alignment: .leading, spacing: 20) {
                         Text(inquiry.status.title)
                             .font(HGFont.medium(11, relativeTo: .caption))
@@ -299,7 +304,12 @@ struct InquiryDetailView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(24)
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(HGColor.appBackground)
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             } else {
                 ContentUnavailableView("문의 정보를 불러올 수 없습니다", systemImage: "exclamationmark.bubble")
             }

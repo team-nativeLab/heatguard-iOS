@@ -4,8 +4,6 @@ struct RecordHistoryView: View {
     let onRecordSelected: (HGRecordHistoryItem) -> Void
     let onCreateRecord: () -> Void
 
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
-
     @State private var records: [HGRecordHistoryItem] = []
     @State private var isLoading = true
     @State private var isLoadingMore = false
@@ -27,7 +25,7 @@ struct RecordHistoryView: View {
             if isLoading {
                 Spacer(); ProgressView(); Spacer()
             } else {
-                ScrollView {
+                List {
                     VStack(spacing: 0) {
                         periodSelector
                         filterSelector.padding(.top, 14)
@@ -53,7 +51,12 @@ struct RecordHistoryView: View {
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 16)
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(HGColor.appBackground)
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
         }
         .background(HGColor.appBackground)
@@ -67,17 +70,13 @@ struct RecordHistoryView: View {
         .task { await loadRecords() }
         .sheet(isPresented: $showsPeriodPicker) {
             NavigationStack {
-                ScrollView {
-                    DatePicker(
-                        "기준일",
-                        selection: $selectedPeriodEnd,
-                        displayedComponents: .date
-                    )
-                    .datePickerStyle(.graphical)
-                    .padding(24)
-                    .frame(minHeight: 360, alignment: .top)
-                }
-                .scrollIndicators(.hidden)
+                DatePicker(
+                    "기준일",
+                    selection: $selectedPeriodEnd,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
+                .padding(24)
                 .navigationTitle("기록 기간 선택")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -86,7 +85,7 @@ struct RecordHistoryView: View {
                     }
                 }
             }
-            .presentationDetents(verticalSizeClass == .compact ? [.large] : [.medium])
+            .presentationDetents([.large])
         }
         .alert(error?.title ?? "기록 조회 오류", isPresented: errorAlert) {
             Button("다시 시도") {

@@ -13,38 +13,37 @@ struct WithdrawalGuideView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("탈퇴하기 전에 꼭 확인해주세요")
-                    .font(HGFont.bold(20, relativeTo: .title2))
-                    .foregroundStyle(HGColor.primaryText)
+        VStack(alignment: .leading, spacing: 0) {
+            Text("탈퇴하기 전에 꼭 확인해주세요")
+                .font(HGFont.bold(20, relativeTo: .title2))
+                .foregroundStyle(HGColor.primaryText)
 
-                Text("탈퇴 후에는 아래 내용이 적용돼요")
-                    .font(HGFont.regular(12, relativeTo: .caption))
-                    .foregroundStyle(HGColor.secondaryText)
-                    .padding(.top, 6)
+            Text("탈퇴 후에는 아래 내용이 적용돼요")
+                .font(HGFont.regular(12, relativeTo: .caption))
+                .foregroundStyle(HGColor.secondaryText)
+                .padding(.top, 4)
 
-                noticeCard
-                    .padding(.top, 16)
+            noticeCard
+                .padding(.top, 10)
 
-                reasonCard
-                    .padding(.top, 16)
+            reasonCard
+                .padding(.top, 10)
 
-                HGTextField(
-                    title: "비밀번호 확인",
-                    placeholder: "현재 비밀번호를 입력해주세요",
-                    text: $password,
-                    isSecure: true
-                )
-                .padding(.top, 18)
+            HGTextField(
+                title: "비밀번호 확인",
+                placeholder: "현재 비밀번호를 입력해주세요",
+                text: $password,
+                isSecure: true
+            )
+            .padding(.top, 10)
 
-                agreementRow
-                    .padding(.top, 20)
-            }
-            .padding(.horizontal, HGLayout.screenHorizontalPadding)
-            .padding(.top, 28)
-            .padding(.bottom, 24)
+            agreementRow
+                .padding(.top, 10)
         }
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(HGColor.appBackground)
         .navigationTitle("회원탈퇴")
         .navigationBarTitleDisplayMode(.inline)
@@ -76,8 +75,8 @@ struct WithdrawalGuideView: View {
     }
 
     private var noticeCard: some View {
-        HGCard(cornerRadius: 18, padding: 20) {
-            VStack(alignment: .leading, spacing: 14) {
+        HGCard(cornerRadius: 18, padding: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 7) {
                     Image(systemName: "exclamationmark.circle.fill")
                         .foregroundStyle(HGColor.error)
@@ -86,7 +85,7 @@ struct WithdrawalGuideView: View {
                 }
                 .font(HGFont.bold(14, relativeTo: .subheadline))
 
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 6) {
                     noticeText("탈퇴하면 소속 팀과 모든 팀원 계정이 비활성화되어 로그인할 수 없어요")
                     noticeText("모든 팀원의 로그인 세션이 종료돼요. 진행 전에 팀원들과 확인해주세요")
                     noticeText("계정 정보와 온도계 기록·현장 사진 등 작업 기록은 탈퇴 시 즉시 삭제되지 않아요")
@@ -97,8 +96,8 @@ struct WithdrawalGuideView: View {
     }
 
     private var reasonCard: some View {
-        HGCard(cornerRadius: 18, padding: 20) {
-            VStack(alignment: .leading, spacing: 14) {
+        HGCard(cornerRadius: 18, padding: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text("탈퇴 사유")
                         .font(HGFont.bold(14, relativeTo: .subheadline))
@@ -108,7 +107,7 @@ struct WithdrawalGuideView: View {
                         .foregroundStyle(HGColor.secondaryText)
                 }
 
-                VStack(spacing: 14) {
+                VStack(spacing: 6) {
                     ForEach(WithdrawalReason.allCases) { reason in
                         Button {
                             selectedReason = reason

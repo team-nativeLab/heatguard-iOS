@@ -32,48 +32,53 @@ struct FieldPhotoCaptureView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
+        GeometryReader { geometry in
+            let compact = geometry.size.height < 760
+            let previewHeight = min(290, max(145, geometry.size.height * 0.22))
+            VStack(spacing: 0) {
+                header
 
-            ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("현장 사진")
                         .font(HGFont.bold(20, relativeTo: .title2))
+                        .foregroundStyle(HGColor.primaryText)
 
                     Text("온도계 데이터를 입력하고 현장 사진을\n촬영해 주세요.")
                         .font(HGFont.regular(14, relativeTo: .subheadline))
-                        .padding(.top, 10)
+                        .foregroundStyle(HGColor.primaryText)
+                        .padding(.top, compact ? 6 : 10)
 
-                    photoPreview
-                        .padding(.top, 35)
+                    photoPreview(height: previewHeight)
+                        .padding(.top, compact ? 14 : 35)
 
                     Text("온도계 데이터 입력")
                         .font(HGFont.bold(20, relativeTo: .title2))
-                        .padding(.top, 28)
+                        .foregroundStyle(HGColor.primaryText)
+                        .padding(.top, compact ? 14 : 28)
 
                     measurementCard
-                        .padding(.top, 11)
+                        .padding(.top, compact ? 8 : 11)
 
                     Text("다시하기")
                         .font(HGFont.bold(20, relativeTo: .title2))
-                        .padding(.top, 17)
+                        .foregroundStyle(HGColor.primaryText)
+                        .padding(.top, compact ? 10 : 17)
 
                     photoSelector
-                        .padding(.top, 15)
+                        .padding(.top, compact ? 8 : 15)
                 }
-                .padding(.top, HGLayout.screenContentTopPadding)
-                .padding(.bottom, 20)
+                .padding(.top, compact ? 12 : HGLayout.screenContentTopPadding)
+                Spacer(minLength: 0)
             }
-            .scrollIndicators(.hidden)
-        }
-        .padding(.horizontal, HGLayout.screenHorizontalPadding)
-        .padding(.top, HGLayout.screenTopPadding)
-        .background(HGColor.appBackground)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            HGPrimaryButton(title: isSaving ? "저장 중..." : "저장", isEnabled: !isSaving, action: saveRecord)
-                .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
-                .padding(.vertical, 8)
-                .background(HGColor.appBackground)
+            .padding(.horizontal, HGLayout.screenHorizontalPadding)
+            .padding(.top, compact ? 8 : HGLayout.screenTopPadding)
+            .background(HGColor.appBackground)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                HGPrimaryButton(title: isSaving ? "저장 중..." : "저장", isEnabled: !isSaving, action: saveRecord)
+                    .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
+                    .padding(.vertical, 8)
+                    .background(HGColor.appBackground)
+            }
         }
         .toolbar(.hidden, for: .navigationBar)
     }
@@ -82,7 +87,7 @@ struct FieldPhotoCaptureView: View {
         HGScreenHeader(onMenuTap: onMenuTap, notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
     }
 
-    private var photoPreview: some View {
+    private func photoPreview(height: CGFloat) -> some View {
         Group {
             if photos.isEmpty {
                 RoundedRectangle(cornerRadius: 25)
@@ -94,7 +99,7 @@ struct FieldPhotoCaptureView: View {
                         Image(uiImage: photo)
                             .resizable()
                             .scaledToFill()
-                            .frame(maxWidth: .infinity, minHeight: 290, maxHeight: 290)
+                            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
                             .clipped()
                             .accessibilityLabel("현장 사진 \(index + 1) / \(photos.count)")
                     }
@@ -102,7 +107,7 @@ struct FieldPhotoCaptureView: View {
                 .tabViewStyle(.page(indexDisplayMode: photos.count > 1 ? .automatic : .never))
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 290, maxHeight: 290)
+        .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
         .clipShape(RoundedRectangle(cornerRadius: 25))
     }
 

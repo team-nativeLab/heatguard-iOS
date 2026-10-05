@@ -44,7 +44,7 @@ struct NotificationsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 24)
             } else {
-                ScrollView {
+                List {
                     LazyVStack(alignment: .leading, spacing: 14) {
                         ForEach(groupedNotifications, id: \.date) { group in
                             Text(group.dateLabel)
@@ -77,7 +77,12 @@ struct NotificationsView: View {
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 14)
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(HGColor.appBackground)
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
                 .refreshable { await loadFirstPage() }
             }
         }
@@ -98,18 +103,19 @@ struct NotificationsView: View {
     }
 
     private var categoryPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(HGNotificationCategory.allCases) { item in
-                    Button { category = item } label: {
-                        Text(item.title)
-                            .font(HGFont.medium(12, relativeTo: .caption))
-                            .foregroundStyle(category == item ? .white : HGColor.secondaryText)
-                            .padding(.horizontal, 15).frame(height: 32)
-                            .background(category == item ? HGColor.primary : HGColor.surface, in: Capsule())
-                    }
-                    .buttonStyle(.plain)
+        HStack(spacing: 6) {
+            ForEach(HGNotificationCategory.allCases) { item in
+                Button { category = item } label: {
+                    Text(item.title)
+                        .font(HGFont.medium(11, relativeTo: .caption))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .foregroundStyle(category == item ? .white : HGColor.secondaryText)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 32)
+                        .background(category == item ? HGColor.primary : HGColor.surface, in: Capsule())
                 }
+                .buttonStyle(.plain)
             }
         }
         .padding(.vertical, 6)

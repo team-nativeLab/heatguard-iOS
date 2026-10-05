@@ -4,16 +4,19 @@ import SwiftUI
 /// 카메라 촬영과 앨범 선택을 공통으로 제공하는 사진 입력 영역입니다.
 struct HGPhotoCaptureSection: View {
     private let maximumPhotoCount = 2
+    private let compact: Bool
 
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var showsSourceDialog = false
     @State private var showsPhotoPicker = false
     @State private var showsCameraPicker = false
     @State private var showsCameraUnavailable = false
+    @State private var photoImportMessage: String?
     @Binding private var images: [UIImage]
 
-    init(images: Binding<[UIImage]> = .constant([])) {
+    init(images: Binding<[UIImage]> = .constant([]), compact: Bool = false) {
         _images = images
+        self.compact = compact
     }
 
     var body: some View {
@@ -65,16 +68,27 @@ struct HGPhotoCaptureSection: View {
                 .font(HGFont.bold(15, relativeTo: .subheadline))
                 .foregroundStyle(textColor)
                 .multilineTextAlignment(.center)
-                .padding(.top, 17)
+                .padding(.top, compact ? 10 : 17)
 
             Text(selectionDescription)
                 .font(HGFont.bold(15, relativeTo: .subheadline))
                 .foregroundStyle(countColor)
-                .padding(.top, 51)
+                .padding(.top, compact ? 18 : 51)
+
+            if let photoImportMessage {
+                Text(photoImportMessage)
+                    .font(HGFont.regular(12, relativeTo: .caption))
+                    .foregroundStyle(HGColor.error)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 6)
+            }
         }
-        .frame(maxWidth: .infinity, minHeight: 313, maxHeight: 313)
+        .frame(maxWidth: .infinity, minHeight: contentHeight, maxHeight: contentHeight)
         .background(backgroundColor, in: RoundedRectangle(cornerRadius: 25))
     }
+
+    private var contentHeight: CGFloat { compact ? 184 : 313 }
 
     private var selectedPhotoCount: Int { images.count }
     private var availablePhotoCount: Int { max(1, maximumPhotoCount - images.count) }
@@ -92,19 +106,32 @@ struct HGPhotoCaptureSection: View {
 
     private func importPhotos(_ items: [PhotosPickerItem]) async {
         let availableSlots = maximumPhotoCount - images.count
-        guard availableSlots > 0 else { return }
+        guard availableSlots > 0, !items.isEmpty else { return }
 
         var importedImages: [UIImage] = []
+        var failedCount = 0
         for item in items.prefix(availableSlots) {
-            guard
-                let data = try? await item.loadTransferable(type: Data.self),
-                let image = UIImage(data: data)
-            else {
-                continue
+            do {
+                guard
+                    let data = try await item.loadTransferable(type: Data.self),
+                    let image = UIImage(data: data)
+                else {
+                    failedCount += 1
+                    continue
+                }
+                importedImages.append(image)
+            } catch {
+                failedCount += 1
             }
-            importedImages.append(image)
         }
         images.append(contentsOf: importedImages)
+        if failedCount > 0 {
+            photoImportMessage = importedImages.isEmpty
+                ? "선택한 사진을 불러오지 못했습니다. 다시 선택해주세요."
+                : "일부 사진을 불러오지 못했습니다. 다시 선택해주세요."
+        } else {
+            photoImportMessage = nil
+        }
         selectedPhotos = []
     }
 }
