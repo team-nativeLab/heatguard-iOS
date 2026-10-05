@@ -85,8 +85,11 @@ struct HGRecordUploadService {
             request.setValue(photo.contentType, forHTTPHeaderField: "Content-Type")
 
             let (_, response) = try await session.upload(for: request, from: photo.data)
-            guard let httpResponse = response as? HTTPURLResponse, (200 ... 299).contains(httpResponse.statusCode) else {
-                throw HGRecordUploadError.uploadFailed
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw HGRecordUploadError.uploadFailed(statusCode: nil)
+            }
+            guard (200 ... 299).contains(httpResponse.statusCode) else {
+                throw HGRecordUploadError.uploadFailed(statusCode: httpResponse.statusCode)
             }
         }
     }
@@ -225,7 +228,7 @@ enum HGRecordUploadError: LocalizedError {
     case photoCount
     case photoEncoding
     case uploadPreparation
-    case uploadFailed
+    case uploadFailed(statusCode: Int?)
 
     var errorDescription: String? {
         switch self {
@@ -243,7 +246,8 @@ enum HGRecordUploadError: LocalizedError {
         case .photoCount: "PHOTO_COUNT"
         case .photoEncoding: "PHOTO_ENCODING"
         case .uploadPreparation: "UPLOAD_PREPARATION"
-        case .uploadFailed: "UPLOAD_FAILED"
+        case let .uploadFailed(statusCode):
+            statusCode.map { "S3_UPLOAD_HTTP_\($0)" } ?? "S3_UPLOAD_FAILED"
         }
     }
 }
