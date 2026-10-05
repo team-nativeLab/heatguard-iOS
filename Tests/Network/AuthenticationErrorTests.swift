@@ -1,6 +1,7 @@
 import XCTest
-@testable import HeatGuardNotificationCore
+@testable import heatguard_iOS
 
+@MainActor
 final class AuthenticationErrorTests: XCTestCase {
     func testInvalidCredentialsAreNotReportedAsExpiredSession() {
         let error = HGAPIError.server(message: "현재 비밀번호가 올바르지 않습니다.", statusCode: 401, serverCode: "INVALID_CREDENTIALS")
