@@ -48,42 +48,41 @@ struct HomeView: View {
     }
 
     private var homeContent: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                header
-                weatherSummary
-                    .padding(.top, 15)
-                sectionLabel("데이터 기록")
-                    .padding(.top, 20)
-                checkCard
-                    .padding(.top, 8)
-                contactCard
-                    .padding(.top, 16)
-                sectionLabel("추가 기록")
-                    .padding(.top, 16)
-                VStack(spacing: 9) {
-                    HomeActionRow(
-                        icon: "HomeCamera",
-                        title: "현장 사진",
-                        subtitle: "사진 촬영 또는 앨범에서 선택"
-                    ) {
-                        showsRecordTypes = true
-                    }
-                    HomeActionRow(
-                        icon: "HomeHistory",
-                        title: "기록 내역",
-                        subtitle: "지금까지의 기록을 확인하세요"
-                    ) {
-                        flowPath.append(HomeFlowRoute.recordHistory)
-                    }
-                }
+        VStack(spacing: 0) {
+            header
+            weatherSummary
+                .padding(.top, 15)
+            sectionLabel("데이터 기록")
+                .padding(.top, 20)
+            checkCard
                 .padding(.top, 8)
+            contactCard
+                .padding(.top, 16)
+            sectionLabel("추가 기록")
+                .padding(.top, 16)
+            VStack(spacing: 9) {
+                HomeActionRow(
+                    icon: "HomeCamera",
+                    title: "현장 사진",
+                    subtitle: "사진 촬영 또는 앨범에서 선택"
+                ) {
+                    showsRecordTypes = true
+                }
+                HomeActionRow(
+                    icon: "HomeHistory",
+                    title: "기록 내역",
+                    subtitle: "지금까지의 기록을 확인하세요"
+                ) {
+                    flowPath.append(HomeFlowRoute.recordHistory)
+                }
             }
-            .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
-            .padding(.top, HGLayout.screenTopPadding)
-            .padding(.bottom, 16)
+            .padding(.top, 8)
+            Spacer(minLength: 0)
         }
-        .scrollIndicators(.hidden)
+        .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
+        .padding(.top, HGLayout.screenTopPadding)
+        .background(HGColor.appBackground)
+        .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HGPrimaryButton(title: "기록하기") {
                 showsRecordTypes = true
@@ -92,8 +91,6 @@ struct HomeView: View {
             .padding(.vertical, 10)
             .background(HGColor.appBackground)
         }
-        .background(HGColor.appBackground)
-        .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showsRecordTypes, onDismiss: openSelectedRecord) {
             RecordTypeSelectionView { pendingRecordType = $0 }
         }
@@ -241,12 +238,21 @@ struct HomeView: View {
                     }
                 }
                 Spacer()
-                Image(systemName: dashboard.weather.skySymbol)
-                    .font(.system(size: 62, weight: .regular))
-                    .symbolRenderingMode(.multicolor)
-                    .foregroundStyle(HGColor.primary)
-                    .frame(width: 90, height: 90)
-                    .offset(x: 4, y: 2)
+                Group {
+                    if let assetName = dashboard.weather.skyIllustrationAssetName {
+                        Image(assetName)
+                            .resizable()
+                            .scaledToFit()
+                    } else {
+                        Image(systemName: dashboard.weather.skySymbol)
+                            .resizable()
+                            .scaledToFit()
+                            .symbolRenderingMode(.multicolor)
+                            .foregroundStyle(HGColor.primary)
+                    }
+                }
+                .frame(width: 136, height: 136)
+                .offset(x: 4, y: 2)
             }
             HStack(spacing: 0) {
                 HomeMetric(icon: "HomeHumidity", title: "습도", value: dashboard.weather.humidityText)

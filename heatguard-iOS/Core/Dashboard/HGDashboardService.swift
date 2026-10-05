@@ -164,6 +164,14 @@ struct HomeWeather: Equatable {
         }
     }
 
+    var skyIllustrationAssetName: String? {
+        switch skyStatus {
+        case "CLEAR": "WeatherSunny"
+        case "PARTLY_CLOUDY", .none: "WeatherPartlyCloudy"
+        default: nil
+        }
+    }
+
     var temperatureDeltaText: String? {
         guard let temperatureDelta else { return nil }
         let sign = temperatureDelta > 0 ? "+" : ""
