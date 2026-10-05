@@ -10,7 +10,7 @@ struct ComponentShowcaseView: View {
     @State private var password = ""
 
     var body: some View {
-        ScrollView {
+        List {
             VStack(alignment: .leading, spacing: 24) {
                 sectionTitle("버튼")
                 HGPrimaryButton(title: "로그인") {}
@@ -55,7 +55,12 @@ struct ComponentShowcaseView: View {
                 }
             }
             .padding(20)
+            .listRowInsets(EdgeInsets())
+            .listRowSeparator(.hidden)
+            .listRowBackground(HGColor.appBackground)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
         .background(HGColor.appBackground)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)

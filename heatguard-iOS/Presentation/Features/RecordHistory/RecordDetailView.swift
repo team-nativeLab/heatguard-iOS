@@ -11,10 +11,14 @@ struct RecordDetailView: View {
             if isLoading {
                 ProgressView()
             } else if let record {
-                ScrollView {
+                GeometryReader { geometry in
+                    let compact = geometry.size.height < 820
                     VStack(spacing: 12) {
-                        if record.type == .thermometer { thermometerContent(record) }
-                        else { photoContent(record) }
+                        if record.type == .thermometer {
+                            thermometerContent(record, photoHeight: compact ? 120 : 180)
+                        } else {
+                            photoContent(record, photoHeight: compact ? 150 : 220)
+                        }
                         Text("제출한 기록은 수정할 수 없어요. 수정이 필요하면 현장 관리자에게 문의해주세요.")
                             .font(HGFont.regular(12, relativeTo: .caption))
                             .foregroundStyle(HGColor.secondaryText)
@@ -22,7 +26,8 @@ struct RecordDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.top, 4)
                     }
-                    .padding(24)
+                    .padding(compact ? 16 : 24)
+                    .frame(maxWidth: .infinity, alignment: .top)
                 }
             }
         }
@@ -36,7 +41,7 @@ struct RecordDetailView: View {
         } message: { Text(error?.alertMessage ?? "") }
     }
 
-    private func thermometerContent(_ record: HGRecordDetail) -> some View {
+    private func thermometerContent(_ record: HGRecordDetail, photoHeight: CGFloat) -> some View {
         VStack(spacing: 12) {
             HGCard { VStack(alignment: .leading, spacing: 7) {
                 RecordTypeBadge(type: record.type)
@@ -60,14 +65,14 @@ struct RecordDetailView: View {
                     DetailMetric(title: "체감온도", value: record.apparentTemperatureText)
                 }
             }}
-            photoCard(record.photoURLs, title: "현장 사진", height: 200)
+            photoCard(record.photoURLs, title: "현장 사진", height: photoHeight)
             memoCard(record)
         }
     }
 
-    private func photoContent(_ record: HGRecordDetail) -> some View {
+    private func photoContent(_ record: HGRecordDetail, photoHeight: CGFloat) -> some View {
         VStack(spacing: 12) {
-            photoCard(record.photoURLs, title: nil, height: 354)
+            photoCard(record.photoURLs, title: nil, height: photoHeight)
             measurementCard(record)
             HGCard(padding: 20) { VStack(spacing: 0) {
                 DetailInfoRow(title: "유형", value: record.type.historyTitle, type: record.type)

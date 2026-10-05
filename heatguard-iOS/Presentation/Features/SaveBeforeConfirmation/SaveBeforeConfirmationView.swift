@@ -31,43 +31,50 @@ struct SaveBeforeConfirmationView: View {
     }
 
     var body: some View {
-        ScrollView {
+        GeometryReader { proxy in
+            let compact = proxy.size.height < 900
+
             VStack(spacing: 0) {
                 header
 
                 VStack(alignment: .leading, spacing: 0) {
                     Text("현장 사진")
                         .font(HGFont.bold(20, relativeTo: .title2))
+                        .foregroundStyle(HGColor.primaryText)
 
                     Text(photoInstruction)
                         .font(HGFont.regular(14, relativeTo: .subheadline))
-                        .padding(.top, 10)
+                        .foregroundStyle(HGColor.primaryText)
+                        .padding(.top, compact ? 6 : 10)
 
-                    missingPhotoNotice
-                        .padding(.top, 35)
+                    missingPhotoNotice(compact: compact)
+                        .padding(.top, compact ? 14 : 35)
 
                     if draft.type == .thermometer {
                         DisabledManualInputCard(
                             temperature: draft.temperature.map { String(format: "%.1f", $0) } ?? "",
                             humidity: draft.humidity.map { String(format: "%.0f", $0) } ?? ""
                         )
-                            .padding(.top, 20)
+                            .padding(.top, compact ? 10 : 20)
                     }
 
-                    Button("다시하기", action: onRetry)
-                        .font(HGFont.bold(20, relativeTo: .title2))
-                        .buttonStyle(.plain)
-                        .padding(.top, 17)
+                    Button(action: onRetry) {
+                        Text("다시하기")
+                            .font(HGFont.bold(20, relativeTo: .title2))
+                            .foregroundStyle(HGColor.primaryText)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, compact ? 8 : 17)
 
                     photoSelector
-                        .padding(.top, 15)
+                        .padding(.top, compact ? 8 : 15)
                 }
-                .padding(.top, HGLayout.screenContentTopPadding)
+                .padding(.top, compact ? 12 : HGLayout.screenContentTopPadding)
             }
             .padding(.horizontal, HGLayout.screenHorizontalPadding)
-            .padding(.top, HGLayout.screenTopPadding)
+            .padding(.top, compact ? 4 : HGLayout.screenTopPadding)
+            .frame(maxWidth: .infinity, alignment: .top)
         }
-        .scrollIndicators(.hidden)
         .background(HGColor.appBackground)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HGPrimaryButton(
@@ -86,7 +93,7 @@ struct SaveBeforeConfirmationView: View {
         HGScreenHeader(onMenuTap: onMenuTap, notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
     }
 
-    private var missingPhotoNotice: some View {
+    private func missingPhotoNotice(compact: Bool) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 25)
                 .fill(HGColor.fieldBackground)
@@ -99,10 +106,11 @@ struct SaveBeforeConfirmationView: View {
 
                 Text("현장 사진을\n추가해주세요")
                     .font(HGFont.bold(20, relativeTo: .title2))
+                    .foregroundStyle(HGColor.primaryText)
                     .multilineTextAlignment(.center)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 290)
+        .frame(maxWidth: .infinity, minHeight: compact ? 184 : 290)
         .accessibilityLabel("\(draft.type.savedRecordTitle)에 필요한 사진을 추가해주세요")
     }
 

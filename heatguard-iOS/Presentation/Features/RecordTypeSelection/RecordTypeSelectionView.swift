@@ -44,39 +44,34 @@ struct RecordTypeSelectionView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                Text("기록 유형을 선택하세요")
-                    .font(HGFont.bold(20, relativeTo: .title2))
-                    .foregroundStyle(HGColor.primaryText)
-                    .padding(.top, 18)
+        VStack(spacing: 0) {
+            Text("기록 유형을 선택하세요")
+                .font(HGFont.bold(20, relativeTo: .title2))
+                .foregroundStyle(HGColor.primaryText)
+                .padding(.top, 18)
 
-                VStack(spacing: 9) {
-                    ForEach(RecordType.allCases) { type in
-                        RecordTypeCard(type: type, isSelected: selectedType == type) {
-                            selectedType = type
-                        }
+            VStack(spacing: 9) {
+                ForEach(RecordType.allCases) { type in
+                    RecordTypeCard(type: type, isSelected: selectedType == type) {
+                        selectedType = type
                     }
                 }
-                .padding(.top, 33)
-                .padding(.horizontal, HGLayout.screenHorizontalPadding)
-                .padding(.bottom, 16)
             }
-        }
-        .scrollIndicators(.hidden)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+            .padding(.top, 33)
+            .padding(.horizontal, HGLayout.screenHorizontalPadding)
+            Spacer(minLength: 16)
             HGPrimaryButton(title: "확인", isEnabled: selectedType != nil) {
                 guard let selectedType else { return }
                 dismiss()
                 onConfirm(selectedType)
             }
             .padding(.horizontal, 28)
-            .padding(.vertical, 16)
-            .background(HGColor.popupBackground)
+            .padding(.bottom, 24)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(HGColor.popupBackground)
         .presentationBackground(HGColor.popupBackground)
-        .presentationDetents([.large])
+        .presentationDetents([.height(639)])
         .presentationCornerRadius(40)
         .presentationDragIndicator(.hidden)
     }

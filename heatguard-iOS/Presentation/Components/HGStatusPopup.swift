@@ -8,19 +8,14 @@ struct HGStatusPopup<Content: View, Actions: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             Text(title).font(HGFont.bold(20, relativeTo: .title2)).padding(.top, 18)
-            ScrollView {
-                content
-                    .frame(maxWidth: .infinity)
-            }
-            .scrollIndicators(.hidden)
-
-            actions
-                .padding(.top, 16)
-                .padding(.bottom, 20)
+            content
+                .frame(maxWidth: .infinity)
+            Spacer(minLength: 0)
+            actions.padding(.bottom, 20)
         }
         .background(HGColor.popupBackground)
         .presentationBackground(HGColor.popupBackground)
-        .presentationDetents([.large])
+        .presentationDetents([.height(683)])
         .presentationCornerRadius(40)
         .presentationDragIndicator(.hidden)
     }

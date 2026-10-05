@@ -43,10 +43,11 @@ struct ThermometerRecordView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
+        GeometryReader { geometry in
+            let compact = geometry.size.height < 760
+            VStack(spacing: 0) {
+                header
 
-            ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("온도계 기록")
                         .font(HGFont.bold(20, relativeTo: .title2))
@@ -55,30 +56,29 @@ struct ThermometerRecordView: View {
                     Text("온도계 데이터를 입력하고 현장 사진을\n촬영해 주세요.")
                         .font(HGFont.regular(14, relativeTo: .subheadline))
                         .foregroundStyle(HGColor.primaryText)
-                        .padding(.top, 10)
+                        .padding(.top, compact ? 6 : 10)
 
                     temperatureSummaryCard
-                        .padding(.top, 25)
+                        .padding(.top, compact ? 14 : 25)
 
                     manualEntryCard
-                        .padding(.top, 30)
+                        .padding(.top, compact ? 14 : 30)
 
                     photoSection
-                        .padding(.top, 26)
+                        .padding(.top, compact ? 14 : 26)
                 }
-                .padding(.top, HGLayout.screenContentTopPadding)
-                .padding(.bottom, 20)
+                .padding(.top, compact ? 14 : HGLayout.screenContentTopPadding)
+                Spacer(minLength: 0)
             }
-            .scrollIndicators(.hidden)
-        }
-        .padding(.horizontal, HGLayout.screenHorizontalPadding)
-        .padding(.top, HGLayout.screenTopPadding)
-        .background(HGColor.appBackground)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            HGPrimaryButton(title: "기록 저장", action: continueToPhoto)
-                .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
-                .padding(.vertical, 8)
-                .background(HGColor.appBackground)
+            .padding(.horizontal, HGLayout.screenHorizontalPadding)
+            .padding(.top, compact ? 8 : HGLayout.screenTopPadding)
+            .background(HGColor.appBackground)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                HGPrimaryButton(title: "기록 저장", action: continueToPhoto)
+                    .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
+                    .padding(.vertical, 8)
+                    .background(HGColor.appBackground)
+            }
         }
         .toolbar(.hidden, for: .navigationBar)
         .toolbar {
