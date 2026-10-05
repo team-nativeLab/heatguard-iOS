@@ -1,6 +1,7 @@
 import XCTest
-@testable import HeatGuardNotificationCore
+@testable import heatguard_iOS
 
+@MainActor
 final class NotificationRoutingTests: XCTestCase {
     private func notification(type: HGNotificationType, id: String? = "target") -> HGNotification {
         HGNotification(notificationID: "notification", title: "알림", resourceID: id,
