@@ -21,7 +21,12 @@ enum HGColor {
     static let successBackground = Color(red: 226 / 255, green: 246 / 255, blue: 235 / 255)
     static let summaryText = Color(red: 85 / 255, green: 92 / 255, blue: 120 / 255)
     static let cardShadow = Color(red: 222 / 255, green: 222 / 255, blue: 222 / 255)
-    static let primary = Color(red: 46 / 255, green: 128 / 255, blue: 237 / 255)
+    static let primary = Color(red: 40 / 255, green: 121 / 255, blue: 234 / 255)
+    static let loginPrimary = Color(red: 46 / 255, green: 128 / 255, blue: 237 / 255)
+    static let navigationTitle = Color.black
+    static let placeholder = Color(red: 174 / 255, green: 179 / 255, blue: 196 / 255)
+    static let readOnlyField = Color(red: 237 / 255, green: 240 / 255, blue: 245 / 255)
+    static let answered = Color(red: 33 / 255, green: 153 / 255, blue: 89 / 255)
     static let disabled = Color(red: 217 / 255, green: 217 / 255, blue: 217 / 255)
     static let primaryText = Color(red: 31 / 255, green: 38 / 255, blue: 51 / 255)
     static let secondaryText = Color(red: 120 / 255, green: 130 / 255, blue: 148 / 255)

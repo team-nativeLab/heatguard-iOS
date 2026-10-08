@@ -6,6 +6,23 @@
 import SwiftUI
 
 enum HGFont {
+    enum Family: String {
+        case pretendard = "Pretendard"
+        case notoSansKR = "NotoSansKR"
+    }
+
+    static func notoRegular(_ size: CGFloat, relativeTo textStyle: Font.TextStyle = .body) -> Font {
+        custom(.regular, size: size, relativeTo: textStyle, family: .notoSansKR)
+    }
+
+    static func notoMedium(_ size: CGFloat, relativeTo textStyle: Font.TextStyle = .body) -> Font {
+        custom(.medium, size: size, relativeTo: textStyle, family: .notoSansKR)
+    }
+
+    static func notoBold(_ size: CGFloat, relativeTo textStyle: Font.TextStyle = .body) -> Font {
+        custom(.bold, size: size, relativeTo: textStyle, family: .notoSansKR)
+    }
+
     static func regular(_ size: CGFloat, relativeTo textStyle: Font.TextStyle = .body) -> Font {
         custom(.regular, size: size, relativeTo: textStyle)
     }
@@ -38,7 +55,7 @@ private extension HGFont {
         case bold = "Bold"
     }
 
-    static func custom(_ weight: Weight, size: CGFloat, relativeTo textStyle: Font.TextStyle) -> Font {
-        Font.custom("Pretendard-\(weight.rawValue)", size: size, relativeTo: textStyle)
+    static func custom(_ weight: Weight, size: CGFloat, relativeTo textStyle: Font.TextStyle, family: Family = .pretendard) -> Font {
+        Font.custom("\(family.rawValue)-\(weight.rawValue)", size: size, relativeTo: textStyle)
     }
 }

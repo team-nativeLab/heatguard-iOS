@@ -9,19 +9,23 @@ struct HGPrimaryButton: View {
     let title: String
     var isEnabled = true
     var height: CGFloat = HGLayout.primaryButtonHeight
+    var font: Font = HGFont.medium(16)
+    var cornerRadius: CGFloat = HGLayout.primaryButtonCornerRadius
+    var tint: Color = HGColor.primary
+    var disabledTint: Color = HGColor.disabled
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(HGFont.semiBold(15))
+                .font(font)
                 .frame(maxWidth: .infinity)
                 .frame(height: height)
         }
         .foregroundStyle(.white)
         .background(
-            isEnabled ? HGColor.primary : HGColor.disabled,
-            in: RoundedRectangle(cornerRadius: HGLayout.primaryButtonCornerRadius)
+            isEnabled ? tint : disabledTint,
+            in: RoundedRectangle(cornerRadius: cornerRadius)
         )
         .disabled(!isEnabled)
         .accessibilityHint(isEnabled ? "" : "현재 사용할 수 없습니다")

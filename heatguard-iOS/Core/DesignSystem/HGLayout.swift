@@ -11,5 +11,7 @@ enum HGLayout {
     static let inputCardCornerRadius: CGFloat = 12
     static let popupCornerRadius: CGFloat = 25
     static let primaryButtonHeight: CGFloat = 48
-    static let primaryButtonCornerRadius: CGFloat = 14
+    static let primaryButtonCornerRadius: CGFloat = 12
+    static let recordHeadingInset: CGFloat = 21
+    static let photoSelectionHeight: CGFloat = 313
 }
