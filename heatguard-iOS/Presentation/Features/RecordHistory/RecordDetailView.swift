@@ -12,28 +12,30 @@ struct RecordDetailView: View {
                 ProgressView()
             } else if let record {
                 GeometryReader { geometry in
-                    let compact = geometry.size.height < 820
+                    let photoWidth = max(0, geometry.size.width - 48)
+                    ScrollView {
                     VStack(spacing: 12) {
                         if record.type == .thermometer {
-                            thermometerContent(record, photoHeight: compact ? 120 : 180)
+                            thermometerContent(record, photoHeight: max(0, photoWidth - 40) * 2 / 3)
                         } else {
-                            photoContent(record, photoHeight: compact ? 150 : 220)
+                            photoContent(record, photoHeight: photoWidth)
                         }
                         Text("제출한 기록은 수정할 수 없어요. 수정이 필요하면 현장 관리자에게 문의해주세요.")
-                            .font(HGFont.regular(12, relativeTo: .caption))
+                            .font(HGFont.notoRegular(12, relativeTo: .caption))
                             .foregroundStyle(HGColor.secondaryText)
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity)
                             .padding(.top, 4)
                     }
-                    .padding(compact ? 16 : 24)
+                    .padding(24)
                     .frame(maxWidth: .infinity, alignment: .top)
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
                 }
             }
         }
         .background(HGColor.appBackground)
-        .navigationTitle("기록 상세")
-        .navigationBarTitleDisplayMode(.inline)
+        .hgNavigationTitle("기록 상세")
         .task { await loadRecord() }
         .alert(error?.title ?? "상세 기록 조회 오류", isPresented: errorAlert) {
             Button("다시 시도") { Task { await loadRecord() } }
@@ -45,17 +47,17 @@ struct RecordDetailView: View {
         VStack(spacing: 12) {
             HGCard { VStack(alignment: .leading, spacing: 7) {
                 RecordTypeBadge(type: record.type)
-                Text(record.formattedMeasuredAt).font(HGFont.bold(18, relativeTo: .title3))
+                Text(record.formattedMeasuredAt).font(HGFont.notoBold(18, relativeTo: .title3))
                 if let location = record.locationText {
-                    Text(location).font(HGFont.regular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
+                    Text(location).font(HGFont.notoRegular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
                 }
             }}
             HGCard { VStack(alignment: .leading, spacing: 15) {
                 HStack(spacing: 12) {
                     Image(systemName: "thermometer.medium").font(.title2).foregroundStyle(HGColor.primary)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("측정 온도").font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText)
-                        Text(record.temperatureText).font(HGFont.bold(28, relativeTo: .title))
+                        Text("측정 온도").font(HGFont.notoRegular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText)
+                        Text(record.temperatureText).font(HGFont.notoBold(32, relativeTo: .title))
                     }
                     Spacer()
                 }
@@ -93,7 +95,7 @@ struct RecordDetailView: View {
             HGCard {
                 VStack(alignment: .leading, spacing: 14) {
                     Text("현장 측정값")
-                        .font(HGFont.bold(15, relativeTo: .subheadline))
+                        .font(HGFont.notoBold(15, relativeTo: .subheadline))
 
                     HStack(spacing: 12) {
                         DetailMetric(title: "온도", value: record.temperatureText)
@@ -109,7 +111,7 @@ struct RecordDetailView: View {
             if let title {
                 HGCard {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(title).font(HGFont.bold(15, relativeTo: .subheadline))
+                        Text(title).font(HGFont.notoBold(15, relativeTo: .subheadline))
                         photoImage(urls, height: height, cornerRadius: 12)
                     }
                 }
@@ -155,14 +157,14 @@ struct RecordDetailView: View {
             Image("RecordPhotoPlaceholder")
                 .resizable()
                 .frame(width: 36, height: 36)
-            Text("촬영한 현장 사진").font(HGFont.regular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
+            Text("촬영한 현장 사진").font(HGFont.notoRegular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
         }
     }
 
     @ViewBuilder private func memoCard(_ record: HGRecordDetail) -> some View {
         if let memo = record.memo, !memo.isEmpty {
             HGCard { VStack(alignment: .leading, spacing: 8) {
-                Text("메모").font(HGFont.bold(15, relativeTo: .subheadline)); Text(memo).font(HGFont.regular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
+                Text("메모").font(HGFont.notoBold(15, relativeTo: .subheadline)); Text(memo).font(HGFont.notoRegular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
             }}
         }
     }
@@ -177,11 +179,11 @@ struct RecordDetailView: View {
 
 private struct RecordTypeBadge: View {
     let type: HGRecordType
-    var body: some View { Text(type.historyTitle).font(HGFont.medium(10, relativeTo: .caption2)).foregroundStyle(HGColor.primary).padding(.horizontal, 8).padding(.vertical, 4).background(HGColor.homeMetricIconBackground, in: Capsule()) }
+    var body: some View { Text(type.historyTitle).font(HGFont.notoMedium(10, relativeTo: .caption2)).foregroundStyle(HGColor.primary).padding(.horizontal, 8).padding(.vertical, 4).background(HGColor.homeMetricIconBackground, in: Capsule()) }
 }
 private struct DetailMetric: View {
     let title: String; let value: String
-    var body: some View { VStack(alignment: .leading, spacing: 4) { Text(title).font(HGFont.regular(10, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText); Text(value).font(HGFont.bold(13, relativeTo: .caption)) }.frame(maxWidth: .infinity, alignment: .leading) }
+    var body: some View { VStack(alignment: .leading, spacing: 4) { Text(title).font(HGFont.notoRegular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText); Text(value).font(HGFont.notoBold(15, relativeTo: .subheadline)) }.frame(maxWidth: .infinity, alignment: .leading) }
 }
 private struct DetailInfoRow: View {
     let title: String
@@ -190,17 +192,17 @@ private struct DetailInfoRow: View {
 
     var body: some View {
         HStack {
-            Text(title).font(HGFont.regular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
+            Text(title).font(HGFont.notoRegular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
             Spacer(minLength: 8)
             if let type {
                 Text(value)
-                    .font(HGFont.bold(11, relativeTo: .caption2))
+                    .font(HGFont.notoBold(11, relativeTo: .caption2))
                     .foregroundStyle(type == .rest ? Color(red: 33 / 255, green: 153 / 255, blue: 89 / 255) : HGColor.primary)
                     .padding(.horizontal, 8).padding(.vertical, 2)
                     .background(type == .rest ? HGColor.successBackground : HGColor.homeMetricIconBackground, in: Capsule())
             } else {
                 Text(value)
-                    .font(HGFont.medium(13, relativeTo: .subheadline))
+                    .font(HGFont.notoMedium(13, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
                     .multilineTextAlignment(.trailing)
             }
@@ -211,11 +213,7 @@ private struct DetailInfoRow: View {
 private extension AsyncImagePhase { func get() throws -> Image { if case let .success(image) = self { return image }; throw URLError(.cannotDecodeContentData) } }
 private extension HGRecordDetail {
     var formattedMeasuredAt: String {
-        guard let date = measuredAt.hgISO8601Date else { return measuredAt }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "yyyy.MM.dd (E) HH:mm"
-        return formatter.string(from: date)
+        HGDateFormatting.recordTimestamp(measuredAt)
     }
     var locationText: String? {
         let location = workplace ?? siteName
@@ -236,7 +234,8 @@ private extension HGRecordDetail {
               let end = restEndedAt.hgISO8601Date,
               end > start else { return restMinutes.map { "\($0)분" } }
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.locale = HGDateFormatting.locale
+        formatter.timeZone = HGDateFormatting.timeZone
         formatter.dateFormat = "HH:mm"
         let minutes = restMinutes ?? Int(end.timeIntervalSince(start) / 60)
         return "\(minutes)분 (\(formatter.string(from: start)) ~ \(formatter.string(from: end)))"
