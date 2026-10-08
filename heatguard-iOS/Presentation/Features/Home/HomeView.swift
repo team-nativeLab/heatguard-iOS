@@ -8,6 +8,8 @@ struct HomeView: View {
         self.onSessionEnded = onSessionEnded
     }
 
+    @State private var resultSheet: RecordResultSheet?
+    @State private var showsWithdrawalCompleted = false
     @State private var showsRecordTypes = false
     @State private var showsMenuDrawer = false
     @State private var isMenuDrawerVisible = false
@@ -48,6 +50,7 @@ struct HomeView: View {
     }
 
     private var homeContent: some View {
+        ScrollView {
         VStack(spacing: 0) {
             header
             weatherSummary
@@ -81,6 +84,8 @@ struct HomeView: View {
         }
         .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
         .padding(.top, HGLayout.screenTopPadding)
+        }
+        .scrollBounceBehavior(.basedOnSize)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -90,6 +95,22 @@ struct HomeView: View {
             .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
             .padding(.vertical, 10)
             .background(HGColor.appBackground)
+        }
+        .sheet(item: $resultSheet) { result in
+            switch result {
+            case let .success(value):
+                SaveSuccessView(result: value, onConfirm: returnToHome)
+                    .interactiveDismissDisabled()
+            case let .failure(value):
+                SaveFailureView(failure: value, onRetry: { resultSheet = nil }, onTemporarySave: saveTemporaryAndReturn)
+                    .interactiveDismissDisabled()
+            }
+        }
+        .sheet(isPresented: $showsWithdrawalCompleted) {
+            WithdrawalCompletedView(onConfirm: finishWithdrawal)
+                .interactiveDismissDisabled()
+                .presentationDetents([.height(683)])
+                .presentationCornerRadius(40)
         }
         .sheet(isPresented: $showsRecordTypes, onDismiss: openSelectedRecord) {
             RecordTypeSelectionView { pendingRecordType = $0 }
@@ -204,35 +225,34 @@ struct HomeView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(dashboard.weather.heatLevelTitle)
-                        .font(HGFont.bold(10, relativeTo: .caption2))
+                        .font(HGFont.notoBold(10, relativeTo: .caption2))
                         .foregroundStyle(HGColor.homeHeatLevelText)
                         .padding(.horizontal, 10)
                         .frame(height: 24)
                         .background(HGColor.homeHeatLevelBackground, in: Capsule())
 
                     Text("현재 온도")
-                        .font(HGFont.medium(12, relativeTo: .caption))
+                        .font(HGFont.notoMedium(12, relativeTo: .caption))
                         .padding(.top, 16)
 
-                    HStack(spacing: 8) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(dashboard.weather.temperatureText)
-                            .font(HGFont.bold(40, relativeTo: .largeTitle))
-                    }
-
-                    if let deltaText = dashboard.weather.temperatureDeltaText {
-                        Text(deltaText)
-                            .font(HGFont.medium(11, relativeTo: .caption2))
-                            .foregroundStyle(HGColor.secondaryText)
-                            .padding(.top, 2)
+                            .font(HGFont.notoBold(40, relativeTo: .largeTitle))
+                            .fixedSize(horizontal: true, vertical: false)
+                        if let deltaText = dashboard.weather.temperatureDeltaText {
+                            Text(deltaText)
+                                .font(HGFont.notoMedium(11, relativeTo: .caption2))
+                                .foregroundStyle(HGColor.secondaryText)
+                        }
                     }
 
                     Text("습도 \(dashboard.weather.humidityText) · 체감온도 \(dashboard.weather.apparentTemperatureText)")
-                        .font(HGFont.regular(12, relativeTo: .caption))
+                        .font(HGFont.notoRegular(12, relativeTo: .caption))
                         .padding(.top, 8)
 
                     if let observationTime = dashboard.weather.observationTimeText {
                         Text(observationTime)
-                            .font(HGFont.regular(10, relativeTo: .caption2))
+                            .font(HGFont.notoRegular(10, relativeTo: .caption2))
                             .foregroundStyle(HGColor.secondaryText)
                             .padding(.top, 4)
                     }
@@ -272,9 +292,9 @@ struct HomeView: View {
     private var checkCard: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("오늘 체크 시간")
-                .font(HGFont.bold(14, relativeTo: .subheadline))
+                .font(HGFont.notoBold(14, relativeTo: .subheadline))
             Text(checklist.statusText)
-                .font(HGFont.regular(11, relativeTo: .caption2))
+                .font(HGFont.notoRegular(11, relativeTo: .caption2))
                 .foregroundStyle(HGColor.secondaryText)
                 .padding(.top, 7)
             HomeTimeline(times: checklist.times)
@@ -310,7 +330,7 @@ struct HomeView: View {
 
     private func sectionLabel(_ title: String) -> some View {
         Text(title)
-            .font(HGFont.regular(11, relativeTo: .caption2))
+            .font(HGFont.notoRegular(11, relativeTo: .caption2))
             .foregroundStyle(HGColor.primaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -495,14 +515,6 @@ struct HomeView: View {
                 onNotificationsTap: showNotifications,
                 notificationCount: unreadNotificationCount
             )
-        case let .saveSuccess(result):
-            SaveSuccessView(result: result, onConfirm: returnToHome)
-        case let .saveFailure(failure):
-            SaveFailureView(
-                failure: failure,
-                onRetry: removeCurrentRoute,
-                onTemporarySave: saveTemporaryAndReturn
-            )
         case .recordHistory:
             RecordHistoryView { record in
                 flowPath.append(HomeFlowRoute.recordDetail(record.recordID))
@@ -536,8 +548,6 @@ struct HomeView: View {
             WithdrawalGuideView { password, reason in
                 Task { await withdraw(password: password, reason: reason) }
             }
-        case .withdrawalCompleted:
-            WithdrawalCompletedView(onConfirm: finishWithdrawal)
         }
     }
 
@@ -547,6 +557,7 @@ struct HomeView: View {
     }
 
     private func returnToHome() {
+        resultSheet = nil
         flowPath = NavigationPath()
         Task { await loadDashboard() }
     }
@@ -588,7 +599,7 @@ struct HomeView: View {
     private func withdraw(password: String, reason: String?) async {
         do {
             try await HGAuthenticationService().withdraw(currentPassword: password, reason: reason)
-            flowPath.append(HomeFlowRoute.withdrawalCompleted)
+            showsWithdrawalCompleted = true
         } catch {
             withdrawalError = HGErrorPresentation(error: error)
         }
@@ -599,13 +610,13 @@ struct HomeView: View {
             try? HGRecordDraftStore().clear()
             clearResumeState()
         }
-        flowPath.append(HomeFlowRoute.saveSuccess(result))
+        resultSheet = .success(result)
     }
 
     private func showSaveFailure(_ failure: HGRecordSaveFailure, draft: HGRecordDraft, images: [UIImage]) {
         failedDraft = draft
         failedImages = images
-        flowPath.append(HomeFlowRoute.saveFailure(failure))
+        resultSheet = .failure(failure)
     }
 
     private func showPhotoRequired(_ draft: HGRecordDraft) {
@@ -739,8 +750,6 @@ private enum HomeFlowRoute: Hashable {
     case restPhoto
     case fieldPhoto(HGRecordDraft)
     case saveBeforeConfirmation(HGRecordDraft)
-    case saveSuccess(HGRecordSaveResult)
-    case saveFailure(HGRecordSaveFailure)
     case recordHistory
     case recordDetail(String)
     case profileEdit
@@ -749,7 +758,6 @@ private enum HomeFlowRoute: Hashable {
     case notificationDetail(HGNotification)
     case notifications
     case withdrawalGuide
-    case withdrawalCompleted
 
     init(recordType: RecordType) {
         switch recordType {
@@ -780,11 +788,11 @@ private struct HomeMetric: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(HGFont.regular(10, relativeTo: .caption2))
+                    .font(HGFont.notoRegular(10, relativeTo: .caption2))
                     .foregroundStyle(HGColor.secondaryText)
 
                 Text(value)
-                    .font(HGFont.bold(14, relativeTo: .caption))
+                    .font(HGFont.notoBold(14, relativeTo: .caption))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -813,10 +821,10 @@ private struct HomeActionRow: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(HGFont.bold(14, relativeTo: .subheadline))
+                        .font(HGFont.notoBold(14, relativeTo: .subheadline))
 
                     Text(subtitle)
-                        .font(HGFont.regular(11, relativeTo: .caption2))
+                        .font(HGFont.notoRegular(11, relativeTo: .caption2))
                         .foregroundStyle(HGColor.secondaryText)
                 }
 
@@ -863,7 +871,7 @@ private struct HomeTimeline: View {
             HStack {
                 ForEach(times, id: \.self) { time in
                     Text(time)
-                        .font(HGFont.regular(9, relativeTo: .caption2))
+                        .font(HGFont.notoRegular(9, relativeTo: .caption2))
                     .foregroundStyle(HGColor.secondaryText)
 
                     if time != times.last {
@@ -891,5 +899,17 @@ private struct HomeTimeline: View {
 #Preview {
     NavigationStack {
         HomeView()
+    }
+}
+
+private enum RecordResultSheet: Identifiable {
+    case success(HGRecordSaveResult)
+    case failure(HGRecordSaveFailure)
+
+    var id: String {
+        switch self {
+        case .success: "success"
+        case .failure: "failure"
+        }
     }
 }

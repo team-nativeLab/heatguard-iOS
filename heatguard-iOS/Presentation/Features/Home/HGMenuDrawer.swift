@@ -78,23 +78,23 @@ struct HGMenuDrawer: View {
     private var profileSection: some View {
         HStack(spacing: 12) {
             Text(profile.initial)
-                .font(HGFont.bold(18, relativeTo: .title3))
+                .font(HGFont.notoBold(18, relativeTo: .title3))
                 .foregroundStyle(HGColor.primary)
                 .frame(width: 48, height: 48)
                 .background(HGColor.homeMetricIconBackground, in: Circle())
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(profile.name)
-                    .font(HGFont.bold(15, relativeTo: .subheadline))
+                    .font(HGFont.notoBold(18, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
                 if !profile.role.isEmpty {
                     Text(profile.role)
-                        .font(HGFont.regular(11, relativeTo: .caption2))
+                        .font(HGFont.notoRegular(13, relativeTo: .caption))
                         .foregroundStyle(HGColor.secondaryText)
                 }
                 if !profile.email.isEmpty {
                     Text(profile.email)
-                        .font(HGFont.regular(11, relativeTo: .caption2))
+                        .font(HGFont.notoRegular(12, relativeTo: .caption))
                         .foregroundStyle(HGColor.secondaryText)
                 }
             }
@@ -122,11 +122,11 @@ struct HGMenuDrawer: View {
     private var accountActions: some View {
         VStack(alignment: .leading, spacing: 10) {
             Button("로그아웃", action: onLogout)
-                .font(HGFont.semiBold(14, relativeTo: .subheadline))
+                .font(HGFont.notoBold(14, relativeTo: .subheadline))
                 .foregroundStyle(HGColor.primaryText)
 
             Button("회원탈퇴", action: onWithdrawal)
-                .font(HGFont.regular(12, relativeTo: .caption))
+                .font(HGFont.notoRegular(12, relativeTo: .caption))
                 .foregroundStyle(HGColor.secondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -138,7 +138,7 @@ struct HGMenuDrawer: View {
         Button(action: action) {
             HStack {
                 Text(title)
-                    .font(HGFont.medium(14, relativeTo: .subheadline))
+                    .font(HGFont.notoMedium(15, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
                 Spacer()
                 Image("ChevronRight")
