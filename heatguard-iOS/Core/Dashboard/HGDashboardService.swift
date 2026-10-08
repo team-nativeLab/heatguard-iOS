@@ -180,7 +180,7 @@ struct HomeWeather: Equatable {
             details.append("이전 \(String(format: "%.1f", comparisonTemperature))°C")
         }
         if let comparisonDate = comparisonObservedAt?.hgISO8601Date {
-            details.append("\(comparisonDate.formatted(date: .omitted, time: .shortened)) 기준")
+            details.append("\(HGDateFormatting.string(from: comparisonDate, format: "HH:mm")) 기준")
         }
         let reference = details.isEmpty ? "" : " · " + details.joined(separator: " · ")
         let title = comparisonBasis == "PREVIOUS_OBSERVATION" ? "직전 측정 대비" : "온도 변화"
@@ -189,7 +189,7 @@ struct HomeWeather: Equatable {
 
     var observationTimeText: String? {
         guard let observedDate = observedAt?.hgISO8601Date else { return nil }
-        return "측정 \(observedDate.formatted(date: .numeric, time: .shortened))"
+        return "측정 \(HGDateFormatting.timestamp(observedDate))"
     }
 
     static let unavailable = HomeWeather(
