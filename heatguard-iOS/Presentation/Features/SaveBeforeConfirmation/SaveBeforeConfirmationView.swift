@@ -31,12 +31,11 @@ struct SaveBeforeConfirmationView: View {
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            let compact = proxy.size.height < 900
 
             VStack(spacing: 0) {
                 header
 
+                ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("현장 사진")
                         .font(HGFont.bold(20, relativeTo: .title2))
@@ -45,17 +44,17 @@ struct SaveBeforeConfirmationView: View {
                     Text(photoInstruction)
                         .font(HGFont.regular(14, relativeTo: .subheadline))
                         .foregroundStyle(HGColor.primaryText)
-                        .padding(.top, compact ? 6 : 10)
+                        .padding(.top, 10)
 
-                    missingPhotoNotice(compact: compact)
-                        .padding(.top, compact ? 14 : 35)
+                    missingPhotoNotice()
+                        .padding(.top, 35)
 
                     if draft.type == .thermometer {
                         DisabledManualInputCard(
                             temperature: draft.temperature.map { String(format: "%.1f", $0) } ?? "",
                             humidity: draft.humidity.map { String(format: "%.0f", $0) } ?? ""
                         )
-                            .padding(.top, compact ? 10 : 20)
+                            .padding(.top, 20)
                     }
 
                     Button(action: onRetry) {
@@ -64,17 +63,18 @@ struct SaveBeforeConfirmationView: View {
                             .foregroundStyle(HGColor.primaryText)
                     }
                     .buttonStyle(.plain)
-                    .padding(.top, compact ? 8 : 17)
+                    .padding(.top, 17)
 
                     photoSelector
-                        .padding(.top, compact ? 8 : 15)
+                        .padding(.top, 15)
                 }
-                .padding(.top, compact ? 12 : HGLayout.screenContentTopPadding)
+                .padding(.top, HGLayout.screenContentTopPadding)
+                }
+                .scrollBounceBehavior(.basedOnSize)
             }
             .padding(.horizontal, HGLayout.screenHorizontalPadding)
-            .padding(.top, compact ? 4 : HGLayout.screenTopPadding)
+            .padding(.top, HGLayout.screenTopPadding)
             .frame(maxWidth: .infinity, alignment: .top)
-        }
         .background(HGColor.appBackground)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HGPrimaryButton(
@@ -93,7 +93,7 @@ struct SaveBeforeConfirmationView: View {
         HGScreenHeader(onMenuTap: onMenuTap, notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
     }
 
-    private func missingPhotoNotice(compact: Bool) -> some View {
+    private func missingPhotoNotice() -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 25)
                 .fill(HGColor.fieldBackground)
@@ -110,7 +110,7 @@ struct SaveBeforeConfirmationView: View {
                     .multilineTextAlignment(.center)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: compact ? 184 : 290)
+        .frame(maxWidth: .infinity, minHeight: 290)
         .accessibilityLabel("\(draft.type.savedRecordTitle)에 필요한 사진을 추가해주세요")
     }
 
