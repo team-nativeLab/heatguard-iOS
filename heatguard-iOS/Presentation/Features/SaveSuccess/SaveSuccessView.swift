@@ -78,7 +78,7 @@ struct SaveSuccessView: View {
         [
             SavedRecord(title: result.draft.type.savedRecordTitle, detail: recordDetail),
             SavedRecord(title: "첨부 사진", detail: "\(result.photoCount)장"),
-            SavedRecord(title: "저장 시간", detail: result.savedAt.formatted(date: .numeric, time: .shortened))
+            SavedRecord(title: "저장 시간", detail: HGDateFormatting.timestamp(result.savedAt))
         ]
     }
 

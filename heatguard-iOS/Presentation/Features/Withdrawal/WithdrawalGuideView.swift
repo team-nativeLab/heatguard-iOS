@@ -13,21 +13,22 @@ struct WithdrawalGuideView: View {
     }
 
     var body: some View {
+        ScrollView {
         VStack(alignment: .leading, spacing: 0) {
             Text("탈퇴하기 전에 꼭 확인해주세요")
-                .font(HGFont.bold(20, relativeTo: .title2))
+                .font(HGFont.notoBold(22, relativeTo: .title2))
                 .foregroundStyle(HGColor.primaryText)
 
             Text("탈퇴 후에는 아래 내용이 적용돼요")
-                .font(HGFont.regular(12, relativeTo: .caption))
+                .font(HGFont.notoRegular(14, relativeTo: .subheadline))
                 .foregroundStyle(HGColor.secondaryText)
                 .padding(.top, 4)
 
             noticeCard
-                .padding(.top, 10)
+                .padding(.top, 16)
 
             reasonCard
-                .padding(.top, 10)
+                .padding(.top, 16)
 
             HGTextField(
                 title: "비밀번호 확인",
@@ -35,20 +36,22 @@ struct WithdrawalGuideView: View {
                 text: $password,
                 isSecure: true
             )
-            .padding(.top, 10)
+            .padding(.top, 16)
 
             agreementRow
-                .padding(.top, 10)
+                .padding(.top, 16)
         }
         .padding(.horizontal, HGLayout.screenHorizontalPadding)
         .padding(.top, 12)
         .padding(.bottom, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .scrollDismissesKeyboard(.interactively)
         .background(HGColor.appBackground)
-        .navigationTitle("회원탈퇴")
-        .navigationBarTitleDisplayMode(.inline)
+        .hgNavigationTitle("회원탈퇴")
         .safeAreaInset(edge: .bottom) {
-            HGPrimaryButton(title: "탈퇴하기", isEnabled: canRequestWithdrawal) {
+            HGPrimaryButton(title: "탈퇴하기", isEnabled: canRequestWithdrawal, tint: HGColor.error) {
                 showsConfirmation = true
             }
                 .padding(.horizontal, HGLayout.screenHorizontalPadding)
@@ -75,7 +78,7 @@ struct WithdrawalGuideView: View {
     }
 
     private var noticeCard: some View {
-        HGCard(cornerRadius: 18, padding: 12) {
+        HGCard(cornerRadius: 20, padding: 20) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 7) {
                     Image(systemName: "exclamationmark.circle.fill")
@@ -83,7 +86,7 @@ struct WithdrawalGuideView: View {
                     Text("유의사항")
                         .foregroundStyle(HGColor.primaryText)
                 }
-                .font(HGFont.bold(14, relativeTo: .subheadline))
+                .font(HGFont.notoBold(14, relativeTo: .subheadline))
 
                 VStack(alignment: .leading, spacing: 6) {
                     noticeText("탈퇴하면 소속 팀과 모든 팀원 계정이 비활성화되어 로그인할 수 없어요")
@@ -96,14 +99,14 @@ struct WithdrawalGuideView: View {
     }
 
     private var reasonCard: some View {
-        HGCard(cornerRadius: 18, padding: 12) {
+        HGCard(cornerRadius: 20, padding: 20) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text("탈퇴 사유")
-                        .font(HGFont.bold(14, relativeTo: .subheadline))
+                        .font(HGFont.notoBold(14, relativeTo: .subheadline))
                         .foregroundStyle(HGColor.primaryText)
                     Text("(선택)")
-                        .font(HGFont.regular(12, relativeTo: .caption))
+                        .font(HGFont.notoRegular(14, relativeTo: .subheadline))
                         .foregroundStyle(HGColor.secondaryText)
                 }
 
@@ -117,10 +120,11 @@ struct WithdrawalGuideView: View {
                                     .font(.title3)
                                     .foregroundStyle(selectedReason == reason ? HGColor.primary : HGColor.inputBorder)
                                 Text(reason.title)
-                                    .font(HGFont.medium(14, relativeTo: .subheadline))
+                                    .font(HGFont.notoMedium(14, relativeTo: .subheadline))
                                     .foregroundStyle(HGColor.primaryText)
                                 Spacer()
                             }
+                            .frame(minHeight: 38)
                         }
                         .buttonStyle(.plain)
                     }
@@ -138,7 +142,7 @@ struct WithdrawalGuideView: View {
                     .font(.title3)
                     .foregroundStyle(hasAgreed ? HGColor.primary : HGColor.inputBorder)
                 Text("소속 팀과 모든 팀원 계정의 비활성화를 확인했으며, 탈퇴에 동의해요")
-                    .font(HGFont.medium(13, relativeTo: .caption))
+                    .font(HGFont.notoMedium(13, relativeTo: .caption))
                     .foregroundStyle(HGColor.primaryText)
                 Spacer()
             }
@@ -164,7 +168,7 @@ struct WithdrawalGuideView: View {
             Text("•")
             Text(text)
         }
-        .font(HGFont.regular(12, relativeTo: .caption))
+        .font(HGFont.notoRegular(14, relativeTo: .subheadline))
         .foregroundStyle(HGColor.secondaryText)
     }
 }

@@ -4,21 +4,13 @@ struct WithdrawalCompletedView: View {
     let onConfirm: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
+        HGStatusPopup(title: "회원탈퇴") {
             completionCard
                 .padding(.top, 48)
-
-            Spacer()
-        }
-        .padding(.horizontal, HGLayout.screenHorizontalPadding)
-        .background(HGColor.appBackground)
-        .navigationTitle("회원탈퇴")
-        .navigationBarTitleDisplayMode(.inline)
-        .safeAreaInset(edge: .bottom) {
+                .padding(.horizontal, HGLayout.screenHorizontalPadding)
+        } actions: {
             HGPrimaryButton(title: "확인", action: onConfirm)
                 .padding(.horizontal, HGLayout.screenHorizontalPadding)
-                .padding(.vertical, 14)
-                .background(HGColor.appBackground)
         }
     }
 
@@ -26,18 +18,18 @@ struct WithdrawalCompletedView: View {
         HGCard(cornerRadius: HGLayout.popupCornerRadius, padding: 28) {
             VStack(spacing: 0) {
                 Image(systemName: "checkmark")
-                    .font(HGFont.bold(30, relativeTo: .title))
+                    .font(HGFont.notoBold(30, relativeTo: .title))
                     .foregroundStyle(HGColor.primary)
-                    .frame(width: 72, height: 72)
+                    .frame(width: 84, height: 84)
                     .background(HGColor.homeMetricIconBackground, in: Circle())
 
                 Text("탈퇴가 완료되었어요")
-                    .font(HGFont.bold(19, relativeTo: .title3))
+                    .font(HGFont.notoBold(20, relativeTo: .title3))
                     .foregroundStyle(HGColor.primaryText)
                     .padding(.top, 24)
 
                 Text("그동안 현장가드를 이용해주셔서 감사해요")
-                    .font(HGFont.regular(13, relativeTo: .subheadline))
+                    .font(HGFont.notoMedium(15, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.secondaryText)
                     .multilineTextAlignment(.center)
                     .padding(.top, 8)

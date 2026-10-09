@@ -7,18 +7,18 @@ struct WithdrawalConfirmationDialog: View {
     var body: some View {
         VStack(spacing: 0) {
             Image(systemName: "exclamationmark")
-                .font(HGFont.bold(28, relativeTo: .title))
+                .font(HGFont.notoBold(28, relativeTo: .title))
                 .foregroundStyle(.red)
                 .frame(width: 64, height: 64)
                 .background(HGColor.error.opacity(0.12), in: Circle())
 
             Text("정말 탈퇴하시겠어요?")
-                .font(HGFont.bold(19, relativeTo: .title3))
+                .font(HGFont.notoBold(20, relativeTo: .title3))
                 .foregroundStyle(HGColor.primaryText)
                 .padding(.top, 22)
 
             Text("소속 팀과 모든 팀원 계정이 비활성화되고\n모든 팀원의 로그인 세션이 종료돼요.\n이 팀 전체에 대해 탈퇴를 진행하시겠어요?")
-                .font(HGFont.regular(13, relativeTo: .subheadline))
+                .font(HGFont.notoRegular(14, relativeTo: .subheadline))
                 .foregroundStyle(HGColor.secondaryText)
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
@@ -46,7 +46,7 @@ struct WithdrawalConfirmationDialog: View {
     ) -> some View {
         Button(action: action) {
             Text(title)
-                .font(HGFont.semiBold(14, relativeTo: .subheadline))
+                .font(HGFont.notoMedium(16, relativeTo: .subheadline))
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
         }
