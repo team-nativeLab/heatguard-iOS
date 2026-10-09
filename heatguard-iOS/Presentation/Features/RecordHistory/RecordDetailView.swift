@@ -13,24 +13,23 @@ struct RecordDetailView: View {
             } else if let record {
                 GeometryReader { geometry in
                     let photoWidth = max(0, geometry.size.width - 48)
-                    ScrollView {
-                    VStack(spacing: 12) {
-                        if record.type == .thermometer {
-                            thermometerContent(record, photoHeight: max(0, photoWidth - 40) * 2 / 3)
-                        } else {
-                            photoContent(record, photoHeight: photoWidth)
+                    HGFixedContent {
+                        VStack(spacing: 12) {
+                            if record.type == .thermometer {
+                                thermometerContent(record, photoHeight: max(0, photoWidth - 40) * 2 / 3)
+                            } else {
+                                photoContent(record, photoHeight: photoWidth)
+                            }
+                            Text("제출한 기록은 수정할 수 없어요. 수정이 필요하면 현장 관리자에게 문의해주세요.")
+                                .font(HGFont.notoRegular(12, relativeTo: .caption))
+                                .foregroundStyle(HGColor.secondaryText)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 4)
                         }
-                        Text("제출한 기록은 수정할 수 없어요. 수정이 필요하면 현장 관리자에게 문의해주세요.")
-                            .font(HGFont.notoRegular(12, relativeTo: .caption))
-                            .foregroundStyle(HGColor.secondaryText)
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 4)
+                        .padding(24)
+                        .frame(maxWidth: .infinity, alignment: .top)
                     }
-                    .padding(24)
-                    .frame(maxWidth: .infinity, alignment: .top)
-                    }
-                    .scrollBounceBehavior(.basedOnSize)
                 }
             }
         }
@@ -40,7 +39,9 @@ struct RecordDetailView: View {
         .alert(error?.title ?? "상세 기록 조회 오류", isPresented: errorAlert) {
             Button("다시 시도") { Task { await loadRecord() } }
             Button("확인", role: .cancel) {}
-        } message: { Text(error?.alertMessage ?? "") }
+        } message: {
+            Text(error?.alertMessage ?? "")
+        }
     }
 
     private func thermometerContent(_ record: HGRecordDetail, photoHeight: CGFloat) -> some View {
@@ -179,11 +180,19 @@ struct RecordDetailView: View {
 
 private struct RecordTypeBadge: View {
     let type: HGRecordType
-    var body: some View { Text(type.historyTitle).font(HGFont.notoMedium(10, relativeTo: .caption2)).foregroundStyle(HGColor.primary).padding(.horizontal, 8).padding(.vertical, 4).background(HGColor.homeMetricIconBackground, in: Capsule()) }
+    var body: some View {
+        Text(type.historyTitle).font(HGFont.notoMedium(10, relativeTo: .caption2)).foregroundStyle(HGColor.primary)
+            .padding(.horizontal, 8).padding(.vertical, 4).background(HGColor.homeMetricIconBackground, in: Capsule())
+    }
 }
 private struct DetailMetric: View {
     let title: String; let value: String
-    var body: some View { VStack(alignment: .leading, spacing: 4) { Text(title).font(HGFont.notoRegular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText); Text(value).font(HGFont.notoBold(15, relativeTo: .subheadline)) }.frame(maxWidth: .infinity, alignment: .leading) }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(HGFont.notoRegular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
+            Text(value).font(HGFont.notoBold(15, relativeTo: .subheadline))
+        }.frame(maxWidth: .infinity, alignment: .leading)
+    }
 }
 private struct DetailInfoRow: View {
     let title: String
@@ -197,9 +206,12 @@ private struct DetailInfoRow: View {
             if let type {
                 Text(value)
                     .font(HGFont.notoBold(11, relativeTo: .caption2))
-                    .foregroundStyle(type == .rest ? Color(red: 33 / 255, green: 153 / 255, blue: 89 / 255) : HGColor.primary)
+                    .foregroundStyle(
+                        type == .rest ? Color(red: 33 / 255, green: 153 / 255, blue: 89 / 255) : HGColor.primary
+                    )
                     .padding(.horizontal, 8).padding(.vertical, 2)
-                    .background(type == .rest ? HGColor.successBackground : HGColor.homeMetricIconBackground, in: Capsule())
+                    .background(
+                        type == .rest ? HGColor.successBackground : HGColor.homeMetricIconBackground, in: Capsule())
             } else {
                 Text(value)
                     .font(HGFont.notoMedium(13, relativeTo: .subheadline))

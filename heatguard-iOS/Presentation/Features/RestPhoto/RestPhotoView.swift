@@ -60,30 +60,27 @@ struct RestPhotoView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-                header
-                ScrollView {
-                    formContent
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.bottom, 16)
-                }
-                .scrollIndicators(.hidden)
-                .scrollBounceBehavior(.basedOnSize)
-                .scrollDismissesKeyboard(.interactively)
+            header
+            HGFixedContent {
+                formContent
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 16)
             }
-            .padding(.horizontal, HGLayout.screenHorizontalPadding)
-            .padding(.top, HGLayout.screenTopPadding)
+        }
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
+        .padding(.top, HGLayout.screenTopPadding)
+        .background(HGColor.appBackground)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HGPrimaryButton(
+                title: isSaving ? "저장 중..." : "기록 저장",
+                isEnabled: !isSaving,
+                height: HGLayout.primaryButtonHeight,
+                action: saveRecord
+            )
+            .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
+            .padding(.vertical, 8)
             .background(HGColor.appBackground)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                HGPrimaryButton(
-                    title: isSaving ? "저장 중..." : "기록 저장",
-                    isEnabled: !isSaving,
-                    height: HGLayout.primaryButtonHeight,
-                    action: saveRecord
-                )
-                .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
-                .padding(.vertical, 8)
-                .background(HGColor.appBackground)
-            }
+        }
         .toolbar(.hidden, for: .navigationBar)
         .dismissKeyboardOnBackgroundTap()
         .alert("입력값을 확인해주세요", isPresented: validationAlert) {

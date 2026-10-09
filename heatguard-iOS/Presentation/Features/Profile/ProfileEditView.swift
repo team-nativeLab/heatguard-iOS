@@ -19,55 +19,57 @@ struct ProfileEditView: View {
     }
 
     var body: some View {
-        ScrollView {
-        VStack(spacing: 28) {
-            VStack(spacing: 8) {
-                Text(name.prefix(1))
-                    .font(HGFont.notoBold(26, relativeTo: .title))
-                    .foregroundStyle(HGColor.primary)
-                    .frame(width: 72, height: 72)
-                    .background(HGColor.homeMetricIconBackground, in: Circle())
-                Text("현장작업자")
-                    .font(HGFont.notoRegular(12, relativeTo: .caption))
-                    .foregroundStyle(HGColor.secondaryText)
-            }
+        HGFixedContent {
+            VStack(spacing: 28) {
+                VStack(spacing: 8) {
+                    Text(name.prefix(1))
+                        .font(HGFont.notoBold(26, relativeTo: .title))
+                        .foregroundStyle(HGColor.primary)
+                        .frame(width: 72, height: 72)
+                        .background(HGColor.homeMetricIconBackground, in: Circle())
+                    Text("현장작업자")
+                        .font(HGFont.notoRegular(12, relativeTo: .caption))
+                        .foregroundStyle(HGColor.secondaryText)
+                }
 
-            VStack(spacing: 20) {
-                if let companyName = profile?.companyName, !companyName.isEmpty {
-                    HGTextField(title: "회사명", placeholder: "", text: .constant(companyName), fieldHeight: 48)
-                        .disabled(true)
-                }
-                HGTextField(title: "이름", placeholder: "이름을 입력해주세요", text: $name, fieldHeight: 48)
-                HGTextField(title: "이메일", placeholder: "example@email.com", text: $email, isReadOnly: true, trailingLabel: "변경 불가", fieldHeight: 48, inputType: .email)
-                Text("로그인에 쓰는 이메일은 변경할 수 없어요")
-                    .font(HGFont.notoRegular(12, relativeTo: .caption))
-                    .foregroundStyle(HGColor.secondaryText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                HGTextField(title: "전화번호", placeholder: "전화번호를 입력해주세요", text: $phone, fieldHeight: 48)
-                NavigationLink { PasswordChangeView() } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("비밀번호 변경")
-                                .font(HGFont.notoBold(14, relativeTo: .subheadline))
-                            Text("현재 비밀번호 확인 후 변경할 수 있어요")
-                                .font(HGFont.notoRegular(11, relativeTo: .caption2))
-                                .foregroundStyle(HGColor.secondaryText)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundStyle(HGColor.homeChevron)
+                VStack(spacing: 20) {
+                    if let companyName = profile?.companyName, !companyName.isEmpty {
+                        HGTextField(title: "회사명", placeholder: "", text: .constant(companyName), fieldHeight: 48)
+                            .disabled(true)
                     }
-                    .padding(16)
-                    .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                    HGTextField(title: "이름", placeholder: "이름을 입력해주세요", text: $name, fieldHeight: 48)
+                    HGTextField(
+                        title: "이메일", placeholder: "example@email.com", text: $email, isReadOnly: true,
+                        trailingLabel: "변경 불가", fieldHeight: 48, inputType: .email)
+                    Text("로그인에 쓰는 이메일은 변경할 수 없어요")
+                        .font(HGFont.notoRegular(12, relativeTo: .caption))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HGTextField(title: "전화번호", placeholder: "전화번호를 입력해주세요", text: $phone, fieldHeight: 48)
+                    NavigationLink {
+                        PasswordChangeView()
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("비밀번호 변경")
+                                    .font(HGFont.notoBold(14, relativeTo: .subheadline))
+                                Text("현재 비밀번호 확인 후 변경할 수 있어요")
+                                    .font(HGFont.notoRegular(11, relativeTo: .caption2))
+                                    .foregroundStyle(HGColor.secondaryText)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(HGColor.homeChevron)
+                        }
+                        .padding(16)
+                        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(HGColor.primaryText)
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(HGColor.primaryText)
             }
+            .padding(24)
         }
-        .padding(24)
-        }
-        .scrollBounceBehavior(.basedOnSize)
-        .scrollDismissesKeyboard(.interactively)
         .background(HGColor.appBackground).hgNavigationTitle("내 정보 수정")
         .safeAreaInset(edge: .bottom) {
             HGPrimaryButton(title: isSaving ? "저장 중..." : "저장하기", isEnabled: isValid && !isSaving) {
@@ -75,7 +77,11 @@ struct ProfileEditView: View {
             }
             .padding(.horizontal, 28).padding(.vertical, 10).background(HGColor.appBackground)
         }
-        .alert(error?.title ?? "내 정보 수정 오류", isPresented: errorAlert) { Button("확인", role: .cancel) {} } message: { Text(error?.alertMessage ?? "") }
+        .alert(error?.title ?? "내 정보 수정 오류", isPresented: errorAlert) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(error?.alertMessage ?? "")
+        }
         .alert("내 정보가 수정되었습니다.", isPresented: $isComplete) { Button("확인", role: .cancel) {} }
         .dismissKeyboardOnBackgroundTap()
     }
@@ -120,60 +126,58 @@ private struct PasswordChangeView: View {
     @State private var isComplete = false
 
     var body: some View {
-        ScrollView {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("현재 비밀번호를 확인한 뒤\n새 비밀번호로 변경할 수 있어요")
-                .font(HGFont.notoRegular(13, relativeTo: .subheadline))
-                .foregroundStyle(HGColor.secondaryText)
-                .lineSpacing(3)
+        HGFixedContent {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("현재 비밀번호를 확인한 뒤\n새 비밀번호로 변경할 수 있어요")
+                    .font(HGFont.notoRegular(13, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .lineSpacing(3)
 
-            HGTextField(
-                title: "현재 비밀번호",
-                placeholder: "현재 비밀번호 입력",
-                text: $currentPassword,
-                isSecure: true,
-                fieldHeight: 48,
-                inputType: .currentPassword
-            )
-            .padding(.top, 20)
+                HGTextField(
+                    title: "현재 비밀번호",
+                    placeholder: "현재 비밀번호 입력",
+                    text: $currentPassword,
+                    isSecure: true,
+                    fieldHeight: 48,
+                    inputType: .currentPassword
+                )
+                .padding(.top, 20)
 
-            HGTextField(
-                title: "새 비밀번호",
-                placeholder: "새 비밀번호 입력",
-                text: $newPassword,
-                isSecure: true,
-                fieldHeight: 48,
-                inputType: .newPassword
-            )
-            .padding(.top, 20)
+                HGTextField(
+                    title: "새 비밀번호",
+                    placeholder: "새 비밀번호 입력",
+                    text: $newPassword,
+                    isSecure: true,
+                    fieldHeight: 48,
+                    inputType: .newPassword
+                )
+                .padding(.top, 20)
 
-            passwordRuleFeedback
-                .padding(.top, 8)
-
-            HGTextField(
-                title: "새 비밀번호 확인",
-                placeholder: "새 비밀번호 다시 입력",
-                text: $confirmation,
-                isSecure: true,
-                errorMessage: confirmationError,
-                fieldHeight: 48,
-                inputType: .newPassword
-            )
-            .padding(.top, 20)
-
-            if passwordsMatch {
-                Text("✓ 새 비밀번호가 일치해요")
-                    .font(HGFont.notoRegular(12, relativeTo: .caption))
-                    .foregroundStyle(HGColor.primary)
+                passwordRuleFeedback
                     .padding(.top, 8)
+
+                HGTextField(
+                    title: "새 비밀번호 확인",
+                    placeholder: "새 비밀번호 다시 입력",
+                    text: $confirmation,
+                    isSecure: true,
+                    errorMessage: confirmationError,
+                    fieldHeight: 48,
+                    inputType: .newPassword
+                )
+                .padding(.top, 20)
+
+                if passwordsMatch {
+                    Text("✓ 새 비밀번호가 일치해요")
+                        .font(HGFont.notoRegular(12, relativeTo: .caption))
+                        .foregroundStyle(HGColor.primary)
+                        .padding(.top, 8)
+                }
             }
+            .padding(.horizontal, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 24)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 24)
-        .padding(.bottom, 24)
-        }
-        .scrollBounceBehavior(.basedOnSize)
-        .scrollDismissesKeyboard(.interactively)
         .background(HGColor.appBackground)
         .hgNavigationTitle("비밀번호 변경")
         .safeAreaInset(edge: .bottom) {
@@ -197,7 +201,11 @@ private struct PasswordChangeView: View {
             .background(HGColor.appBackground)
         }
         .dismissKeyboardOnBackgroundTap()
-        .alert(error?.title ?? "비밀번호 변경 오류", isPresented: errorAlert) { Button("확인", role: .cancel) {} } message: { Text(error?.alertMessage ?? "") }
+        .alert(error?.title ?? "비밀번호 변경 오류", isPresented: errorAlert) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(error?.alertMessage ?? "")
+        }
         .alert("비밀번호가 변경되었습니다.", isPresented: $isComplete) { Button("확인", role: .cancel) {} }
     }
 

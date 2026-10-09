@@ -13,50 +13,48 @@ struct WithdrawalGuideView: View {
     }
 
     var body: some View {
-        ScrollView {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("탈퇴하기 전에 꼭 확인해주세요")
-                .font(HGFont.notoBold(22, relativeTo: .title2))
-                .foregroundStyle(HGColor.primaryText)
+        HGFixedContent {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("탈퇴하기 전에 꼭 확인해주세요")
+                    .font(HGFont.notoBold(22, relativeTo: .title2))
+                    .foregroundStyle(HGColor.primaryText)
 
-            Text("탈퇴 후에는 아래 내용이 적용돼요")
-                .font(HGFont.notoRegular(14, relativeTo: .subheadline))
-                .foregroundStyle(HGColor.secondaryText)
-                .padding(.top, 4)
+                Text("탈퇴 후에는 아래 내용이 적용돼요")
+                    .font(HGFont.notoRegular(14, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .padding(.top, 4)
 
-            noticeCard
+                noticeCard
+                    .padding(.top, 16)
+
+                reasonCard
+                    .padding(.top, 16)
+
+                HGTextField(
+                    title: "비밀번호 확인",
+                    placeholder: "현재 비밀번호를 입력해주세요",
+                    text: $password,
+                    isSecure: true
+                )
                 .padding(.top, 16)
 
-            reasonCard
-                .padding(.top, 16)
-
-            HGTextField(
-                title: "비밀번호 확인",
-                placeholder: "현재 비밀번호를 입력해주세요",
-                text: $password,
-                isSecure: true
-            )
-            .padding(.top, 16)
-
-            agreementRow
-                .padding(.top, 16)
+                agreementRow
+                    .padding(.top, 16)
+            }
+            .padding(.horizontal, HGLayout.screenHorizontalPadding)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
-        .padding(.horizontal, HGLayout.screenHorizontalPadding)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        }
-        .scrollBounceBehavior(.basedOnSize)
-        .scrollDismissesKeyboard(.interactively)
         .background(HGColor.appBackground)
         .hgNavigationTitle("회원탈퇴")
         .safeAreaInset(edge: .bottom) {
             HGPrimaryButton(title: "탈퇴하기", isEnabled: canRequestWithdrawal, tint: HGColor.error) {
                 showsConfirmation = true
             }
-                .padding(.horizontal, HGLayout.screenHorizontalPadding)
-                .padding(.vertical, 14)
-                .background(HGColor.appBackground)
+            .padding(.horizontal, HGLayout.screenHorizontalPadding)
+            .padding(.vertical, 14)
+            .background(HGColor.appBackground)
         }
         .overlay {
             if showsConfirmation {
