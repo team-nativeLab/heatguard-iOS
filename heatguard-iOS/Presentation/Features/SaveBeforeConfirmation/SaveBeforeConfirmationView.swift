@@ -32,10 +32,10 @@ struct SaveBeforeConfirmationView: View {
 
     var body: some View {
 
-            VStack(spacing: 0) {
-                header
+        VStack(spacing: 0) {
+            header
 
-                ScrollView {
+            HGFixedContent {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("현장 사진")
                         .font(HGFont.bold(20, relativeTo: .title2))
@@ -54,7 +54,7 @@ struct SaveBeforeConfirmationView: View {
                             temperature: draft.temperature.map { String(format: "%.1f", $0) } ?? "",
                             humidity: draft.humidity.map { String(format: "%.0f", $0) } ?? ""
                         )
-                            .padding(.top, 20)
+                        .padding(.top, 20)
                     }
 
                     Button(action: onRetry) {
@@ -69,12 +69,11 @@ struct SaveBeforeConfirmationView: View {
                         .padding(.top, 15)
                 }
                 .padding(.top, HGLayout.screenContentTopPadding)
-                }
-                .scrollBounceBehavior(.basedOnSize)
             }
-            .padding(.horizontal, HGLayout.screenHorizontalPadding)
-            .padding(.top, HGLayout.screenTopPadding)
-            .frame(maxWidth: .infinity, alignment: .top)
+        }
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
+        .padding(.top, HGLayout.screenTopPadding)
+        .frame(maxWidth: .infinity, alignment: .top)
         .background(HGColor.appBackground)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HGPrimaryButton(

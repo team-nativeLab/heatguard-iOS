@@ -32,10 +32,10 @@ struct FieldPhotoCaptureView: View {
     }
 
     var body: some View {
-            VStack(spacing: 0) {
-                header
+        VStack(spacing: 0) {
+            header
 
-                ScrollView {
+            HGFixedContent {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("현장 사진")
                         .font(HGFont.bold(20, relativeTo: .title2))
@@ -66,20 +66,17 @@ struct FieldPhotoCaptureView: View {
                         .padding(.top, 15)
                 }
                 .padding(.top, HGLayout.screenContentTopPadding)
-                }
-                .scrollIndicators(.hidden)
-                .scrollBounceBehavior(.basedOnSize)
-                .scrollDismissesKeyboard(.interactively)
             }
-            .padding(.horizontal, HGLayout.screenHorizontalPadding)
-            .padding(.top, HGLayout.screenTopPadding)
-            .background(HGColor.appBackground)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                HGPrimaryButton(title: isSaving ? "저장 중..." : "저장", isEnabled: !isSaving, action: saveRecord)
-                    .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
-                    .padding(.vertical, 8)
-                    .background(HGColor.appBackground)
-            }
+        }
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
+        .padding(.top, HGLayout.screenTopPadding)
+        .background(HGColor.appBackground)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HGPrimaryButton(title: isSaving ? "저장 중..." : "저장", isEnabled: !isSaving, action: saveRecord)
+                .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
+                .padding(.vertical, 8)
+                .background(HGColor.appBackground)
+        }
         .toolbar(.hidden, for: .navigationBar)
     }
 
@@ -189,7 +186,7 @@ private struct FieldMeasurementRow: View {
                 .font(HGFont.semiBold(13, relativeTo: .caption))
                 .foregroundStyle(measurement.value == "자동 계산" ? HGColor.secondaryText : HGColor.primaryText)
         }
-            .padding(.horizontal, HGLayout.cardPadding)
+        .padding(.horizontal, HGLayout.cardPadding)
         .frame(height: 36)
     }
 }

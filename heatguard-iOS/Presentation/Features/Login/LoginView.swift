@@ -20,7 +20,7 @@ struct LoginView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            ScrollView {
+            HGFixedContent {
                 VStack(spacing: 0) {
                     Image("BrandIcon")
                         .resizable()
@@ -39,7 +39,9 @@ struct LoginView: View {
                             .padding(.top, 8)
                         VStack(spacing: 26) {
                             HGTextField(title: "이메일", placeholder: "example@email.com", text: $email, inputType: .email)
-                            HGTextField(title: "비밀번호", placeholder: "비밀번호를 입력해주세요", text: $password, isSecure: true, errorMessage: requestError?.message, inputType: .currentPassword)
+                            HGTextField(
+                                title: "비밀번호", placeholder: "비밀번호를 입력해주세요", text: $password, isSecure: true,
+                                errorMessage: requestError?.message, inputType: .currentPassword)
                         }
                         .padding(.top, 31)
                     }
@@ -67,8 +69,6 @@ struct LoginView: View {
                 }
                 .frame(minHeight: geometry.size.height)
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .scrollDismissesKeyboard(.interactively)
         }
         .background(HGColor.surface)
         .toolbar(.hidden, for: .navigationBar)

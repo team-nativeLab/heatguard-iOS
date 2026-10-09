@@ -43,10 +43,10 @@ struct ThermometerRecordView: View {
     }
 
     var body: some View {
-            VStack(spacing: 0) {
-                header
+        VStack(spacing: 0) {
+            header
 
-                ScrollView {
+            HGFixedContent {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("온도계 기록")
                         .font(HGFont.bold(20, relativeTo: .title2))
@@ -67,26 +67,27 @@ struct ThermometerRecordView: View {
                         .padding(.top, 26)
                 }
                 .padding(.top, HGLayout.screenContentTopPadding)
-                }
-                .scrollIndicators(.hidden)
-                .scrollBounceBehavior(.basedOnSize)
-                .scrollDismissesKeyboard(.interactively)
             }
-            .padding(.horizontal, HGLayout.screenHorizontalPadding)
-            .padding(.top, HGLayout.screenTopPadding)
-            .background(HGColor.appBackground)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                HGPrimaryButton(title: "기록 저장", action: continueToPhoto)
-                    .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
-                    .padding(.vertical, 8)
-                    .background(HGColor.appBackground)
-            }
+        }
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
+        .padding(.top, HGLayout.screenTopPadding)
+        .background(HGColor.appBackground)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HGPrimaryButton(title: "기록 저장", action: continueToPhoto)
+                .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
+                .padding(.vertical, 8)
+                .background(HGColor.appBackground)
+        }
         .toolbar(.hidden, for: .navigationBar)
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {}
         }
         .dismissKeyboardOnBackgroundTap()
-        .alert("입력값을 확인해주세요", isPresented: validationAlert) { Button("확인", role: .cancel) {} } message: { Text(validationMessage ?? "") }
+        .alert("입력값을 확인해주세요", isPresented: validationAlert) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(validationMessage ?? "")
+        }
     }
 
     private var header: some View {
