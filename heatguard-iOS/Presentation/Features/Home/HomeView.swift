@@ -50,42 +50,41 @@ struct HomeView: View {
     }
 
     private var homeContent: some View {
-        ScrollView {
-        VStack(spacing: 0) {
-            header
-            weatherSummary
-                .padding(.top, 15)
-            sectionLabel("데이터 기록")
-                .padding(.top, 20)
-            checkCard
+        HGFixedContent {
+            VStack(spacing: 0) {
+                header
+                weatherSummary
+                    .padding(.top, 15)
+                sectionLabel("데이터 기록")
+                    .padding(.top, 20)
+                checkCard
+                    .padding(.top, 8)
+                contactCard
+                    .padding(.top, 16)
+                sectionLabel("추가 기록")
+                    .padding(.top, 16)
+                VStack(spacing: 9) {
+                    HomeActionRow(
+                        icon: "HomeCamera",
+                        title: "현장 사진",
+                        subtitle: "사진 촬영 또는 앨범에서 선택"
+                    ) {
+                        showsRecordTypes = true
+                    }
+                    HomeActionRow(
+                        icon: "HomeHistory",
+                        title: "기록 내역",
+                        subtitle: "지금까지의 기록을 확인하세요"
+                    ) {
+                        flowPath.append(HomeFlowRoute.recordHistory)
+                    }
+                }
                 .padding(.top, 8)
-            contactCard
-                .padding(.top, 16)
-            sectionLabel("추가 기록")
-                .padding(.top, 16)
-            VStack(spacing: 9) {
-                HomeActionRow(
-                    icon: "HomeCamera",
-                    title: "현장 사진",
-                    subtitle: "사진 촬영 또는 앨범에서 선택"
-                ) {
-                    showsRecordTypes = true
-                }
-                HomeActionRow(
-                    icon: "HomeHistory",
-                    title: "기록 내역",
-                    subtitle: "지금까지의 기록을 확인하세요"
-                ) {
-                    flowPath.append(HomeFlowRoute.recordHistory)
-                }
+                Spacer(minLength: 0)
             }
-            .padding(.top, 8)
-            Spacer(minLength: 0)
+            .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
+            .padding(.top, HGLayout.screenTopPadding)
         }
-        .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
-        .padding(.top, HGLayout.screenTopPadding)
-        }
-        .scrollBounceBehavior(.basedOnSize)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -98,10 +97,10 @@ struct HomeView: View {
         }
         .sheet(item: $resultSheet) { result in
             switch result {
-            case let .success(value):
+            case .success(let value):
                 SaveSuccessView(result: value, onConfirm: returnToHome)
                     .interactiveDismissDisabled()
-            case let .failure(value):
+            case .failure(let value):
                 SaveFailureView(failure: value, onRetry: { resultSheet = nil }, onTemporarySave: saveTemporaryAndReturn)
                     .interactiveDismissDisabled()
             }
@@ -153,13 +152,19 @@ struct HomeView: View {
         }
         .alert("긴급 호출에 실패했습니다.", isPresented: emergencyErrorAlert) {
             Button("확인", role: .cancel) {}
-        } message: { Text(emergencyError?.alertMessage ?? "") }
+        } message: {
+            Text(emergencyError?.alertMessage ?? "")
+        }
         .alert(managerPhoneError?.title ?? "관리자 전화 오류", isPresented: managerPhoneErrorAlert) {
             Button("확인", role: .cancel) {}
-        } message: { Text(managerPhoneError?.alertMessage ?? "") }
+        } message: {
+            Text(managerPhoneError?.alertMessage ?? "")
+        }
         .alert(withdrawalError?.title ?? "회원탈퇴 오류", isPresented: withdrawalErrorAlert) {
             Button("확인", role: .cancel) {}
-        } message: { Text(withdrawalError?.alertMessage ?? "") }
+        } message: {
+            Text(withdrawalError?.alertMessage ?? "")
+        }
         .alert("임시저장 기록", isPresented: $showsStoredDraft) {
             Button("이어 작성", action: resumeStoredDraft)
             Button("삭제", role: .destructive, action: discardStoredDraft)
@@ -343,17 +348,21 @@ struct HomeView: View {
     }
 
     private func beginEmergencyCall() {
-        guard !isCreatingEmergencyCall else { return }
+        guard emergencySheet == .alert, !isCreatingEmergencyCall else { return }
         isCreatingEmergencyCall = true
         Task {
             defer { isCreatingEmergencyCall = false }
             do {
-                let callID = try await HGEmergencyCallService().createCall()
-                activeEmergencyCallID = callID
-                activeEmergencyCallStatus = .active
+                let service = HGEmergencyCallService()
+                let call = try await HGEmergencyCallConfirmation.perform(
+                    currentCall: { try await service.fetchCurrentCall() },
+                    createCall: { try await service.createCall() }
+                )
+                activeEmergencyCallID = call.id
+                activeEmergencyCallStatus = call.status
                 emergencySheet = .calling
             } catch {
-                emergencyError = HGErrorPresentation(error: error)
+                emergencyStatusError = HGErrorPresentation(error: error)
             }
         }
     }
@@ -394,19 +403,8 @@ struct HomeView: View {
     }
 
     private func showEmergencyCall() {
-        Task {
-            do {
-                if let currentCall = try await HGEmergencyCallService().fetchCurrentCall() {
-                    activeEmergencyCallID = currentCall.id
-                    activeEmergencyCallStatus = currentCall.status
-                    emergencySheet = .calling
-                } else {
-                    emergencySheet = .alert
-                }
-            } catch {
-                emergencyError = HGErrorPresentation(error: error)
-            }
-        }
+        emergencyStatusError = nil
+        emergencySheet = .alert
     }
 
     private func contactSiteManager() {
@@ -737,7 +735,7 @@ struct HomeView: View {
     }
 }
 
-private enum EmergencySheet: Identifiable {
+private enum EmergencySheet: Identifiable, Equatable {
     case alert
     case calling
 
@@ -872,7 +870,7 @@ private struct HomeTimeline: View {
                 ForEach(times, id: \.self) { time in
                     Text(time)
                         .font(HGFont.notoRegular(9, relativeTo: .caption2))
-                    .foregroundStyle(HGColor.secondaryText)
+                        .foregroundStyle(HGColor.secondaryText)
 
                     if time != times.last {
                         Spacer()
