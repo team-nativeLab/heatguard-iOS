@@ -28,6 +28,8 @@ enum HGColor {
     static let readOnlyField = Color(red: 237 / 255, green: 240 / 255, blue: 245 / 255)
     static let answered = Color(red: 33 / 255, green: 153 / 255, blue: 89 / 255)
     static let disabled = Color(red: 217 / 255, green: 217 / 255, blue: 217 / 255)
+    static let checklistDisabledButton = Color(red: 201 / 255, green: 216 / 255, blue: 242 / 255)
+    static let checklistSuccess = Color(red: 31 / 255, green: 157 / 255, blue: 85 / 255)
     static let primaryText = Color(red: 31 / 255, green: 38 / 255, blue: 51 / 255)
     static let secondaryText = Color(red: 120 / 255, green: 130 / 255, blue: 148 / 255)
     static let error = Color(red: 255 / 255, green: 97 / 255, blue: 114 / 255)

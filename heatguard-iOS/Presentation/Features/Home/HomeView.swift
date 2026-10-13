@@ -295,20 +295,26 @@ struct HomeView: View {
     }
 
     private var checkCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("오늘 체크 시간")
-                .font(HGFont.notoBold(14, relativeTo: .subheadline))
-            Text(checklist.statusText)
-                .font(HGFont.notoRegular(11, relativeTo: .caption2))
-                .foregroundStyle(HGColor.secondaryText)
-                .padding(.top, 7)
-            HomeTimeline(times: checklist.times)
-                .padding(.top, 19)
+        Button {
+            flowPath.append(HomeFlowRoute.checklist)
+        } label: {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("오늘 체크 시간")
+                    .font(HGFont.notoBold(14, relativeTo: .subheadline))
+                Text(checklist.statusText)
+                    .font(HGFont.notoRegular(11, relativeTo: .caption2))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .padding(.top, 7)
+                HomeTimeline(times: checklist.times)
+                    .padding(.top, 19)
+            }
+            .foregroundStyle(HGColor.primaryText)
+            .padding(20)
+            .frame(maxWidth: .infinity, minHeight: 136, alignment: .leading)
+            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
         }
-        .foregroundStyle(HGColor.primaryText)
-        .padding(20)
-        .frame(maxWidth: .infinity, minHeight: 136, alignment: .leading)
-        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+        .buttonStyle(.plain)
+        .accessibilityHint("체크리스트 항목을 확인하고 체크합니다")
     }
 
     private var contactCard: some View {
@@ -446,6 +452,18 @@ struct HomeView: View {
     @ViewBuilder
     private func destinationView(for route: HomeFlowRoute) -> some View {
         switch route {
+        case .checklist:
+            ChecklistView(
+                times: checklist.times,
+                siteName: dashboard.siteName,
+                teamName: dashboard.teamName
+            ) { checkedCount, totalCount in
+                checklist = HGChecklistSummary(
+                    times: checklist.times,
+                    checkedCount: checkedCount,
+                    totalCount: totalCount
+                )
+            }
         case .thermometer:
             ThermometerRecordView(weather: dashboard.weather,
                 teamName: dashboard.teamName,
@@ -743,6 +761,7 @@ private enum EmergencySheet: Identifiable, Equatable {
 }
 
 private enum HomeFlowRoute: Hashable {
+    case checklist
     case thermometer
     case workPhoto
     case restPhoto
