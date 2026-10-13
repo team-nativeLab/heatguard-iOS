@@ -34,10 +34,10 @@ struct NotificationsView: View {
                         .frame(width: 72, height: 72)
                         .background(HGColor.homeActionIconBackground, in: Circle())
                     Text("아직 받은 알림이 없어요")
-                        .font(HGFont.bold(16, relativeTo: .headline))
+                        .font(HGFont.notoBold(16, relativeTo: .headline))
                         .foregroundStyle(HGColor.primaryText)
                     Text("폭염 경보나 기록 알림이 오면 여기에 모아서 보여드려요")
-                        .font(HGFont.regular(13, relativeTo: .subheadline))
+                        .font(HGFont.notoRegular(13, relativeTo: .subheadline))
                         .foregroundStyle(HGColor.secondaryText)
                         .multilineTextAlignment(.center)
                 }
@@ -48,7 +48,7 @@ struct NotificationsView: View {
                     LazyVStack(alignment: .leading, spacing: 14) {
                         ForEach(groupedNotifications, id: \.date) { group in
                             Text(group.dateLabel)
-                                .font(HGFont.medium(12, relativeTo: .caption))
+                                .font(HGFont.notoMedium(12, relativeTo: .caption))
                                 .foregroundStyle(HGColor.secondaryText)
                             VStack(spacing: 0) {
                                 ForEach(group.items) { notification in
@@ -68,7 +68,7 @@ struct NotificationsView: View {
                                     if isLoadingMore { ProgressView() }
                                     Text(isLoadingMore ? "불러오는 중..." : "더 보기")
                                 }
-                                .font(HGFont.medium(13, relativeTo: .subheadline))
+                                .font(HGFont.notoMedium(13, relativeTo: .subheadline))
                                 .foregroundStyle(HGColor.primary)
                                 .frame(maxWidth: .infinity, minHeight: 44)
                             }
@@ -87,8 +87,7 @@ struct NotificationsView: View {
             }
         }
         .background(HGColor.appBackground)
-        .navigationTitle("알림")
-        .navigationBarTitleDisplayMode(.inline)
+        .hgNavigationTitle("알림")
         .task { await loadFirstPage() }
         .onChange(of: category) { _, _ in Task { await loadFirstPage() } }
         .alert(error?.title ?? "알림 조회 오류", isPresented: errorAlert) {
@@ -107,22 +106,23 @@ struct NotificationsView: View {
             ForEach(HGNotificationCategory.allCases) { item in
                 Button { category = item } label: {
                     Text(item.title)
-                        .font(HGFont.medium(11, relativeTo: .caption))
+                        .font(HGFont.notoMedium(13, relativeTo: .caption))
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
                         .foregroundStyle(category == item ? .white : HGColor.secondaryText)
-                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 14)
                         .frame(height: 32)
                         .background(category == item ? HGColor.primary : HGColor.surface, in: Capsule())
                 }
                 .buttonStyle(.plain)
             }
+            Spacer(minLength: 0)
         }
         .padding(.vertical, 6)
     }
 
     private var groupedNotifications: [NotificationDayGroup] {
-        let calendar = Calendar.current
+        let calendar = HGDateFormatting.calendar
         let grouped = Dictionary(grouping: notifications) { notification in
             notification.createdAt.hgISO8601Date.map(calendar.startOfDay(for:)) ?? .distantPast
         }
@@ -132,9 +132,10 @@ struct NotificationsView: View {
             else if calendar.isDateInYesterday(date) { label = "어제" }
             else { label = "" }
             let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "ko_KR")
+            formatter.locale = HGDateFormatting.locale
+            formatter.timeZone = HGDateFormatting.timeZone
             formatter.dateFormat = "M월 d일 (E)"
-            let dateLabel = label.isEmpty ? formatter.string(from: date) : "\(label) · \(formatter.string(from: date))"
+            let dateLabel = date == .distantPast ? "날짜 정보 없음" : (label.isEmpty ? formatter.string(from: date) : "\(label) · \(formatter.string(from: date))")
             return NotificationDayGroup(date: date, dateLabel: dateLabel, items: grouped[date] ?? [])
         }
     }
@@ -237,12 +238,12 @@ private struct NotificationRow: View {
                 .background(notification.category == .emergency ? HGColor.saveFailureIconBackground : HGColor.homeActionIconBackground, in: RoundedRectangle(cornerRadius: 14))
             VStack(alignment: .leading, spacing: 6) {
                 Text(notification.title)
-                    .font(HGFont.semiBold(14, relativeTo: .subheadline))
+                    .font(HGFont.notoBold(14, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
             }
             Spacer(minLength: 4)
             Text(notification.createdAt.notificationTimeText)
-                .font(HGFont.regular(12, relativeTo: .caption))
+                .font(HGFont.notoRegular(12, relativeTo: .caption))
                 .foregroundStyle(HGColor.secondaryText)
             if !notification.read {
                 Circle().fill(HGColor.primary).frame(width: 8, height: 8)
@@ -257,10 +258,6 @@ private struct NotificationRow: View {
 
 private extension String {
     var notificationTimeText: String {
-        guard let date = hgISO8601Date else { return self }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: date)
+        HGDateFormatting.time(self)
     }
 }

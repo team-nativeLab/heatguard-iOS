@@ -59,27 +59,27 @@ struct RestPhotoView: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            let compact = geometry.size.height < 820
-            VStack(spacing: 0) {
-                header
-                formContent(compact: compact)
-                Spacer(minLength: 0)
+        VStack(spacing: 0) {
+            header
+            HGFixedContent {
+                formContent
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 16)
             }
-            .padding(.horizontal, HGLayout.screenHorizontalPadding)
-            .padding(.top, compact ? 8 : HGLayout.screenTopPadding)
+        }
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
+        .padding(.top, HGLayout.screenTopPadding)
+        .background(HGColor.appBackground)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HGPrimaryButton(
+                title: isSaving ? "저장 중..." : "기록 저장",
+                isEnabled: !isSaving,
+                height: HGLayout.primaryButtonHeight,
+                action: saveRecord
+            )
+            .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
+            .padding(.vertical, 8)
             .background(HGColor.appBackground)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                HGPrimaryButton(
-                    title: isSaving ? "저장 중..." : "기록 저장",
-                    isEnabled: !isSaving,
-                    height: HGLayout.primaryButtonHeight,
-                    action: saveRecord
-                )
-                .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
-                .padding(.vertical, 8)
-                .background(HGColor.appBackground)
-            }
         }
         .toolbar(.hidden, for: .navigationBar)
         .dismissKeyboardOnBackgroundTap()
@@ -90,26 +90,29 @@ struct RestPhotoView: View {
         }
     }
 
-    private func formContent(compact: Bool) -> some View {
+    private var formContent: some View {
         VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
             Text("휴식시간 사진")
                 .font(HGFont.bold(20, relativeTo: .title2))
 
             Text("휴식시간과 휴식 환경을 기록해주세요")
                 .font(HGFont.regular(14, relativeTo: .subheadline))
-                .padding(.top, compact ? 6 : 10)
+                .padding(.top, 10)
+            }
+            .padding(.horizontal, HGLayout.recordHeadingInset)
 
-            HGPhotoCaptureSection(images: $photos, compact: compact)
-                .padding(.top, compact ? 12 : 34)
+            HGPhotoCaptureSection(images: $photos)
+                .padding(.top, 34)
 
             restForm
-                .padding(.top, compact ? 12 : 26)
+                .padding(.top, 26)
             if needsWeatherInput {
                 HGPhotoWeatherInput(temperature: $temperature, humidity: $humidity)
-                    .padding(.top, compact ? 12 : 25)
+                    .padding(.top, 25)
             }
         }
-        .padding(.top, compact ? 12 : HGLayout.screenContentTopPadding)
+        .padding(.top, HGLayout.screenContentTopPadding)
     }
 
     private var header: some View {
@@ -125,9 +128,11 @@ struct RestPhotoView: View {
 
             if recordsRestInterval {
                 DatePicker("시작", selection: $restStartedAt, displayedComponents: [.date, .hourAndMinute])
-                    .environment(\.timeZone, koreanTimeZone)
+                    .environment(\.timeZone, HGDateFormatting.timeZone)
+                    .environment(\.locale, HGDateFormatting.locale)
                 DatePicker("종료", selection: $restEndedAt, displayedComponents: [.date, .hourAndMinute])
-                    .environment(\.timeZone, koreanTimeZone)
+                    .environment(\.timeZone, HGDateFormatting.timeZone)
+                    .environment(\.locale, HGDateFormatting.locale)
                     .padding(.top, 8)
             } else {
                 Text("휴식 시간은 선택 입력이에요")
@@ -137,7 +142,7 @@ struct RestPhotoView: View {
             }
             HGOptionalMemoSection(
                 placeholder: "휴식 관련 메모를 입력해주세요",
-                height: 64,
+                height: 74,
                 text: $memo
             )
             .padding(.top, 16)
@@ -190,16 +195,12 @@ struct RestPhotoView: View {
     }
 
     private func minutePrecisionDate(_ date: Date) -> Date {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        let calendar = HGDateFormatting.calendar
         var components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
         components.second = 0
         return calendar.date(from: components) ?? date
     }
 
-    private var koreanTimeZone: TimeZone {
-        TimeZone(identifier: "Asia/Seoul") ?? .current
-    }
 
 }
 

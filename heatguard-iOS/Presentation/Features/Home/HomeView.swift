@@ -8,6 +8,8 @@ struct HomeView: View {
         self.onSessionEnded = onSessionEnded
     }
 
+    @State private var resultSheet: RecordResultSheet?
+    @State private var showsWithdrawalCompleted = false
     @State private var showsRecordTypes = false
     @State private var showsMenuDrawer = false
     @State private var isMenuDrawerVisible = false
@@ -48,39 +50,41 @@ struct HomeView: View {
     }
 
     private var homeContent: some View {
-        VStack(spacing: 0) {
-            header
-            weatherSummary
-                .padding(.top, 15)
-            sectionLabel("데이터 기록")
-                .padding(.top, 20)
-            checkCard
+        HGFixedContent {
+            VStack(spacing: 0) {
+                header
+                weatherSummary
+                    .padding(.top, 15)
+                sectionLabel("데이터 기록")
+                    .padding(.top, 20)
+                checkCard
+                    .padding(.top, 8)
+                contactCard
+                    .padding(.top, 16)
+                sectionLabel("추가 기록")
+                    .padding(.top, 16)
+                VStack(spacing: 9) {
+                    HomeActionRow(
+                        icon: "HomeCamera",
+                        title: "현장 사진",
+                        subtitle: "사진 촬영 또는 앨범에서 선택"
+                    ) {
+                        showsRecordTypes = true
+                    }
+                    HomeActionRow(
+                        icon: "HomeHistory",
+                        title: "기록 내역",
+                        subtitle: "지금까지의 기록을 확인하세요"
+                    ) {
+                        flowPath.append(HomeFlowRoute.recordHistory)
+                    }
+                }
                 .padding(.top, 8)
-            contactCard
-                .padding(.top, 16)
-            sectionLabel("추가 기록")
-                .padding(.top, 16)
-            VStack(spacing: 9) {
-                HomeActionRow(
-                    icon: "HomeCamera",
-                    title: "현장 사진",
-                    subtitle: "사진 촬영 또는 앨범에서 선택"
-                ) {
-                    showsRecordTypes = true
-                }
-                HomeActionRow(
-                    icon: "HomeHistory",
-                    title: "기록 내역",
-                    subtitle: "지금까지의 기록을 확인하세요"
-                ) {
-                    flowPath.append(HomeFlowRoute.recordHistory)
-                }
+                Spacer(minLength: 0)
             }
-            .padding(.top, 8)
-            Spacer(minLength: 0)
+            .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
+            .padding(.top, HGLayout.screenTopPadding)
         }
-        .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
-        .padding(.top, HGLayout.screenTopPadding)
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -90,6 +94,22 @@ struct HomeView: View {
             .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
             .padding(.vertical, 10)
             .background(HGColor.appBackground)
+        }
+        .sheet(item: $resultSheet) { result in
+            switch result {
+            case .success(let value):
+                SaveSuccessView(result: value, onConfirm: returnToHome)
+                    .interactiveDismissDisabled()
+            case .failure(let value):
+                SaveFailureView(failure: value, onRetry: { resultSheet = nil }, onTemporarySave: saveTemporaryAndReturn)
+                    .interactiveDismissDisabled()
+            }
+        }
+        .sheet(isPresented: $showsWithdrawalCompleted) {
+            WithdrawalCompletedView(onConfirm: finishWithdrawal)
+                .interactiveDismissDisabled()
+                .presentationDetents([.height(683)])
+                .presentationCornerRadius(40)
         }
         .sheet(isPresented: $showsRecordTypes, onDismiss: openSelectedRecord) {
             RecordTypeSelectionView { pendingRecordType = $0 }
@@ -132,13 +152,19 @@ struct HomeView: View {
         }
         .alert("긴급 호출에 실패했습니다.", isPresented: emergencyErrorAlert) {
             Button("확인", role: .cancel) {}
-        } message: { Text(emergencyError?.alertMessage ?? "") }
+        } message: {
+            Text(emergencyError?.alertMessage ?? "")
+        }
         .alert(managerPhoneError?.title ?? "관리자 전화 오류", isPresented: managerPhoneErrorAlert) {
             Button("확인", role: .cancel) {}
-        } message: { Text(managerPhoneError?.alertMessage ?? "") }
+        } message: {
+            Text(managerPhoneError?.alertMessage ?? "")
+        }
         .alert(withdrawalError?.title ?? "회원탈퇴 오류", isPresented: withdrawalErrorAlert) {
             Button("확인", role: .cancel) {}
-        } message: { Text(withdrawalError?.alertMessage ?? "") }
+        } message: {
+            Text(withdrawalError?.alertMessage ?? "")
+        }
         .alert("임시저장 기록", isPresented: $showsStoredDraft) {
             Button("이어 작성", action: resumeStoredDraft)
             Button("삭제", role: .destructive, action: discardStoredDraft)
@@ -204,35 +230,34 @@ struct HomeView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(dashboard.weather.heatLevelTitle)
-                        .font(HGFont.bold(10, relativeTo: .caption2))
+                        .font(HGFont.notoBold(10, relativeTo: .caption2))
                         .foregroundStyle(HGColor.homeHeatLevelText)
                         .padding(.horizontal, 10)
                         .frame(height: 24)
                         .background(HGColor.homeHeatLevelBackground, in: Capsule())
 
                     Text("현재 온도")
-                        .font(HGFont.medium(12, relativeTo: .caption))
+                        .font(HGFont.notoMedium(12, relativeTo: .caption))
                         .padding(.top, 16)
 
-                    HStack(spacing: 8) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(dashboard.weather.temperatureText)
-                            .font(HGFont.bold(40, relativeTo: .largeTitle))
-                    }
-
-                    if let deltaText = dashboard.weather.temperatureDeltaText {
-                        Text(deltaText)
-                            .font(HGFont.medium(11, relativeTo: .caption2))
-                            .foregroundStyle(HGColor.secondaryText)
-                            .padding(.top, 2)
+                            .font(HGFont.notoBold(40, relativeTo: .largeTitle))
+                            .fixedSize(horizontal: true, vertical: false)
+                        if let deltaText = dashboard.weather.temperatureDeltaText {
+                            Text(deltaText)
+                                .font(HGFont.notoMedium(11, relativeTo: .caption2))
+                                .foregroundStyle(HGColor.secondaryText)
+                        }
                     }
 
                     Text("습도 \(dashboard.weather.humidityText) · 체감온도 \(dashboard.weather.apparentTemperatureText)")
-                        .font(HGFont.regular(12, relativeTo: .caption))
+                        .font(HGFont.notoRegular(12, relativeTo: .caption))
                         .padding(.top, 8)
 
                     if let observationTime = dashboard.weather.observationTimeText {
                         Text(observationTime)
-                            .font(HGFont.regular(10, relativeTo: .caption2))
+                            .font(HGFont.notoRegular(10, relativeTo: .caption2))
                             .foregroundStyle(HGColor.secondaryText)
                             .padding(.top, 4)
                     }
@@ -275,9 +300,9 @@ struct HomeView: View {
         } label: {
             VStack(alignment: .leading, spacing: 0) {
                 Text("오늘 체크 시간")
-                    .font(HGFont.bold(14, relativeTo: .subheadline))
+                    .font(HGFont.notoBold(14, relativeTo: .subheadline))
                 Text(checklist.statusText)
-                    .font(HGFont.regular(11, relativeTo: .caption2))
+                    .font(HGFont.notoRegular(11, relativeTo: .caption2))
                     .foregroundStyle(HGColor.secondaryText)
                     .padding(.top, 7)
                 HomeTimeline(times: checklist.times)
@@ -316,7 +341,7 @@ struct HomeView: View {
 
     private func sectionLabel(_ title: String) -> some View {
         Text(title)
-            .font(HGFont.regular(11, relativeTo: .caption2))
+            .font(HGFont.notoRegular(11, relativeTo: .caption2))
             .foregroundStyle(HGColor.primaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -329,17 +354,21 @@ struct HomeView: View {
     }
 
     private func beginEmergencyCall() {
-        guard !isCreatingEmergencyCall else { return }
+        guard emergencySheet == .alert, !isCreatingEmergencyCall else { return }
         isCreatingEmergencyCall = true
         Task {
             defer { isCreatingEmergencyCall = false }
             do {
-                let callID = try await HGEmergencyCallService().createCall()
-                activeEmergencyCallID = callID
-                activeEmergencyCallStatus = .active
+                let service = HGEmergencyCallService()
+                let call = try await HGEmergencyCallConfirmation.perform(
+                    currentCall: { try await service.fetchCurrentCall() },
+                    createCall: { try await service.createCall() }
+                )
+                activeEmergencyCallID = call.id
+                activeEmergencyCallStatus = call.status
                 emergencySheet = .calling
             } catch {
-                emergencyError = HGErrorPresentation(error: error)
+                emergencyStatusError = HGErrorPresentation(error: error)
             }
         }
     }
@@ -380,19 +409,8 @@ struct HomeView: View {
     }
 
     private func showEmergencyCall() {
-        Task {
-            do {
-                if let currentCall = try await HGEmergencyCallService().fetchCurrentCall() {
-                    activeEmergencyCallID = currentCall.id
-                    activeEmergencyCallStatus = currentCall.status
-                    emergencySheet = .calling
-                } else {
-                    emergencySheet = .alert
-                }
-            } catch {
-                emergencyError = HGErrorPresentation(error: error)
-            }
-        }
+        emergencyStatusError = nil
+        emergencySheet = .alert
     }
 
     private func contactSiteManager() {
@@ -513,14 +531,6 @@ struct HomeView: View {
                 onNotificationsTap: showNotifications,
                 notificationCount: unreadNotificationCount
             )
-        case let .saveSuccess(result):
-            SaveSuccessView(result: result, onConfirm: returnToHome)
-        case let .saveFailure(failure):
-            SaveFailureView(
-                failure: failure,
-                onRetry: removeCurrentRoute,
-                onTemporarySave: saveTemporaryAndReturn
-            )
         case .recordHistory:
             RecordHistoryView { record in
                 flowPath.append(HomeFlowRoute.recordDetail(record.recordID))
@@ -554,8 +564,6 @@ struct HomeView: View {
             WithdrawalGuideView { password, reason in
                 Task { await withdraw(password: password, reason: reason) }
             }
-        case .withdrawalCompleted:
-            WithdrawalCompletedView(onConfirm: finishWithdrawal)
         }
     }
 
@@ -565,6 +573,7 @@ struct HomeView: View {
     }
 
     private func returnToHome() {
+        resultSheet = nil
         flowPath = NavigationPath()
         Task { await loadDashboard() }
     }
@@ -606,7 +615,7 @@ struct HomeView: View {
     private func withdraw(password: String, reason: String?) async {
         do {
             try await HGAuthenticationService().withdraw(currentPassword: password, reason: reason)
-            flowPath.append(HomeFlowRoute.withdrawalCompleted)
+            showsWithdrawalCompleted = true
         } catch {
             withdrawalError = HGErrorPresentation(error: error)
         }
@@ -617,13 +626,13 @@ struct HomeView: View {
             try? HGRecordDraftStore().clear()
             clearResumeState()
         }
-        flowPath.append(HomeFlowRoute.saveSuccess(result))
+        resultSheet = .success(result)
     }
 
     private func showSaveFailure(_ failure: HGRecordSaveFailure, draft: HGRecordDraft, images: [UIImage]) {
         failedDraft = draft
         failedImages = images
-        flowPath.append(HomeFlowRoute.saveFailure(failure))
+        resultSheet = .failure(failure)
     }
 
     private func showPhotoRequired(_ draft: HGRecordDraft) {
@@ -744,7 +753,7 @@ struct HomeView: View {
     }
 }
 
-private enum EmergencySheet: Identifiable {
+private enum EmergencySheet: Identifiable, Equatable {
     case alert
     case calling
 
@@ -758,8 +767,6 @@ private enum HomeFlowRoute: Hashable {
     case restPhoto
     case fieldPhoto(HGRecordDraft)
     case saveBeforeConfirmation(HGRecordDraft)
-    case saveSuccess(HGRecordSaveResult)
-    case saveFailure(HGRecordSaveFailure)
     case recordHistory
     case recordDetail(String)
     case profileEdit
@@ -768,7 +775,6 @@ private enum HomeFlowRoute: Hashable {
     case notificationDetail(HGNotification)
     case notifications
     case withdrawalGuide
-    case withdrawalCompleted
 
     init(recordType: RecordType) {
         switch recordType {
@@ -799,11 +805,11 @@ private struct HomeMetric: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(HGFont.regular(10, relativeTo: .caption2))
+                    .font(HGFont.notoRegular(10, relativeTo: .caption2))
                     .foregroundStyle(HGColor.secondaryText)
 
                 Text(value)
-                    .font(HGFont.bold(14, relativeTo: .caption))
+                    .font(HGFont.notoBold(14, relativeTo: .caption))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -832,10 +838,10 @@ private struct HomeActionRow: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(HGFont.bold(14, relativeTo: .subheadline))
+                        .font(HGFont.notoBold(14, relativeTo: .subheadline))
 
                     Text(subtitle)
-                        .font(HGFont.regular(11, relativeTo: .caption2))
+                        .font(HGFont.notoRegular(11, relativeTo: .caption2))
                         .foregroundStyle(HGColor.secondaryText)
                 }
 
@@ -882,8 +888,8 @@ private struct HomeTimeline: View {
             HStack {
                 ForEach(times, id: \.self) { time in
                     Text(time)
-                        .font(HGFont.regular(9, relativeTo: .caption2))
-                    .foregroundStyle(HGColor.secondaryText)
+                        .font(HGFont.notoRegular(9, relativeTo: .caption2))
+                        .foregroundStyle(HGColor.secondaryText)
 
                     if time != times.last {
                         Spacer()
@@ -910,5 +916,17 @@ private struct HomeTimeline: View {
 #Preview {
     NavigationStack {
         HomeView()
+    }
+}
+
+private enum RecordResultSheet: Identifiable {
+    case success(HGRecordSaveResult)
+    case failure(HGRecordSaveFailure)
+
+    var id: String {
+        switch self {
+        case .success: "success"
+        case .failure: "failure"
+        }
     }
 }

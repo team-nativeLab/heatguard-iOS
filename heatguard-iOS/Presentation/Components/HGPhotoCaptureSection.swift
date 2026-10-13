@@ -4,7 +4,6 @@ import SwiftUI
 /// 카메라 촬영과 앨범 선택을 공통으로 제공하는 사진 입력 영역입니다.
 struct HGPhotoCaptureSection: View {
     private let maximumPhotoCount = 2
-    private let compact: Bool
 
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var showsSourceDialog = false
@@ -14,9 +13,8 @@ struct HGPhotoCaptureSection: View {
     @State private var photoImportMessage: String?
     @Binding private var images: [UIImage]
 
-    init(images: Binding<[UIImage]> = .constant([]), compact: Bool = false) {
+    init(images: Binding<[UIImage]> = .constant([])) {
         _images = images
-        self.compact = compact
     }
 
     var body: some View {
@@ -68,12 +66,12 @@ struct HGPhotoCaptureSection: View {
                 .font(HGFont.bold(15, relativeTo: .subheadline))
                 .foregroundStyle(textColor)
                 .multilineTextAlignment(.center)
-                .padding(.top, compact ? 10 : 17)
+                .padding(.top, 17)
 
             Text(selectionDescription)
                 .font(HGFont.bold(15, relativeTo: .subheadline))
                 .foregroundStyle(countColor)
-                .padding(.top, compact ? 18 : 51)
+                .padding(.top, 51)
 
             if let photoImportMessage {
                 Text(photoImportMessage)
@@ -88,7 +86,7 @@ struct HGPhotoCaptureSection: View {
         .background(backgroundColor, in: RoundedRectangle(cornerRadius: 25))
     }
 
-    private var contentHeight: CGFloat { compact ? 184 : 313 }
+    private var contentHeight: CGFloat { HGLayout.photoSelectionHeight }
 
     private var selectedPhotoCount: Int { images.count }
     private var availablePhotoCount: Int { max(1, maximumPhotoCount - images.count) }

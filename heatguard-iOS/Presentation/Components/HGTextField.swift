@@ -15,7 +15,7 @@ enum HGTextFieldInputType {
     var keyboardType: UIKeyboardType {
         switch self {
         case .standard: .default
-        case .email: .default
+        case .email: .emailAddress
         case .currentPassword, .newPassword: .default
         }
     }
@@ -47,6 +47,8 @@ struct HGTextField: View {
     let placeholder: String
     @Binding var text: String
     var isSecure = false
+    var isReadOnly = false
+    var trailingLabel: String?
     var errorMessage: String?
     var fieldHeight: CGFloat = 45
     var cornerRadius: CGFloat = 12
@@ -60,19 +62,26 @@ struct HGTextField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(HGFont.semiBold(13, relativeTo: .caption))
+                .font(HGFont.notoBold(13, relativeTo: .caption))
                 .foregroundStyle(HGColor.primaryText)
                 .padding(.leading, titleLeadingPadding)
 
             HStack(spacing: 12) {
                 if isSecure && !isSecureTextVisible {
-                    SecureField(text: $text, prompt: Text(placeholder).foregroundStyle(HGColor.secondaryText)) {
+                    SecureField(text: $text, prompt: Text(placeholder).foregroundStyle(HGColor.placeholder)) {
                         EmptyView()
                     }
                 } else {
-                    TextField(text: $text, prompt: Text(placeholder).foregroundStyle(HGColor.secondaryText)) {
+                    TextField(text: $text, prompt: Text(placeholder).foregroundStyle(HGColor.placeholder)) {
                         EmptyView()
                     }
+                }
+
+                if let trailingLabel {
+                    Text(trailingLabel)
+                        .font(HGFont.notoRegular(12, relativeTo: .caption))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .fixedSize()
                 }
 
                 if isSecure {
@@ -88,7 +97,7 @@ struct HGTextField: View {
                     .accessibilityLabel(isSecureTextVisible ? "비밀번호 숨기기" : "비밀번호 보기")
                 }
             }
-            .font(HGFont.regular(textSize))
+            .font(HGFont.notoRegular(textSize))
             .foregroundStyle(HGColor.primaryText)
             .focused($isFocused)
             .keyboardType(inputType.keyboardType)
@@ -97,7 +106,8 @@ struct HGTextField: View {
             .autocorrectionDisabled(inputType.disablesAutocorrection)
             .padding(.horizontal, 16)
             .frame(height: fieldHeight)
-            .background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: cornerRadius))
+            .disabled(isReadOnly)
+            .background(isReadOnly ? HGColor.readOnlyField : HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: cornerRadius))
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .stroke(borderColor, lineWidth: 1)
@@ -105,7 +115,7 @@ struct HGTextField: View {
 
             if let errorMessage {
                 Text(errorMessage)
-                    .font(HGFont.regular(12, relativeTo: .caption))
+                    .font(HGFont.notoRegular(12, relativeTo: .caption))
                     .foregroundStyle(HGColor.error)
             }
         }

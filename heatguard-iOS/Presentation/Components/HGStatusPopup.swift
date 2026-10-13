@@ -8,9 +8,10 @@ struct HGStatusPopup<Content: View, Actions: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             Text(title).font(HGFont.bold(20, relativeTo: .title2)).padding(.top, 18)
-            content
-                .frame(maxWidth: .infinity)
-            Spacer(minLength: 0)
+            HGFixedContent {
+                VStack(spacing: 0) { content }
+                    .frame(maxWidth: .infinity)
+            }
             actions.padding(.bottom, 20)
         }
         .background(HGColor.popupBackground)

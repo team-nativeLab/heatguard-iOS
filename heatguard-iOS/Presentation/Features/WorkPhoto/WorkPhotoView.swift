@@ -56,27 +56,27 @@ struct WorkPhotoView: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            let compact = geometry.size.height < 820
-            VStack(spacing: 0) {
-                header
-                formContent(compact: compact)
-                Spacer(minLength: 0)
+        VStack(spacing: 0) {
+            header
+            HGFixedContent {
+                formContent
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 16)
             }
-            .padding(.horizontal, HGLayout.screenHorizontalPadding)
-            .padding(.top, compact ? 8 : HGLayout.screenTopPadding)
+        }
+        .padding(.horizontal, HGLayout.screenHorizontalPadding)
+        .padding(.top, HGLayout.screenTopPadding)
+        .background(HGColor.appBackground)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HGPrimaryButton(
+                title: isSaving ? "저장 중..." : "기록 저장",
+                isEnabled: !isSaving,
+                height: HGLayout.primaryButtonHeight,
+                action: saveRecord
+            )
+            .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
+            .padding(.vertical, 8)
             .background(HGColor.appBackground)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                HGPrimaryButton(
-                    title: isSaving ? "저장 중..." : "기록 저장",
-                    isEnabled: !isSaving,
-                    height: HGLayout.primaryButtonHeight,
-                    action: saveRecord
-                )
-                .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
-                .padding(.vertical, 8)
-                .background(HGColor.appBackground)
-            }
         }
         .toolbar(.hidden, for: .navigationBar)
         .dismissKeyboardOnBackgroundTap()
@@ -87,8 +87,9 @@ struct WorkPhotoView: View {
         }
     }
 
-    private func formContent(compact: Bool) -> some View {
+    private var formContent: some View {
         VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
             Text("작업 전 · 중 사진")
                 .font(HGFont.bold(20, relativeTo: .title2))
                 .foregroundStyle(HGColor.primaryText)
@@ -96,19 +97,21 @@ struct WorkPhotoView: View {
             Text("작업 현장과 보호조치를 확인 할 수 있는\n사진을 촬영해 주세요")
                 .font(HGFont.regular(14, relativeTo: .subheadline))
                 .foregroundStyle(HGColor.primaryText)
-                .padding(.top, compact ? 6 : 10)
+                .padding(.top, 10)
+            }
+            .padding(.horizontal, HGLayout.recordHeadingInset)
 
-            HGPhotoCaptureSection(images: $photos, compact: compact)
-                .padding(.top, compact ? 10 : 15)
+            HGPhotoCaptureSection(images: $photos)
+                .padding(.top, 15)
 
             memoSection
-                .padding(.top, compact ? 12 : 25)
+                .padding(.top, 25)
             if needsWeatherInput {
                 HGPhotoWeatherInput(temperature: $temperature, humidity: $humidity)
-                    .padding(.top, compact ? 12 : 25)
+                    .padding(.top, 25)
             }
         }
-        .padding(.top, compact ? 12 : HGLayout.screenContentTopPadding)
+        .padding(.top, HGLayout.screenContentTopPadding)
     }
 
     private var header: some View {
@@ -118,7 +121,7 @@ struct WorkPhotoView: View {
     private var memoSection: some View {
         HGOptionalMemoSection(
             placeholder: "작업 전 · 중 특이사항이 있다면 입력해주세요",
-            height: 88,
+            height: 114,
             text: $memo
         )
         .padding(.horizontal, 7)
