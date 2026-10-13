@@ -9,6 +9,7 @@ struct HGPrimaryButton: View {
     let title: String
     var isEnabled = true
     var height: CGFloat = HGLayout.primaryButtonHeight
+    var disabledBackground: Color = HGColor.disabled
     let action: () -> Void
 
     var body: some View {
@@ -20,7 +21,7 @@ struct HGPrimaryButton: View {
         }
         .foregroundStyle(.white)
         .background(
-            isEnabled ? HGColor.primary : HGColor.disabled,
+            isEnabled ? HGColor.primary : disabledBackground,
             in: RoundedRectangle(cornerRadius: HGLayout.primaryButtonCornerRadius)
         )
         .disabled(!isEnabled)

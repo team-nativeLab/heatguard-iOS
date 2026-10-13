@@ -27,7 +27,7 @@ struct HGChecklistService {
         return response.items
     }
 
-    func update(itemID: String, isChecked: Bool) async throws -> HGChecklistItem {
+    func update(itemID: String, isChecked: Bool) async throws -> HGChecklistUpdateResponse {
         return try await client.send(
             HGChecklistUpdateRequest(checked: isChecked),
             method: "PUT",
@@ -56,3 +56,15 @@ struct HGChecklistItem: Decodable, Identifiable, Equatable {
     enum CodingKeys: String, CodingKey { case id = "itemId", text, checked }
 }
 private struct HGChecklistUpdateRequest: Encodable { let checked: Bool }
+
+struct HGChecklistUpdateResponse: Decodable, Equatable {
+    let itemID: String
+    let checked: Bool
+    let checkedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case itemID = "itemId"
+        case checked
+        case checkedAt
+    }
+}
