@@ -5,4 +5,5 @@ xcodebuild test \
     -project "$project_root/heatguard-iOS.xcodeproj" \
     -scheme heatguard-iOS \
     -destination "${TEST_DESTINATION:-platform=iOS Simulator,name=iPhone 17}" \
-    CODE_SIGNING_ALLOWED=NO
+    CODE_SIGNING_ALLOWED=YES \
+    CODE_SIGN_IDENTITY=-
