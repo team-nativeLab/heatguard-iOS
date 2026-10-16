@@ -94,7 +94,7 @@ struct HomeDashboard: Equatable {
         unreadNotificationCount: 0
     )
 
-    private init(
+    init(
         companyName: String?, companyPhone: String?, managerPhone: String?, siteName: String?,
         teamName: String?, workplace: String?, weather: HomeWeather,
         checklist: HGChecklistSummary, unreadNotificationCount: Int
@@ -185,6 +185,13 @@ struct HomeWeather: Equatable {
         let reference = details.isEmpty ? "" : " · " + details.joined(separator: " · ")
         let title = comparisonBasis == "PREVIOUS_OBSERVATION" ? "직전 측정 대비" : "온도 변화"
         return "\(title) \(sign)\(String(format: "%.1f", temperatureDelta))°C\(reference)"
+    }
+
+    var temperatureDeltaBadgeText: String? {
+        guard let temperatureDelta else { return nil }
+        let direction = temperatureDelta > 0 ? "▲" : temperatureDelta < 0 ? "▼" : "•"
+        let sign = temperatureDelta > 0 ? "+" : ""
+        return "\(direction) \(sign)\(String(format: "%.1f", temperatureDelta))°C"
     }
 
     var observationTimeText: String? {

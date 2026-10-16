@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FieldPhotoCaptureView: View {
     @State private var photos: [UIImage]
+    @State private var isPhotoSelectorPresented = false
     @State private var isSaving = false
     let draft: HGRecordDraft
     let onSave: (HGRecordSaveResult) -> Void
@@ -76,6 +77,8 @@ struct FieldPhotoCaptureView: View {
                 .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
                 .padding(.vertical, 8)
                 .background(HGColor.appBackground)
+                .opacity(isPhotoSelectorPresented ? 0 : 1)
+                .allowsHitTesting(!isPhotoSelectorPresented)
         }
         .toolbar(.hidden, for: .navigationBar)
     }
@@ -128,7 +131,10 @@ struct FieldPhotoCaptureView: View {
     }
 
     private var photoSelector: some View {
-        HGCompactPhotoSelector(images: $photos)
+        HGCompactPhotoSelector(images: $photos) { isPresented in
+            isPhotoSelectorPresented = isPresented
+        }
+        .disabled(isSaving)
     }
 
     private var measurements: [FieldMeasurement] {

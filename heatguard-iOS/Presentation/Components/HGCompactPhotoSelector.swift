@@ -5,9 +5,14 @@ struct HGCompactPhotoSelector: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var showsPhotoSelection = false
     @Binding private var images: [UIImage]
+    private let onPresentationChange: (Bool) -> Void
 
-    init(images: Binding<[UIImage]> = .constant([])) {
+    init(
+        images: Binding<[UIImage]> = .constant([]),
+        onPresentationChange: @escaping (Bool) -> Void = { _ in }
+    ) {
         _images = images
+        self.onPresentationChange = onPresentationChange
     }
 
     var body: some View {
@@ -42,6 +47,9 @@ struct HGCompactPhotoSelector: View {
         .sheet(isPresented: $showsPhotoSelection) {
             HGPhotoCaptureSection(images: $images)
                 .presentationDetents(verticalSizeClass == .compact ? [.large] : [.medium])
+        }
+        .onChange(of: showsPhotoSelection) { _, isPresented in
+            onPresentationChange(isPresented)
         }
     }
 }

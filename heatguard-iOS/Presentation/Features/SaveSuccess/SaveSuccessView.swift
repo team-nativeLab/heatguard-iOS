@@ -36,7 +36,7 @@ struct SaveSuccessView: View {
                 .font(HGFont.bold(20, relativeTo: .title2))
                 .padding(.top, 34)
 
-            Text("현장관리자에게 실시간으로 전송됩니다.")
+            Text(photoStatusMessage)
                 .font(HGFont.semiBold(15))
                 .foregroundStyle(HGColor.secondaryText)
                 .padding(.top, 15)
@@ -77,7 +77,7 @@ struct SaveSuccessView: View {
     private var records: [SavedRecord] {
         [
             SavedRecord(title: result.draft.type.savedRecordTitle, detail: recordDetail),
-            SavedRecord(title: "첨부 사진", detail: "\(result.photoCount)장"),
+            SavedRecord(title: "첨부 사진", detail: photoSummary),
             SavedRecord(title: "저장 시간", detail: HGDateFormatting.timestamp(result.savedAt))
         ]
     }
@@ -88,6 +88,24 @@ struct SaveSuccessView: View {
         let temperature = result.draft.temperature.map { String(format: "%.1f ℃", $0) } ?? "온도 정보 없음"
         let humidity = result.draft.humidity.map { String(format: "습도 %.0f%%", $0) } ?? "습도 정보 없음"
         return "\(temperature) · \(humidity)"
+    }
+
+    private var photoStatusMessage: String {
+        switch result.photoVerification {
+        case let .checked(count) where count == result.expectedPhotoCount:
+            "기록에 사진 \(count)장이 연결됐어요."
+        case .checked:
+            "기록은 저장됐지만 일부 사진 연결을 확인하지 못했어요. 기록 상세를 확인해주세요."
+        case .unavailable:
+            "기록은 저장됐지만 사진 연결을 확인하지 못했어요. 기록 상세를 확인해주세요."
+        }
+    }
+
+    private var photoSummary: String {
+        switch result.photoVerification {
+        case let .checked(count): "\(count)/\(result.expectedPhotoCount)장 연결 확인"
+        case .unavailable: "사진 연결 확인 필요"
+        }
     }
 }
 
@@ -123,7 +141,8 @@ private struct SavedRecordRow: View {
         result: HGRecordSaveResult(
             recordID: "preview",
             draft: HGRecordDraft(type: .thermometer, memo: "", temperature: 47.5, humidity: 55),
-            photoCount: 2,
+            expectedPhotoCount: 2,
+            photoVerification: .checked(photoURLCount: 2),
             savedAt: .now
         )
     )

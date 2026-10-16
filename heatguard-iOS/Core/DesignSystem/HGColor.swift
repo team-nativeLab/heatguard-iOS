@@ -37,7 +37,7 @@ enum HGColor {
     static let popupBackground = Color(red: 249 / 255, green: 251 / 255, blue: 252 / 255)
     static let homeHeatLevelBackground = Color(red: 1, green: 226 / 255, blue: 214 / 255)
     static let homeBaselineBackground = Color(red: 1, green: 221 / 255, blue: 226 / 255)
-    static let homeHeatLevelText = Color.orange
+    static let homeHeatLevelText = Color(red: 1, green: 107 / 255, blue: 0)
     static let emergencyNoticeText = Color.red
     static let emergencyNoticeBackground = Color.red.opacity(0.08)
     static let emergencyCallBackground = Color.orange.opacity(0.18)

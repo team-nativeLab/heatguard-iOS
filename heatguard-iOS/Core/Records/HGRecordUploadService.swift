@@ -55,12 +55,33 @@ struct HGRecordUploadService {
             requiresAuthentication: true
         )
 
+        let photoVerification: HGRecordPhotoVerification
+        do {
+            let detail = try await HGRecordHistoryService(client: client).fetchDetail(id: response.recordID)
+            photoVerification = .checked(photoURLCount: detail.photoURLs.count)
+        } catch {
+            // The record is already saved. Keep it as a partial success so retrying
+            // cannot create a duplicate record just because verification failed.
+            photoVerification = .unavailable(diagnosticCode: Self.diagnosticCode(for: error))
+        }
+
         return HGRecordSaveResult(
             recordID: response.recordID,
             draft: draft,
-            photoCount: photos.count,
+            expectedPhotoCount: photos.count,
+            photoVerification: photoVerification,
             savedAt: .now
         )
+    }
+
+    private static func diagnosticCode(for error: Error) -> String {
+        if let apiError = error as? HGAPIError {
+            return apiError.diagnosticCode
+        }
+        if let urlError = error as? URLError {
+            return "URL_ERROR_\(urlError.code.rawValue)"
+        }
+        return String(describing: type(of: error))
     }
 
     private static func restTimestamp(_ date: Date) -> String {
@@ -82,7 +103,12 @@ struct HGRecordUploadService {
             }
             var request = URLRequest(url: url)
             request.httpMethod = "PUT"
-            request.setValue(photo.contentType, forHTTPHeaderField: "Content-Type")
+            guard let requiredHeaders = destination.requiredHeaders else {
+                throw HGRecordUploadError.requiredHeadersMissing
+            }
+            for (name, value) in requiredHeaders {
+                request.setValue(value, forHTTPHeaderField: name)
+            }
 
             let (_, response) = try await session.upload(for: request, from: photo.data)
             guard let httpResponse = response as? HTTPURLResponse else {
@@ -138,8 +164,14 @@ struct HGRecordDraft: Hashable, Codable {
 struct HGRecordSaveResult: Hashable {
     let recordID: String
     let draft: HGRecordDraft
-    let photoCount: Int
+    let expectedPhotoCount: Int
+    let photoVerification: HGRecordPhotoVerification
     let savedAt: Date
+}
+
+enum HGRecordPhotoVerification: Hashable {
+    case checked(photoURLCount: Int)
+    case unavailable(diagnosticCode: String)
 }
 
 enum HGRecordType: String, Hashable, Codable {
@@ -181,10 +213,12 @@ private struct HGUploadURLResponse: Decodable {
 private struct HGUploadDestination: Decodable {
     let objectKey: String
     let uploadURL: String
+    let requiredHeaders: [String: String]?
 
     enum CodingKeys: String, CodingKey {
         case objectKey
         case uploadURL = "uploadUrl"
+        case requiredHeaders
     }
 }
 
@@ -228,6 +262,7 @@ enum HGRecordUploadError: LocalizedError {
     case photoCount
     case photoEncoding
     case uploadPreparation
+    case requiredHeadersMissing
     case uploadFailed(statusCode: Int?)
 
     var errorDescription: String? {
@@ -236,6 +271,7 @@ enum HGRecordUploadError: LocalizedError {
         case .photoCount: "사진은 1~2장 선택해주세요."
         case .photoEncoding: "선택한 사진을 처리하지 못했습니다."
         case .uploadPreparation: "사진 업로드를 준비하지 못했습니다."
+        case .requiredHeadersMissing: "업로드 서버가 필요한 사진 전송 정보를 주지 않았습니다."
         case .uploadFailed: "사진 업로드에 실패했습니다."
         }
     }
@@ -246,6 +282,7 @@ enum HGRecordUploadError: LocalizedError {
         case .photoCount: "PHOTO_COUNT"
         case .photoEncoding: "PHOTO_ENCODING"
         case .uploadPreparation: "UPLOAD_PREPARATION"
+        case .requiredHeadersMissing: "UPLOAD_HEADERS_MISSING"
         case let .uploadFailed(statusCode):
             statusCode.map { "S3_UPLOAD_HTTP_\($0)" } ?? "S3_UPLOAD_FAILED"
         }
