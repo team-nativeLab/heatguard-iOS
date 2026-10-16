@@ -330,8 +330,8 @@ struct HomeView: View {
             Divider().padding(.leading, 16)
             HomeActionRow(
                 icon: "HomeEmergencyPhone",
-                title: "긴급 전화",
-                subtitle: "본사와 즉시 연결"
+                title: "긴급 호출",
+                subtitle: "긴급 호출 등록 및 본사 연락"
             ) {
                 showEmergencyCall()
             }
