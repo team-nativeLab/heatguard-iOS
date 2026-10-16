@@ -5,8 +5,8 @@ import XCTest
 
 @MainActor
 final class LayoutEvidenceTests: XCTestCase {
-    func testDesignFontsAreRegistered() {
-        for name in ["NotoSansKR-Regular", "NotoSansKR-Medium", "NotoSansKR-Bold"] {
+    func testAppFontsAreRegistered() {
+        for name in ["Pretendard-Regular", "Pretendard-Medium", "Pretendard-SemiBold", "Pretendard-Bold"] {
             XCTAssertNotNil(UIFont(name: name, size: 14), name)
         }
     }

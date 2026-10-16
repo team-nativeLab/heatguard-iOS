@@ -51,14 +51,14 @@ struct InquiryView: View {
             HGTextField(title: "제목", placeholder: "제목을 입력해주세요", text: $title, fieldHeight: 48)
             VStack(alignment: .leading, spacing: 8) {
                 Text("내용")
-                    .font(HGFont.notoBold(13, relativeTo: .caption))
+                    .font(HGFont.bold(13, relativeTo: .caption))
                 ZStack(alignment: .topLeading) {
                     TextEditor(text: $content)
-                        .font(HGFont.notoRegular(14))
+                        .font(HGFont.regular(14))
                         .scrollContentBackground(.hidden)
                     if content.isEmpty {
                         Text("궁금한 점이나 불편한 점을 자세히 적어주세요")
-                            .font(HGFont.notoRegular(14))
+                            .font(HGFont.regular(14))
                             .foregroundStyle(HGColor.secondaryText)
                             .padding(.top, 8)
                             .padding(.leading, 5)
@@ -69,7 +69,7 @@ struct InquiryView: View {
                 .frame(height: 140)
                 .background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: 12))
                 Text("답변은 아래 문의 목록에서 확인할 수 있어요")
-                    .font(HGFont.notoRegular(11, relativeTo: .caption2))
+                    .font(HGFont.regular(11, relativeTo: .caption2))
                     .foregroundStyle(HGColor.secondaryText)
             }
             HGPrimaryButton(
@@ -85,10 +85,10 @@ struct InquiryView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("내 문의 목록")
-                    .font(HGFont.notoBold(16, relativeTo: .headline))
+                    .font(HGFont.bold(16, relativeTo: .headline))
                 Spacer()
                 Text(hasMore ? "\(inquiries.count)건 이상" : "\(inquiries.count)건")
-                    .font(HGFont.notoRegular(12, relativeTo: .caption))
+                    .font(HGFont.regular(12, relativeTo: .caption))
                     .foregroundStyle(HGColor.secondaryText)
             }
 
@@ -99,7 +99,7 @@ struct InquiryView: View {
                     .frame(maxWidth: .infinity, minHeight: 120)
             } else if inquiries.isEmpty {
                 Text("등록한 문의가 없어요.")
-                    .font(HGFont.notoRegular(12, relativeTo: .caption))
+                    .font(HGFont.regular(12, relativeTo: .caption))
                     .foregroundStyle(HGColor.secondaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
@@ -130,7 +130,7 @@ struct InquiryView: View {
                         if isLoadingMore { ProgressView() }
                         Text(isLoadingMore ? "불러오는 중..." : "더 보기")
                     }
-                    .font(HGFont.notoMedium(13, relativeTo: .subheadline))
+                    .font(HGFont.medium(13, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primary)
                     .frame(maxWidth: .infinity, minHeight: 44)
                 }
@@ -239,7 +239,7 @@ private struct InquiryStatusChip: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(HGFont.notoMedium(11, relativeTo: .caption))
+                .font(HGFont.medium(11, relativeTo: .caption))
                 .foregroundStyle(isSelected ? .white : HGColor.secondaryText)
                 .padding(.horizontal, 12)
                 .frame(height: 30)
@@ -257,17 +257,17 @@ private struct InquiryRow: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 8) {
                 Text(inquiry.status.title)
-                    .font(HGFont.notoMedium(10, relativeTo: .caption2))
+                    .font(HGFont.medium(10, relativeTo: .caption2))
                     .foregroundStyle(inquiry.status == .answered ? HGColor.answered : HGColor.secondaryText)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(HGColor.homeMetricIconBackground, in: Capsule())
                 Text(inquiry.title)
-                    .font(HGFont.notoBold(14, relativeTo: .subheadline))
+                    .font(HGFont.bold(14, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
                 }
                 Text(inquiry.createdAt.formattedInquiryDate)
-                    .font(HGFont.notoRegular(12, relativeTo: .caption))
+                    .font(HGFont.regular(12, relativeTo: .caption))
                     .foregroundStyle(HGColor.secondaryText)
             }
             Spacer()
@@ -293,16 +293,16 @@ struct InquiryDetailView: View {
                 List {
                     VStack(alignment: .leading, spacing: 20) {
                         Text(inquiry.status.title)
-                            .font(HGFont.notoMedium(11, relativeTo: .caption))
+                            .font(HGFont.medium(11, relativeTo: .caption))
                             .foregroundStyle(HGColor.primary)
                         Text(inquiry.title)
-                            .font(HGFont.notoBold(20, relativeTo: .title2))
+                            .font(HGFont.bold(20, relativeTo: .title2))
                         Text(inquiry.createdAt.formattedInquiryDate)
-                            .font(HGFont.notoRegular(12, relativeTo: .caption))
+                            .font(HGFont.regular(12, relativeTo: .caption))
                             .foregroundStyle(HGColor.secondaryText)
                         Divider()
                         Text(inquiry.content)
-                            .font(HGFont.notoRegular(14, relativeTo: .body))
+                            .font(HGFont.regular(14, relativeTo: .body))
                         repliesSection(inquiry.replies)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -330,19 +330,19 @@ struct InquiryDetailView: View {
     private func repliesSection(_ replies: [HGInquiryReply]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("답변")
-                .font(HGFont.notoBold(16, relativeTo: .headline))
+                .font(HGFont.bold(16, relativeTo: .headline))
             if replies.isEmpty {
                 Text("아직 등록된 답변이 없어요.")
-                    .font(HGFont.notoRegular(13, relativeTo: .subheadline))
+                    .font(HGFont.regular(13, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.secondaryText)
             } else {
                 ForEach(replies) { reply in
                     VStack(alignment: .leading, spacing: 8) {
                         Text(reply.content)
-                            .font(HGFont.notoRegular(14, relativeTo: .body))
+                            .font(HGFont.regular(14, relativeTo: .body))
                         if let answeredAt = reply.answeredAt {
                             Text(answeredAt.formattedInquiryDate)
-                                .font(HGFont.notoRegular(11, relativeTo: .caption2))
+                                .font(HGFont.regular(11, relativeTo: .caption2))
                                 .foregroundStyle(HGColor.secondaryText)
                         }
                     }

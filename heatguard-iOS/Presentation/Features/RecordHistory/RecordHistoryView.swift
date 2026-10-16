@@ -41,7 +41,7 @@ struct RecordHistoryView: View {
                                     if isLoadingMore { ProgressView() }
                                     Text(isLoadingMore ? "불러오는 중..." : "더 보기")
                                 }
-                                .font(HGFont.notoMedium(13, relativeTo: .subheadline))
+                                .font(HGFont.medium(13, relativeTo: .subheadline))
                                 .foregroundStyle(HGColor.primary)
                                 .frame(maxWidth: .infinity, minHeight: 44)
                             }
@@ -104,7 +104,7 @@ struct RecordHistoryView: View {
         Button { showsPeriodPicker = true } label: {
             HStack(spacing: 10) {
                 Image(systemName: "calendar").foregroundStyle(HGColor.secondaryText)
-                Text(currentWeekRange).font(HGFont.notoRegular(14, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
+                Text(currentWeekRange).font(HGFont.regular(14, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .layoutPriority(1)
@@ -123,7 +123,7 @@ struct RecordHistoryView: View {
             ForEach(RecordFilter.allCases) { filter in
                 Button { selectedFilter = filter } label: {
                     Text(filter.title)
-                        .font(HGFont.notoMedium(13, relativeTo: .caption))
+                        .font(HGFont.medium(13, relativeTo: .caption))
                         .foregroundStyle(selectedFilter == filter ? .white : HGColor.secondaryText)
                         .padding(.horizontal, 15).frame(height: 32)
                         .background(selectedFilter == filter ? HGColor.primary : HGColor.surface, in: Capsule())
@@ -146,7 +146,7 @@ struct RecordHistoryView: View {
             }
             if hasMore {
                 Text("현재 불러온 기록 기준")
-                    .font(HGFont.notoRegular(11, relativeTo: .caption2))
+                    .font(HGFont.regular(11, relativeTo: .caption2))
                     .foregroundStyle(HGColor.secondaryText)
             }
         }
@@ -161,15 +161,15 @@ struct RecordHistoryView: View {
                     .resizable().frame(width: 36, height: 36)
                     .frame(width: 72, height: 72).background(HGColor.homeMetricIconBackground, in: Circle())
                 Text(hasMore ? "불러온 기록 중 해당 항목이 없어요" : "해당 기간에 \(selectedFilter.emptyDescription) 기록이 없어요")
-                    .font(HGFont.notoBold(16, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
+                    .font(HGFont.bold(16, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
                 Text(hasMore ? "더 보기를 눌러 이전 기록을 확인해 보세요" : "기간이나 유형을 바꾸거나 새 기록을 남겨보세요")
-                    .font(HGFont.notoRegular(13, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
+                    .font(HGFont.regular(13, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
             }.frame(maxWidth: .infinity, minHeight: 247)
         } else {
             LazyVStack(alignment: .leading, spacing: 14) {
                 ForEach(recordGroups, id: \.date) { group in
                     Text(group.label)
-                        .font(HGFont.notoMedium(12, relativeTo: .caption))
+                        .font(HGFont.medium(12, relativeTo: .caption))
                         .foregroundStyle(HGColor.secondaryText)
                     VStack(spacing: 0) {
                         ForEach(group.items) { record in
@@ -279,8 +279,8 @@ private struct RecordCountMetric: View {
     let title: String; let count: Int
     var body: some View {
         VStack(spacing: 3) {
-            Text(title).font(HGFont.notoRegular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText)
-            Text("\(count)건").font(HGFont.notoBold(18, relativeTo: .headline)).foregroundStyle(HGColor.primaryText)
+            Text(title).font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText)
+            Text("\(count)건").font(HGFont.bold(18, relativeTo: .headline)).foregroundStyle(HGColor.primaryText)
         }.frame(maxWidth: .infinity)
     }
 }
@@ -297,17 +297,17 @@ private struct RecordHistoryRow: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             VStack(alignment: .leading, spacing: 3) {
                 Text(record.type.historyTitle)
-                    .font(HGFont.notoBold(14, relativeTo: .subheadline))
+                    .font(HGFont.bold(14, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
                 Text(record.summary)
-                    .font(HGFont.notoRegular(12, relativeTo: .caption))
+                    .font(HGFont.regular(12, relativeTo: .caption))
                     .foregroundStyle(HGColor.secondaryText)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 7) {
                 Text(record.formattedMeasuredAt)
-                    .font(HGFont.notoRegular(12, relativeTo: .caption))
+                    .font(HGFont.regular(12, relativeTo: .caption))
                     .foregroundStyle(HGColor.secondaryText)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 9, weight: .semibold))

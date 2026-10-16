@@ -21,7 +21,7 @@ struct RecordDetailView: View {
                                 photoContent(record, photoHeight: photoWidth)
                             }
                             Text("제출한 기록은 수정할 수 없어요. 수정이 필요하면 현장 관리자에게 문의해주세요.")
-                                .font(HGFont.notoRegular(12, relativeTo: .caption))
+                                .font(HGFont.regular(12, relativeTo: .caption))
                                 .foregroundStyle(HGColor.secondaryText)
                                 .multilineTextAlignment(.center)
                                 .frame(maxWidth: .infinity)
@@ -48,17 +48,17 @@ struct RecordDetailView: View {
         VStack(spacing: 12) {
             HGCard { VStack(alignment: .leading, spacing: 7) {
                 RecordTypeBadge(type: record.type)
-                Text(record.formattedMeasuredAt).font(HGFont.notoBold(18, relativeTo: .title3))
+                Text(record.formattedMeasuredAt).font(HGFont.bold(18, relativeTo: .title3))
                 if let location = record.locationText {
-                    Text(location).font(HGFont.notoRegular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
+                    Text(location).font(HGFont.regular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
                 }
             }}
             HGCard { VStack(alignment: .leading, spacing: 15) {
                 HStack(spacing: 12) {
                     Image(systemName: "thermometer.medium").font(.title2).foregroundStyle(HGColor.primary)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("측정 온도").font(HGFont.notoRegular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText)
-                        Text(record.temperatureText).font(HGFont.notoBold(32, relativeTo: .title))
+                        Text("측정 온도").font(HGFont.regular(11, relativeTo: .caption2)).foregroundStyle(HGColor.secondaryText)
+                        Text(record.temperatureText).font(HGFont.bold(32, relativeTo: .title))
                     }
                     Spacer()
                 }
@@ -96,7 +96,7 @@ struct RecordDetailView: View {
             HGCard {
                 VStack(alignment: .leading, spacing: 14) {
                     Text("현장 측정값")
-                        .font(HGFont.notoBold(15, relativeTo: .subheadline))
+                        .font(HGFont.bold(15, relativeTo: .subheadline))
 
                     HStack(spacing: 12) {
                         DetailMetric(title: "온도", value: record.temperatureText)
@@ -112,7 +112,7 @@ struct RecordDetailView: View {
             if let title {
                 HGCard {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(title).font(HGFont.notoBold(15, relativeTo: .subheadline))
+                        Text(title).font(HGFont.bold(15, relativeTo: .subheadline))
                         photoImage(urls, height: height, cornerRadius: 12)
                     }
                 }
@@ -158,14 +158,14 @@ struct RecordDetailView: View {
             Image("RecordPhotoPlaceholder")
                 .resizable()
                 .frame(width: 36, height: 36)
-            Text("촬영한 현장 사진").font(HGFont.notoRegular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
+            Text("촬영한 현장 사진").font(HGFont.regular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
         }
     }
 
     @ViewBuilder private func memoCard(_ record: HGRecordDetail) -> some View {
         if let memo = record.memo, !memo.isEmpty {
             HGCard { VStack(alignment: .leading, spacing: 8) {
-                Text("메모").font(HGFont.notoBold(15, relativeTo: .subheadline)); Text(memo).font(HGFont.notoRegular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
+                Text("메모").font(HGFont.bold(15, relativeTo: .subheadline)); Text(memo).font(HGFont.regular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
             }}
         }
     }
@@ -181,7 +181,7 @@ struct RecordDetailView: View {
 private struct RecordTypeBadge: View {
     let type: HGRecordType
     var body: some View {
-        Text(type.historyTitle).font(HGFont.notoMedium(10, relativeTo: .caption2)).foregroundStyle(HGColor.primary)
+        Text(type.historyTitle).font(HGFont.medium(10, relativeTo: .caption2)).foregroundStyle(HGColor.primary)
             .padding(.horizontal, 8).padding(.vertical, 4).background(HGColor.homeMetricIconBackground, in: Capsule())
     }
 }
@@ -189,8 +189,8 @@ private struct DetailMetric: View {
     let title: String; let value: String
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(HGFont.notoRegular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
-            Text(value).font(HGFont.notoBold(15, relativeTo: .subheadline))
+            Text(title).font(HGFont.regular(12, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
+            Text(value).font(HGFont.bold(15, relativeTo: .subheadline))
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -201,11 +201,11 @@ private struct DetailInfoRow: View {
 
     var body: some View {
         HStack {
-            Text(title).font(HGFont.notoRegular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
+            Text(title).font(HGFont.regular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
             Spacer(minLength: 8)
             if let type {
                 Text(value)
-                    .font(HGFont.notoBold(11, relativeTo: .caption2))
+                    .font(HGFont.bold(11, relativeTo: .caption2))
                     .foregroundStyle(
                         type == .rest ? Color(red: 33 / 255, green: 153 / 255, blue: 89 / 255) : HGColor.primary
                     )
@@ -214,7 +214,7 @@ private struct DetailInfoRow: View {
                         type == .rest ? HGColor.successBackground : HGColor.homeMetricIconBackground, in: Capsule())
             } else {
                 Text(value)
-                    .font(HGFont.notoMedium(13, relativeTo: .subheadline))
+                    .font(HGFont.medium(13, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
                     .multilineTextAlignment(.trailing)
             }

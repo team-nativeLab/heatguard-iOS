@@ -22,9 +22,6 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>UIAppFonts</key>
 	<array>
-		<string>NotoSansKR-Regular.ttf</string>
-		<string>NotoSansKR-Medium.ttf</string>
-		<string>NotoSansKR-Bold.ttf</string>
 		<string>Pretendard-Regular.otf</string>
 		<string>Pretendard-Medium.otf</string>
 		<string>Pretendard-SemiBold.otf</string>

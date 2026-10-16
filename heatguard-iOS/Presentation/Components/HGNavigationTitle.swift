@@ -10,7 +10,7 @@ private struct HGNavigationTitle: ViewModifier {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(title)
-                        .font(HGFont.notoBold(20, relativeTo: .title2))
+                        .font(HGFont.bold(20, relativeTo: .title2))
                         .foregroundStyle(HGColor.navigationTitle)
                 }
             }
