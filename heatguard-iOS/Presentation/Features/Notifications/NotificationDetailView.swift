@@ -21,14 +21,14 @@ struct NotificationDetailView: View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 14) {
                 Text(notification.category.title)
-                    .font(HGFont.notoMedium(13))
+                    .font(HGFont.medium(13))
                     .foregroundStyle(HGColor.primary)
                 Text(notification.title)
-                    .font(HGFont.notoBold(20, relativeTo: .title2))
+                    .font(HGFont.bold(20, relativeTo: .title2))
                     .foregroundStyle(HGColor.primaryText)
                 if let date = notification.createdAt.hgISO8601Date {
                     Text(HGDateFormatting.timestamp(date))
-                        .font(HGFont.notoRegular(13))
+                        .font(HGFont.regular(13))
                         .foregroundStyle(HGColor.secondaryText)
                 }
             }
@@ -39,7 +39,7 @@ struct NotificationDetailView: View {
             if notification.type == .emergencyAcknowledged {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("긴급 호출 상태")
-                        .font(HGFont.notoBold(16))
+                        .font(HGFont.bold(16))
                     if isLoading {
                         ProgressView("상태 확인 중...")
                     } else if let error {
@@ -51,14 +51,14 @@ struct NotificationDetailView: View {
                         Text("이 알림에 해당하는 현재 호출 정보를 확인할 수 없어요.")
                     }
                 }
-                .font(HGFont.notoRegular(14))
+                .font(HGFont.regular(14))
                 .foregroundStyle(HGColor.secondaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(20)
                 .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
             } else if notification.destination == .detail {
                 Text("알림 내용을 확인해주세요. 연결된 상세 정보는 제공되지 않았어요.")
-                    .font(HGFont.notoRegular(14))
+                    .font(HGFont.regular(14))
                     .foregroundStyle(HGColor.secondaryText)
             }
         }

@@ -241,7 +241,7 @@ struct HomeView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(dashboard.weather.heatLevelTitle)
-                        .font(HGFont.notoBold(10, relativeTo: .caption2))
+                        .font(HGFont.bold(10, relativeTo: .caption2))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                         .foregroundStyle(HGColor.homeHeatLevelText)
@@ -251,17 +251,17 @@ struct HomeView: View {
                         .padding(.leading, 23)
 
                     Text("현재 온도")
-                        .font(HGFont.notoMedium(12, relativeTo: .caption))
+                        .font(HGFont.medium(12, relativeTo: .caption))
                         .padding(.leading, 20)
                         .padding(.top, 16)
 
                     HStack(alignment: .center, spacing: 8) {
                         Text(dashboard.weather.temperatureText)
-                            .font(HGFont.notoBold(40, relativeTo: .largeTitle))
+                            .font(HGFont.bold(40, relativeTo: .largeTitle))
                             .fixedSize(horizontal: true, vertical: false)
                         if let deltaText = dashboard.weather.temperatureDeltaBadgeText {
                             Text(deltaText)
-                                .font(HGFont.notoBold(9, relativeTo: .caption2))
+                                .font(HGFont.bold(9, relativeTo: .caption2))
                                 .foregroundStyle(HGColor.error)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
@@ -273,7 +273,7 @@ struct HomeView: View {
                     .padding(.leading, 21)
 
                     Text("습도 \(dashboard.weather.humidityText) · 체감온도 \(dashboard.weather.apparentTemperatureText)")
-                        .font(HGFont.notoRegular(12, relativeTo: .caption))
+                        .font(HGFont.regular(12, relativeTo: .caption))
                         .padding(.leading, 20)
                         .padding(.top, 8)
                 }
@@ -297,7 +297,7 @@ struct HomeView: View {
 
             if let observationTime = dashboard.weather.observationTimeText {
                 Text(observationTime)
-                    .font(HGFont.notoRegular(10, relativeTo: .caption2))
+                    .font(HGFont.regular(10, relativeTo: .caption2))
                     .foregroundStyle(HGColor.secondaryText)
                     .padding(.leading, 20)
                     .padding(.top, isCompact ? 2 : 4)
@@ -327,9 +327,9 @@ struct HomeView: View {
         } label: {
             VStack(alignment: .leading, spacing: 0) {
                 Text("오늘 체크 시간")
-                    .font(HGFont.notoBold(14, relativeTo: .subheadline))
+                    .font(HGFont.bold(14, relativeTo: .subheadline))
                 Text(checklist.statusText)
-                    .font(HGFont.notoRegular(11, relativeTo: .caption2))
+                    .font(HGFont.regular(11, relativeTo: .caption2))
                     .foregroundStyle(HGColor.secondaryText)
                     .padding(.top, isCompact ? 4 : 7)
                 HomeTimeline(times: checklist.times)
@@ -371,7 +371,7 @@ struct HomeView: View {
 
     private func sectionLabel(_ title: String) -> some View {
         Text(title)
-            .font(HGFont.notoRegular(11, relativeTo: .caption2))
+            .font(HGFont.regular(11, relativeTo: .caption2))
             .foregroundStyle(HGColor.primaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -835,11 +835,11 @@ private struct HomeMetric: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(HGFont.notoRegular(10, relativeTo: .caption2))
+                    .font(HGFont.regular(10, relativeTo: .caption2))
                     .foregroundStyle(HGColor.secondaryText)
 
                 Text(value)
-                    .font(HGFont.notoBold(14, relativeTo: .caption))
+                    .font(HGFont.bold(14, relativeTo: .caption))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
@@ -871,10 +871,10 @@ private struct HomeActionRow: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(HGFont.notoBold(14, relativeTo: .subheadline))
+                        .font(HGFont.bold(14, relativeTo: .subheadline))
 
                     Text(subtitle)
-                        .font(HGFont.notoRegular(11, relativeTo: .caption2))
+                        .font(HGFont.regular(11, relativeTo: .caption2))
                         .foregroundStyle(HGColor.secondaryText)
                 }
 
@@ -921,7 +921,7 @@ private struct HomeTimeline: View {
             HStack {
                 ForEach(times, id: \.self) { time in
                     Text(time)
-                        .font(HGFont.notoRegular(9, relativeTo: .caption2))
+                        .font(HGFont.regular(9, relativeTo: .caption2))
                         .foregroundStyle(HGColor.secondaryText)
 
                     if time != times.last {

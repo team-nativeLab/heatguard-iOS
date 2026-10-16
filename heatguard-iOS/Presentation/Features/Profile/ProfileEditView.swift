@@ -23,12 +23,12 @@ struct ProfileEditView: View {
             VStack(spacing: 28) {
                 VStack(spacing: 8) {
                     Text(name.prefix(1))
-                        .font(HGFont.notoBold(26, relativeTo: .title))
+                        .font(HGFont.bold(26, relativeTo: .title))
                         .foregroundStyle(HGColor.primary)
                         .frame(width: 72, height: 72)
                         .background(HGColor.homeMetricIconBackground, in: Circle())
                     Text("현장작업자")
-                        .font(HGFont.notoRegular(12, relativeTo: .caption))
+                        .font(HGFont.regular(12, relativeTo: .caption))
                         .foregroundStyle(HGColor.secondaryText)
                 }
 
@@ -42,7 +42,7 @@ struct ProfileEditView: View {
                         title: "이메일", placeholder: "example@email.com", text: $email, isReadOnly: true,
                         trailingLabel: "변경 불가", fieldHeight: 48, inputType: .email)
                     Text("로그인에 쓰는 이메일은 변경할 수 없어요")
-                        .font(HGFont.notoRegular(12, relativeTo: .caption))
+                        .font(HGFont.regular(12, relativeTo: .caption))
                         .foregroundStyle(HGColor.secondaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     HGTextField(title: "전화번호", placeholder: "전화번호를 입력해주세요", text: $phone, fieldHeight: 48)
@@ -52,9 +52,9 @@ struct ProfileEditView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("비밀번호 변경")
-                                    .font(HGFont.notoBold(14, relativeTo: .subheadline))
+                                    .font(HGFont.bold(14, relativeTo: .subheadline))
                                 Text("현재 비밀번호 확인 후 변경할 수 있어요")
-                                    .font(HGFont.notoRegular(11, relativeTo: .caption2))
+                                    .font(HGFont.regular(11, relativeTo: .caption2))
                                     .foregroundStyle(HGColor.secondaryText)
                             }
                             Spacer()
@@ -129,7 +129,7 @@ private struct PasswordChangeView: View {
         HGFixedContent {
             VStack(alignment: .leading, spacing: 0) {
                 Text("현재 비밀번호를 확인한 뒤\n새 비밀번호로 변경할 수 있어요")
-                    .font(HGFont.notoRegular(13, relativeTo: .subheadline))
+                    .font(HGFont.regular(13, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.secondaryText)
                     .lineSpacing(3)
 
@@ -169,7 +169,7 @@ private struct PasswordChangeView: View {
 
                 if passwordsMatch {
                     Text("✓ 새 비밀번호가 일치해요")
-                        .font(HGFont.notoRegular(12, relativeTo: .caption))
+                        .font(HGFont.regular(12, relativeTo: .caption))
                         .foregroundStyle(HGColor.primary)
                         .padding(.top, 8)
                 }
@@ -185,7 +185,7 @@ private struct PasswordChangeView: View {
                 Task { await changePassword() }
             } label: {
                 Text(isSubmitting ? "변경 중..." : "변경하기")
-                    .font(HGFont.notoBold(16, relativeTo: .body))
+                    .font(HGFont.bold(16, relativeTo: .body))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
@@ -234,7 +234,7 @@ private struct PasswordChangeView: View {
                     .foregroundStyle(HGColor.secondaryText)
             }
         }
-        .font(HGFont.notoRegular(12, relativeTo: .caption))
+        .font(HGFont.regular(12, relativeTo: .caption))
     }
 
     private var isValid: Bool {

@@ -30,11 +30,11 @@ struct LoginView: View {
 
                     VStack(alignment: .leading, spacing: 0) {
                         Text("안전한 현장을 위해\n로그인해주세요")
-                            .font(HGFont.notoBold(25, relativeTo: .title))
+                            .font(HGFont.bold(25, relativeTo: .title))
                             .lineSpacing(5)
                             .fixedSize(horizontal: false, vertical: true)
                         Text("현장작업자 계정으로 로그인할 수 있어요")
-                            .font(HGFont.notoRegular(14))
+                            .font(HGFont.regular(14))
                             .foregroundStyle(HGColor.secondaryText)
                             .padding(.top, 8)
                         VStack(spacing: 26) {
@@ -54,13 +54,13 @@ struct LoginView: View {
                         title: isSubmitting ? "로그인 중..." : "로그인",
                         isEnabled: !isSubmitting,
                         height: 42,
-                        font: HGFont.notoBold(15),
+                        font: HGFont.bold(15),
                         cornerRadius: 14,
                         tint: HGColor.loginPrimary
                     ) { login() }
                     .padding(.horizontal, min(40, max(20, (geometry.size.width - 280) / 2)))
                     Text("계정 생성과 재설정은 현장관리자에게 문의해주세요")
-                        .font(HGFont.notoRegular(12, relativeTo: .caption))
+                        .font(HGFont.regular(12, relativeTo: .caption))
                         .foregroundStyle(HGColor.secondaryText)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 24)

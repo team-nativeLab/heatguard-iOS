@@ -34,10 +34,10 @@ struct NotificationsView: View {
                         .frame(width: 72, height: 72)
                         .background(HGColor.homeActionIconBackground, in: Circle())
                     Text("아직 받은 알림이 없어요")
-                        .font(HGFont.notoBold(16, relativeTo: .headline))
+                        .font(HGFont.bold(16, relativeTo: .headline))
                         .foregroundStyle(HGColor.primaryText)
                     Text("폭염 경보나 기록 알림이 오면 여기에 모아서 보여드려요")
-                        .font(HGFont.notoRegular(13, relativeTo: .subheadline))
+                        .font(HGFont.regular(13, relativeTo: .subheadline))
                         .foregroundStyle(HGColor.secondaryText)
                         .multilineTextAlignment(.center)
                 }
@@ -48,7 +48,7 @@ struct NotificationsView: View {
                     LazyVStack(alignment: .leading, spacing: 14) {
                         ForEach(groupedNotifications, id: \.date) { group in
                             Text(group.dateLabel)
-                                .font(HGFont.notoMedium(12, relativeTo: .caption))
+                                .font(HGFont.medium(12, relativeTo: .caption))
                                 .foregroundStyle(HGColor.secondaryText)
                             VStack(spacing: 0) {
                                 ForEach(group.items) { notification in
@@ -68,7 +68,7 @@ struct NotificationsView: View {
                                     if isLoadingMore { ProgressView() }
                                     Text(isLoadingMore ? "불러오는 중..." : "더 보기")
                                 }
-                                .font(HGFont.notoMedium(13, relativeTo: .subheadline))
+                                .font(HGFont.medium(13, relativeTo: .subheadline))
                                 .foregroundStyle(HGColor.primary)
                                 .frame(maxWidth: .infinity, minHeight: 44)
                             }
@@ -106,7 +106,7 @@ struct NotificationsView: View {
             ForEach(HGNotificationCategory.allCases) { item in
                 Button { category = item } label: {
                     Text(item.title)
-                        .font(HGFont.notoMedium(13, relativeTo: .caption))
+                        .font(HGFont.medium(13, relativeTo: .caption))
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
                         .foregroundStyle(category == item ? .white : HGColor.secondaryText)
@@ -238,12 +238,12 @@ private struct NotificationRow: View {
                 .background(notification.category == .emergency ? HGColor.saveFailureIconBackground : HGColor.homeActionIconBackground, in: RoundedRectangle(cornerRadius: 14))
             VStack(alignment: .leading, spacing: 6) {
                 Text(notification.title)
-                    .font(HGFont.notoBold(14, relativeTo: .subheadline))
+                    .font(HGFont.bold(14, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
             }
             Spacer(minLength: 4)
             Text(notification.createdAt.notificationTimeText)
-                .font(HGFont.notoRegular(12, relativeTo: .caption))
+                .font(HGFont.regular(12, relativeTo: .caption))
                 .foregroundStyle(HGColor.secondaryText)
             if !notification.read {
                 Circle().fill(HGColor.primary).frame(width: 8, height: 8)

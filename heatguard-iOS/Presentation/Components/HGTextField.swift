@@ -62,7 +62,7 @@ struct HGTextField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(HGFont.notoBold(13, relativeTo: .caption))
+                .font(HGFont.bold(13, relativeTo: .caption))
                 .foregroundStyle(HGColor.primaryText)
                 .padding(.leading, titleLeadingPadding)
 
@@ -79,7 +79,7 @@ struct HGTextField: View {
 
                 if let trailingLabel {
                     Text(trailingLabel)
-                        .font(HGFont.notoRegular(12, relativeTo: .caption))
+                        .font(HGFont.regular(12, relativeTo: .caption))
                         .foregroundStyle(HGColor.secondaryText)
                         .fixedSize()
                 }
@@ -97,7 +97,7 @@ struct HGTextField: View {
                     .accessibilityLabel(isSecureTextVisible ? "비밀번호 숨기기" : "비밀번호 보기")
                 }
             }
-            .font(HGFont.notoRegular(textSize))
+            .font(HGFont.regular(textSize))
             .foregroundStyle(HGColor.primaryText)
             .focused($isFocused)
             .keyboardType(inputType.keyboardType)
@@ -115,7 +115,7 @@ struct HGTextField: View {
 
             if let errorMessage {
                 Text(errorMessage)
-                    .font(HGFont.notoRegular(12, relativeTo: .caption))
+                    .font(HGFont.regular(12, relativeTo: .caption))
                     .foregroundStyle(HGColor.error)
             }
         }
