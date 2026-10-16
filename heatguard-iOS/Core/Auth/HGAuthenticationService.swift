@@ -26,30 +26,29 @@ struct HGAuthenticationService {
             path: HGAPIPath.teamLogin
         )
         try tokenStore.save(response.accessToken)
-        if email.caseInsensitiveCompare("test1234") == .orderedSame {
-            try credentialStore.save(email: email, password: password)
-        }
+        // Passwords from the old test-account recovery path must not survive login.
+        try credentialStore.clear()
         sessionState.markSignedIn()
         return TeamSession()
     }
 
     func restoreSession() async throws -> TeamSession? {
+        try credentialStore.clear()
         guard !sessionState.isSignedOut else { return nil }
 
         guard try tokenStore.load() != nil else {
-            guard let credentials = try credentialStore.load() else { return nil }
-            return try await login(email: credentials.email, password: credentials.password)
+            return nil
         }
 
-        let _: TeamSessionResponse = try await client.get(
-            path: HGAPIPath.teamMe,
-            requiresAuthentication: true
-        )
+        _ = try await currentProfile()
         return TeamSession()
     }
 
     func currentProfile() async throws -> HGTeamProfile {
-        try await client.get(path: HGAPIPath.teamMe, requiresAuthentication: true)
+        let profile: HGTeamProfile = try await client.get(path: HGAPIPath.teamMe, requiresAuthentication: true)
+        sessionState.setUserID(profile.userID)
+        try HGRecordDraftStore(ownerID: profile.userID).clearLegacyDraft()
+        return profile
     }
 
     func updateProfile(
@@ -67,11 +66,20 @@ struct HGAuthenticationService {
     }
 
     func logout() async throws {
+        let draftStore = HGRecordDraftStore(ownerID: sessionState.userID)
+        defer {
+            // A 401 may already have reset session identity before this returns.
+            try? draftStore.clear()
+            endLocalSession()
+        }
         try await client.sendVoid(method: "POST", path: HGAPIPath.teamLogout, requiresAuthentication: true)
-        endLocalSession()
     }
 
-    func endLocalSession() {
+    func endLocalSession(clearDraft: Bool = true) {
+        if clearDraft {
+            try? HGRecordDraftStore(ownerID: sessionState.userID).clear()
+        }
+        try? HGRecordDraftStore().clearLegacyDraft()
         sessionState.markSignedOut()
         try? tokenStore.clear()
         try? credentialStore.clear()
@@ -84,10 +92,6 @@ struct HGAuthenticationService {
             path: HGAPIPath.teamPassword,
             requiresAuthentication: true
         )
-        if let credentials = try? credentialStore.load(),
-           credentials.email.caseInsensitiveCompare("test1234") == .orderedSame {
-            try credentialStore.save(email: credentials.email, password: newPassword)
-        }
     }
 
     func withdraw(currentPassword: String, reason: String? = nil) async throws {
@@ -128,8 +132,6 @@ private struct TeamLoginResponse: Decodable {
         }
     }
 }
-
-private struct TeamSessionResponse: Decodable {}
 
 struct HGTeamProfile: Decodable, Equatable {
     let userID: String
@@ -244,9 +246,11 @@ final class HGAuthTokenStore {
     static let shared = HGAuthTokenStore()
 
     private let service = "aa.heatguard-iOS"
-    private let account = "team-session-access-token"
+    private let account: String
 
-    private init() {}
+    init(account: String = "team-session-access-token") {
+        self.account = account
+    }
 
     func save(_ token: String) throws {
         let valueData = Data(token.utf8)
@@ -322,9 +326,10 @@ final class HGSessionStateStore {
     static let shared = HGSessionStateStore()
 
     private let signedOutKey = "aa.heatguard-iOS.session-signed-out"
+    private let userIDKey = "aa.heatguard-iOS.session-user-id"
     private let userDefaults: UserDefaults
 
-    private init(userDefaults: UserDefaults = .standard) {
+    init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
     }
 
@@ -333,10 +338,18 @@ final class HGSessionStateStore {
     }
 
     func markSignedIn() {
+        userDefaults.removeObject(forKey: userIDKey)
         userDefaults.removeObject(forKey: signedOutKey)
     }
 
+    var userID: String? { userDefaults.string(forKey: userIDKey) }
+
+    func setUserID(_ userID: String) {
+        userDefaults.set(userID, forKey: userIDKey)
+    }
+
     func markSignedOut() {
+        userDefaults.removeObject(forKey: userIDKey)
         userDefaults.set(true, forKey: signedOutKey)
     }
 }

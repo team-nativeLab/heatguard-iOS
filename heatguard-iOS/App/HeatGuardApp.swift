@@ -17,6 +17,12 @@ struct heatguard_iOSApp: App {
             rootView
                 .preferredColorScheme(.light)
                 .task { await restoreSession() }
+                .onReceive(NotificationCenter.default.publisher(for: .hgSessionExpired)) { notification in
+                    guard let expiredToken = notification.object as? String,
+                          (try? HGAuthTokenStore.shared.load()) == expiredToken else { return }
+                    HGAuthenticationService().endLocalSession(clearDraft: false)
+                    isAuthenticated = false
+                }
         }
     }
 
