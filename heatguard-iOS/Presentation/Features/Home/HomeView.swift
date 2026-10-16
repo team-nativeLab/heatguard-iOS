@@ -3,9 +3,14 @@ import UIKit
 
 struct HomeView: View {
     let onSessionEnded: () -> Void
+    private let loadsRemoteData: Bool
 
-    init(onSessionEnded: @escaping () -> Void = {}) {
+    init(initialDashboard: HomeDashboard? = nil, onSessionEnded: @escaping () -> Void = {}) {
         self.onSessionEnded = onSessionEnded
+        self.loadsRemoteData = initialDashboard == nil
+        _dashboard = State(initialValue: initialDashboard ?? .unavailable)
+        _checklist = State(initialValue: initialDashboard?.checklist ?? HGChecklistSummary(times: [], checkedCount: nil, totalCount: nil))
+        _unreadNotificationCount = State(initialValue: initialDashboard?.unreadNotificationCount ?? 0)
     }
 
     @State private var resultSheet: RecordResultSheet?
@@ -50,40 +55,44 @@ struct HomeView: View {
     }
 
     private var homeContent: some View {
-        HGFixedContent {
+        HGFixedContent(compactHeightThreshold: HGLayout.homeCompactHeightThreshold) { isCompactFixedLayout in
             VStack(spacing: 0) {
                 header
-                weatherSummary
-                    .padding(.top, 15)
+                weatherSummary(isCompact: isCompactFixedLayout)
+                    .padding(.top, isCompactFixedLayout ? 8 : 15)
                 sectionLabel("데이터 기록")
-                    .padding(.top, 20)
-                checkCard
-                    .padding(.top, 8)
-                contactCard
-                    .padding(.top, 16)
+                    .padding(.top, isCompactFixedLayout ? 8 : 20)
+                checkCard(isCompact: isCompactFixedLayout)
+                    .padding(.top, isCompactFixedLayout ? 4 : 8)
+                contactCard(isCompact: isCompactFixedLayout)
+                    .padding(.top, isCompactFixedLayout ? 8 : 16)
                 sectionLabel("추가 기록")
-                    .padding(.top, 16)
-                VStack(spacing: 9) {
+                    .padding(.top, isCompactFixedLayout ? 8 : 16)
+                VStack(spacing: isCompactFixedLayout ? 6 : 8) {
                     HomeActionRow(
                         icon: "HomeCamera",
                         title: "현장 사진",
-                        subtitle: "사진 촬영 또는 앨범에서 선택"
+                        subtitle: "사진 촬영 또는 앨범에서 선택",
+                        rowHeight: isCompactFixedLayout ? 58 : 69
                     ) {
                         showsRecordTypes = true
                     }
+                    .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
                     HomeActionRow(
                         icon: "HomeHistory",
                         title: "기록 내역",
-                        subtitle: "지금까지의 기록을 확인하세요"
+                        subtitle: "지금까지의 기록을 확인하세요",
+                        rowHeight: isCompactFixedLayout ? 58 : 69
                     ) {
                         flowPath.append(HomeFlowRoute.recordHistory)
                     }
+                    .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
                 }
-                .padding(.top, 8)
+                .padding(.top, isCompactFixedLayout ? 6 : 8)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
-            .padding(.top, HGLayout.screenTopPadding)
+            .padding(.top, isCompactFixedLayout ? 8 : HGLayout.screenTopPadding)
         }
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
@@ -137,6 +146,7 @@ struct HomeView: View {
         }
         .navigationDestination(for: HomeFlowRoute.self, destination: destinationView)
         .task {
+            guard loadsRemoteData else { return }
             await loadDashboard()
             await loadProfile()
             await restoreCurrentEmergencyCall()
@@ -192,6 +202,7 @@ struct HomeView: View {
             profile: teamProfile.map(HGMenuProfile.init(profile:)) ?? .preview,
             isPresented: isMenuDrawerVisible,
             onDismiss: { dismissMenuDrawer() },
+            onHome: { dismissMenuDrawer(afterDismiss: returnToHome) },
             onProfileEdit: {
                 dismissMenuDrawer {
                     flowPath.append(HomeFlowRoute.profileEdit)
@@ -225,44 +236,48 @@ struct HomeView: View {
         flowPath.append(HomeFlowRoute.notifications)
     }
 
-    private var weatherSummary: some View {
+    private func weatherSummary(isCompact: Bool) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(dashboard.weather.heatLevelTitle)
                         .font(HGFont.notoBold(10, relativeTo: .caption2))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                         .foregroundStyle(HGColor.homeHeatLevelText)
                         .padding(.horizontal, 10)
-                        .frame(height: 24)
+                        .frame(width: 80, height: 24)
                         .background(HGColor.homeHeatLevelBackground, in: Capsule())
+                        .padding(.leading, 23)
 
                     Text("현재 온도")
                         .font(HGFont.notoMedium(12, relativeTo: .caption))
+                        .padding(.leading, 20)
                         .padding(.top, 16)
 
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    HStack(alignment: .center, spacing: 8) {
                         Text(dashboard.weather.temperatureText)
                             .font(HGFont.notoBold(40, relativeTo: .largeTitle))
                             .fixedSize(horizontal: true, vertical: false)
-                        if let deltaText = dashboard.weather.temperatureDeltaText {
+                        if let deltaText = dashboard.weather.temperatureDeltaBadgeText {
                             Text(deltaText)
-                                .font(HGFont.notoMedium(11, relativeTo: .caption2))
-                                .foregroundStyle(HGColor.secondaryText)
+                                .font(HGFont.notoBold(9, relativeTo: .caption2))
+                                .foregroundStyle(HGColor.error)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                                .frame(width: 54, height: 20)
+                                .background(HGColor.homeBaselineBackground, in: Capsule())
+                                .accessibilityLabel(dashboard.weather.temperatureDeltaText ?? deltaText)
                         }
                     }
+                    .padding(.leading, 21)
 
                     Text("습도 \(dashboard.weather.humidityText) · 체감온도 \(dashboard.weather.apparentTemperatureText)")
                         .font(HGFont.notoRegular(12, relativeTo: .caption))
+                        .padding(.leading, 20)
                         .padding(.top, 8)
-
-                    if let observationTime = dashboard.weather.observationTimeText {
-                        Text(observationTime)
-                            .font(HGFont.notoRegular(10, relativeTo: .caption2))
-                            .foregroundStyle(HGColor.secondaryText)
-                            .padding(.top, 4)
-                    }
                 }
-                Spacer()
+                Spacer(minLength: 0)
                 Group {
                     if let assetName = dashboard.weather.skyIllustrationAssetName {
                         Image(assetName)
@@ -276,9 +291,18 @@ struct HomeView: View {
                             .foregroundStyle(HGColor.primary)
                     }
                 }
-                .frame(width: 136, height: 136)
-                .offset(x: 4, y: 2)
+                .frame(width: isCompact ? 120 : 159, height: 121)
+                .offset(y: -2)
             }
+
+            if let observationTime = dashboard.weather.observationTimeText {
+                Text(observationTime)
+                    .font(HGFont.notoRegular(10, relativeTo: .caption2))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .padding(.leading, 20)
+                    .padding(.top, isCompact ? 2 : 4)
+            }
+
             HStack(spacing: 0) {
                 HomeMetric(icon: "HomeHumidity", title: "습도", value: dashboard.weather.humidityText)
                 Divider().frame(height: 24)
@@ -290,11 +314,14 @@ struct HomeView: View {
             .frame(height: 78)
             .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
             .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
+            .padding(.horizontal, 26)
+            .padding(.top, isCompact ? 2 : 9)
         }
+        .padding(.horizontal, -12)
         .foregroundStyle(HGColor.primaryText)
     }
 
-    private var checkCard: some View {
+    private func checkCard(isCompact: Bool) -> some View {
         Button {
             flowPath.append(HomeFlowRoute.checklist)
         } label: {
@@ -304,34 +331,37 @@ struct HomeView: View {
                 Text(checklist.statusText)
                     .font(HGFont.notoRegular(11, relativeTo: .caption2))
                     .foregroundStyle(HGColor.secondaryText)
-                    .padding(.top, 7)
+                    .padding(.top, isCompact ? 4 : 7)
                 HomeTimeline(times: checklist.times)
-                    .padding(.top, 19)
+                    .padding(.top, isCompact ? 12 : 19)
             }
             .foregroundStyle(HGColor.primaryText)
-            .padding(20)
-            .frame(maxWidth: .infinity, minHeight: 136, alignment: .leading)
+            .padding(.horizontal, 20)
+            .padding(.vertical, isCompact ? 16 : 20)
+            .frame(maxWidth: .infinity, minHeight: isCompact ? 120 : 136, alignment: .leading)
             .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
         }
         .buttonStyle(.plain)
         .accessibilityHint("체크리스트 항목을 확인하고 체크합니다")
     }
 
-    private var contactCard: some View {
+    private func contactCard(isCompact: Bool) -> some View {
         VStack(spacing: 0) {
             HomeActionRow(
                 icon: "HomeManagerPhone",
                 title: "관리자 전화",
                 subtitle: "현장 관리자에게 연락",
-                isEnabled: dashboard.managerPhone?.telephoneURL != nil
+                isEnabled: dashboard.managerPhone?.telephoneURL != nil,
+                rowHeight: isCompact ? 54 : 65
             ) {
                 contactSiteManager()
             }
             Divider().padding(.leading, 16)
             HomeActionRow(
                 icon: "HomeEmergencyPhone",
-                title: "긴급 전화",
-                subtitle: "본사와 즉시 연결"
+                title: "긴급 호출",
+                subtitle: "긴급 호출 등록 및 본사 연락",
+                rowHeight: isCompact ? 54 : 65
             ) {
                 showEmergencyCall()
             }
@@ -810,6 +840,8 @@ private struct HomeMetric: View {
 
                 Text(value)
                     .font(HGFont.notoBold(14, relativeTo: .caption))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -821,6 +853,7 @@ private struct HomeActionRow: View {
     let title: String
     let subtitle: String
     var isEnabled = true
+    var rowHeight: CGFloat = 65
     let action: () -> Void
 
     var body: some View {
@@ -852,7 +885,7 @@ private struct HomeActionRow: View {
                     .foregroundStyle(HGColor.homeChevron)
             }
             .padding(.horizontal, 16)
-            .frame(height: 65)
+            .frame(height: rowHeight)
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)

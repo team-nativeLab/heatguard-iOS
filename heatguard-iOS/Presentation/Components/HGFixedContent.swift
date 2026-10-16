@@ -3,13 +3,25 @@ import SwiftUI
 /// 고정 화면의 콘텐츠 비율을 유지하며 사용 가능한 높이에 맞춥니다.
 /// 버튼은 이 영역 바깥의 safeAreaInset에 두어 위치와 터치 크기를 유지합니다.
 struct HGFixedContent<Content: View>: View {
-    @ViewBuilder let content: Content
+    private let content: (Bool) -> Content
+    private let compactHeightThreshold: CGFloat?
     @State private var contentHeight: CGFloat = 0
+
+    init(@ViewBuilder content: @escaping () -> Content) {
+        self.compactHeightThreshold = nil
+        self.content = { _ in content() }
+    }
+
+    init(compactHeightThreshold: CGFloat, @ViewBuilder content: @escaping (Bool) -> Content) {
+        self.compactHeightThreshold = compactHeightThreshold
+        self.content = content
+    }
 
     var body: some View {
         GeometryReader { geometry in
             let scale = Self.scale(contentHeight: contentHeight, availableHeight: geometry.size.height)
-            content
+            let isCompact = compactHeightThreshold.map { geometry.size.height < $0 } ?? false
+            content(isCompact)
                 .frame(width: geometry.size.width / max(scale, 0.01))
                 .fixedSize(horizontal: false, vertical: true)
                 .background {

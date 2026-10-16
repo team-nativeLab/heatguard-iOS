@@ -29,7 +29,8 @@ final class LayoutEvidenceTests: XCTestCase {
                 ("field-photo", AnyView(FieldPhotoCaptureView())),
                 ("emergency-prompt", AnyView(EmergencyAlertView())),
                 ("emergency-active", AnyView(EmergencyCallView())),
-                ("saved", AnyView(SaveSuccessView(result: HGRecordSaveResult(recordID: "fixture", draft: HGRecordDraft(type: .work, memo: ""), photoCount: 2, savedAt: Date(timeIntervalSince1970: 0))))),
+                ("saved", AnyView(SaveSuccessView(result: HGRecordSaveResult(recordID: "fixture", draft: HGRecordDraft(type: .work, memo: ""), expectedPhotoCount: 2, photoVerification: .checked(photoURLCount: 2), savedAt: Date(timeIntervalSince1970: 0))))),
+                ("saved-partial", AnyView(SaveSuccessView(result: HGRecordSaveResult(recordID: "fixture", draft: HGRecordDraft(type: .work, memo: ""), expectedPhotoCount: 2, photoVerification: .unavailable(diagnosticCode: "FIXTURE"), savedAt: Date(timeIntervalSince1970: 0))))),
                 ("profile", AnyView(ProfileEditView())),
                 ("withdrawal", AnyView(WithdrawalGuideView()))
             ]

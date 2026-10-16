@@ -183,7 +183,7 @@ struct InquiryView: View {
             error = nil
         } catch {
             guard listRequestID == requestID else { return }
-            failedToLoadMore = true
+            failedToLoadMore = false
             self.error = HGErrorPresentation(error: error)
         }
     }
@@ -202,9 +202,11 @@ struct InquiryView: View {
             inquiries.append(contentsOf: page.items.filter { !existingIDs.contains($0.inquiryID) })
             self.nextCursor = page.page.nextCursor
             hasMore = page.page.hasMore && page.page.nextCursor != nil
+            failedToLoadMore = false
             error = nil
         } catch {
             guard listRequestID == requestID else { return }
+            failedToLoadMore = true
             self.error = HGErrorPresentation(error: error)
         }
     }

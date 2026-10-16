@@ -67,7 +67,7 @@ struct EmergencyAlertView: View {
                 .font(HGFont.bold(20, relativeTo: .title2))
                 .foregroundStyle(HGColor.emergencyNoticeText)
 
-            Text("버튼을 누르면 즉시\n관리자에게 전화가 연결됩니다")
+            Text("호출하기를 누르면 긴급 호출을 등록해요.\n전화는 아래 본사 연락처를 눌러주세요.")
                 .font(HGFont.semiBold(15))
                 .foregroundStyle(HGColor.secondaryText)
                 .multilineTextAlignment(.center)

@@ -21,13 +21,16 @@ enum HGAPIConfiguration {
 struct HGAPIClient {
     private let session: URLSession
     private let tokenStore: HGAuthTokenStore
+    private let notificationCenter: NotificationCenter
 
     init(
         session: URLSession = .shared,
-        tokenStore: HGAuthTokenStore = .shared
+        tokenStore: HGAuthTokenStore = .shared,
+        notificationCenter: NotificationCenter = .default
     ) {
         self.session = session
         self.tokenStore = tokenStore
+        self.notificationCenter = notificationCenter
     }
 
     func send<Request: Encodable, Response: Decodable>(
@@ -160,103 +163,22 @@ struct HGAPIClient {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw HGAPIError.invalidResponse
         }
-        guard requiresAuthentication, httpResponse.statusCode == 401,
-              let staleToken = try? tokenStore.load(),
-              await HGAuthSessionRecovery.shared.recover(
-                staleToken: staleToken,
-                session: session,
-                tokenStore: tokenStore
-              ),
-              let newToken = try? tokenStore.load(), newToken != staleToken else {
-            return (data, httpResponse)
-        }
-
-        var retryRequest = request
-        retryRequest.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
-        let (retryData, retryResponse) = try await session.data(for: retryRequest)
-        guard let retryHTTPResponse = retryResponse as? HTTPURLResponse else {
-            throw HGAPIError.invalidResponse
-        }
-        return (retryData, retryHTTPResponse)
-    }
-}
-
-@MainActor
-private final class HGAuthSessionRecovery {
-    static let shared = HGAuthSessionRecovery()
-
-    private var recoveryTask: Task<String?, Never>?
-
-    func recover(
-        staleToken: String,
-        session: URLSession,
-        tokenStore: HGAuthTokenStore
-    ) async -> Bool {
-        if let currentToken = try? tokenStore.load(), currentToken != staleToken {
-            return true
-        }
-        if let recoveryTask {
-            return await recoveryTask.value != nil
-        }
-
-        let task = Task { [weak self] () -> String? in
-            guard let self else { return nil }
-            return await self.login(session: session, tokenStore: tokenStore)
-        }
-        recoveryTask = task
-        let newToken = await task.value
-        recoveryTask = nil
-        return newToken != nil
-    }
-
-    private func login(session: URLSession, tokenStore: HGAuthTokenStore) async -> String? {
-        guard let credentials = try? HGAuthCredentialStore.shared.load(),
-              let baseURL = try? HGAPIConfiguration.baseURL() else { return nil }
-        var request = URLRequest(url: baseURL.appending(path: HGAPIPath.teamLogin))
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONEncoder().encode(credentials)
-
-        guard let (data, response) = try? await session.data(for: request),
-              let httpResponse = response as? HTTPURLResponse else { return nil }
-        guard (200 ... 299).contains(httpResponse.statusCode) else {
-            if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
-                try? HGAuthCredentialStore.shared.clear()
-                try? tokenStore.clear()
+        let error = try? JSONDecoder().decode(HGAPIEnvelope<HGEmptyPayload>.self, from: data).error
+        let sessionExpired = (httpResponse.statusCode == 401 && error?.code != "INVALID_CREDENTIALS")
+            || (httpResponse.statusCode == 403 && error?.code == "ACCOUNT_DISABLED")
+        if requiresAuthentication, sessionExpired,
+           let authorization = request.value(forHTTPHeaderField: "Authorization"),
+           let currentToken = try tokenStore.load(), authorization == "Bearer \(currentToken)" {
+            await MainActor.run {
+                notificationCenter.post(name: .hgSessionExpired, object: currentToken)
             }
-            return nil
         }
-        guard
-              let envelope = try? JSONDecoder().decode(HGAPIEnvelope<HGRecoveredLoginResponse>.self, from: data),
-              envelope.success,
-              let accessToken = envelope.data?.accessToken,
-              (try? tokenStore.save(accessToken)) != nil else { return nil }
-        return accessToken
+        return (data, httpResponse)
     }
 }
 
-private struct HGRecoveredLoginResponse: Decodable {
-    let accessToken: String
-
-    private enum CodingKeys: String, CodingKey {
-        case accessToken
-        case token
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let accessToken = try container.decodeIfPresent(String.self, forKey: .accessToken) {
-            self.accessToken = accessToken
-        } else if let token = try container.decodeIfPresent(String.self, forKey: .token) {
-            self.accessToken = token
-        } else {
-            throw DecodingError.keyNotFound(
-                CodingKeys.accessToken,
-                .init(codingPath: decoder.codingPath, debugDescription: "로그인 토큰이 없습니다.")
-            )
-        }
-    }
+extension Notification.Name {
+    static let hgSessionExpired = Notification.Name("HeatGuardSessionExpired")
 }
 
 struct HGAPIEnvelope<Payload: Decodable>: Decodable {
