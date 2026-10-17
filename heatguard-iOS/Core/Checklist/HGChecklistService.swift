@@ -1,6 +1,11 @@
 import Foundation
 
-struct HGChecklistService {
+protocol HGChecklistServicing {
+    func fetchItems() async throws -> [HGChecklistItem]
+    func update(itemID: String, isChecked: Bool) async throws -> HGChecklistUpdateResponse
+}
+
+struct HGChecklistService: HGChecklistServicing {
     private let client: HGAPIClient
 
     init(client: HGAPIClient = HGAPIClient()) {

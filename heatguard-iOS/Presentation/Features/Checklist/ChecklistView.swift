@@ -6,7 +6,7 @@ struct ChecklistView: View {
     let times: [String]
     let siteName: String?
     let teamName: String?
-    private let service: HGChecklistService
+    private let service: any HGChecklistServicing
     private let onProgressChanged: (Int, Int) -> Void
 
     @State private var items: [HGChecklistItem] = []
@@ -19,7 +19,7 @@ struct ChecklistView: View {
         times: [String],
         siteName: String?,
         teamName: String?,
-        service: HGChecklistService = HGChecklistService(),
+        service: any HGChecklistServicing = HGChecklistService(),
         onProgressChanged: @escaping (Int, Int) -> Void = { _, _ in }
     ) {
         self.times = times
@@ -69,6 +69,7 @@ struct ChecklistView: View {
             ) {
                 dismiss()
             }
+            .accessibilityIdentifier("checklist-complete")
             .padding(.horizontal, 28)
             .padding(.top, 10)
             .padding(.bottom, 8)
@@ -377,9 +378,9 @@ private struct HGChecklistItemRow: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 5)
+                    Circle()
                         .fill(item.checked ? HGColor.primary : .clear)
-                    RoundedRectangle(cornerRadius: 5)
+                    Circle()
                         .stroke(item.checked ? HGColor.primary : HGColor.homeTimelineBorder, lineWidth: 1.2)
                     if item.checked {
                         Image(systemName: "checkmark")
@@ -387,7 +388,7 @@ private struct HGChecklistItemRow: View {
                             .foregroundStyle(.white)
                     }
                 }
-                .frame(width: 22, height: 22)
+                .frame(width: 24, height: 24)
 
                 Text(item.text)
                     .font(HGFont.medium(14, relativeTo: .subheadline))
@@ -411,6 +412,7 @@ private struct HGChecklistItemRow: View {
         .accessibilityLabel(item.text)
         .accessibilityValue(item.checked ? "체크됨" : "체크 안 됨")
         .accessibilityHint("두 번 탭하여 체크 상태를 변경합니다")
+        .accessibilityIdentifier("checklist-item-\(item.id)")
     }
 }
 

@@ -16,7 +16,15 @@ struct heatguard_iOSApp: App {
         WindowGroup {
             rootView
                 .preferredColorScheme(.light)
-                .task { await restoreSession() }
+                .task {
+                    #if DEBUG
+                    if isChecklistUITesting {
+                        isRestoringSession = false
+                        return
+                    }
+                    #endif
+                    await restoreSession()
+                }
                 .onReceive(NotificationCenter.default.publisher(for: .hgSessionExpired)) { notification in
                     guard let expiredToken = notification.object as? String,
                           (try? HGAuthTokenStore.shared.load()) == expiredToken else { return }
@@ -28,6 +36,26 @@ struct heatguard_iOSApp: App {
 
     @ViewBuilder
     private var rootView: some View {
+        #if DEBUG
+        if isChecklistUITesting {
+            NavigationStack {
+                ChecklistView(
+                    times: ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"],
+                    siteName: "인천 복합물류센터 신축",
+                    teamName: "A팀",
+                    service: HGChecklistUITestService()
+                )
+            }
+        } else {
+            standardRootView
+        }
+        #else
+        standardRootView
+        #endif
+    }
+
+    @ViewBuilder
+    private var standardRootView: some View {
         if isRestoringSession {
             ProgressView()
         } else if isAuthenticated {
@@ -36,6 +64,12 @@ struct heatguard_iOSApp: App {
             LoginView { _ in isAuthenticated = true }
         }
     }
+
+    #if DEBUG
+    private var isChecklistUITesting: Bool {
+        ProcessInfo.processInfo.arguments.contains("-ui-testing-checklist")
+    }
+    #endif
 
     @MainActor
     private func restoreSession() async {

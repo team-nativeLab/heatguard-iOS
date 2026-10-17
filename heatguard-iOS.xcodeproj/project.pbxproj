@@ -9,6 +9,7 @@
 /* Begin PBXFileReference section */
 		60AF17163055ACD9005468A8 /* heatguard-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "heatguard-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A18D5720D3144FE3A41FBE10 /* heatguard-iOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "heatguard-iOSTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000001 /* heatguard-iOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "heatguard-iOSUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -20,6 +21,11 @@
 		A18D5721D3144FE3A41FBE10 /* Tests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Tests;
+			sourceTree = "<group>";
+		};
+		B10000000000000000000002 /* UITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = UITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -39,6 +45,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B10000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -47,6 +60,7 @@
 			children = (
 				60AF17183055ACD9005468A8 /* heatguard-iOS */,
 				A18D5721D3144FE3A41FBE10 /* Tests */,
+				B10000000000000000000002 /* UITests */,
 				60AF17173055ACD9005468A8 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -56,6 +70,7 @@
 			children = (
 				60AF17163055ACD9005468A8 /* heatguard-iOS.app */,
 				A18D5720D3144FE3A41FBE10 /* heatguard-iOSTests.xctest */,
+				B10000000000000000000001 /* heatguard-iOSUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -106,6 +121,26 @@
 			productReference = A18D5720D3144FE3A41FBE10 /* heatguard-iOSTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		B10000000000000000000004 /* heatguard-iOSUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B1000000000000000000000A /* Build configuration list for PBXNativeTarget "heatguard-iOSUITests" */;
+			buildPhases = (
+				B10000000000000000000005 /* Sources */,
+				B10000000000000000000003 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B10000000000000000000007 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B10000000000000000000002 /* UITests */,
+			);
+			name = "heatguard-iOSUITests";
+			productName = "heatguard-iOSUITests";
+			productReference = B10000000000000000000001 /* heatguard-iOSUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -120,6 +155,10 @@
 						CreatedOnToolsVersion = 26.6;
 					};
 					A18D5723D3144FE3A41FBE10 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = 60AF17153055ACD9005468A8;
+					};
+					B10000000000000000000004 = {
 						CreatedOnToolsVersion = 26.6;
 						TestTargetID = 60AF17153055ACD9005468A8;
 					};
@@ -141,6 +180,7 @@
 			targets = (
 				60AF17153055ACD9005468A8 /* heatguard-iOS */,
 				A18D5723D3144FE3A41FBE10 /* heatguard-iOSTests */,
+				B10000000000000000000004 /* heatguard-iOSUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -177,10 +217,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B10000000000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXContainerItemProxy section */
 		A18D5726D3144FE3A41FBE10 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 60AF170E3055ACD9005468A8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 60AF17153055ACD9005468A8;
+			remoteInfo = "heatguard-iOS";
+		};
+		B10000000000000000000006 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 60AF170E3055ACD9005468A8 /* Project object */;
 			proxyType = 1;
@@ -194,6 +248,11 @@
 			isa = PBXTargetDependency;
 			target = 60AF17153055ACD9005468A8 /* heatguard-iOS */;
 			targetProxy = A18D5726D3144FE3A41FBE10 /* PBXContainerItemProxy */;
+		};
+		B10000000000000000000007 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 60AF17153055ACD9005468A8 /* heatguard-iOS */;
+			targetProxy = B10000000000000000000006 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -452,6 +511,50 @@
 			};
 			name = Release;
 		};
+		B10000000000000000000008 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphonesimulator*]" = "-";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "aa.heatguard-iOSUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = "heatguard-iOS";
+			};
+			name = Debug;
+		};
+		B10000000000000000000009 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphonesimulator*]" = "-";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "aa.heatguard-iOSUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = "heatguard-iOS";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -478,6 +581,15 @@
 			buildConfigurations = (
 				A18D5729D3144FE3A41FBE10 /* Debug */,
 				A18D572AD3144FE3A41FBE10 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B1000000000000000000000A /* Build configuration list for PBXNativeTarget "heatguard-iOSUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B10000000000000000000008 /* Debug */,
+				B10000000000000000000009 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
