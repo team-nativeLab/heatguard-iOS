@@ -34,8 +34,26 @@ struct HGManualInputCard: View {
             }
 
             HStack(spacing: 8) {
-                inputField(title: "온도 (°C)", placeholder: "예: 47.5", text: $temperature, keyboardType: .decimalPad)
-                inputField(title: "습도 (%)", placeholder: "예: 55", text: $humidity, keyboardType: .numberPad)
+                HGTextField(
+                    title: "온도 (°C)",
+                    placeholder: "예: 47.5",
+                    text: $temperature,
+                    fieldHeight: 40,
+                    cornerRadius: 10,
+                    textSize: 13,
+                    inputType: .decimal,
+                    style: .compact
+                )
+                HGTextField(
+                    title: "습도 (%)",
+                    placeholder: "예: 55",
+                    text: $humidity,
+                    fieldHeight: 40,
+                    cornerRadius: 10,
+                    textSize: 13,
+                    inputType: .number,
+                    style: .compact
+                )
                 calculatedField
             }
             .padding(.top, 16)
@@ -54,27 +72,6 @@ struct HGManualInputCard: View {
                 .stroke(HGColor.inputBorder, lineWidth: 1)
         }
         .accessibilityElement(children: .contain)
-    }
-
-    private func inputField(
-        title: String,
-        placeholder: String,
-        text: Binding<String>,
-        keyboardType: UIKeyboardType
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(HGFont.medium(11, relativeTo: .caption2))
-                .foregroundStyle(HGColor.secondaryText)
-
-            TextField(placeholder, text: text)
-                .font(HGFont.regular(13, relativeTo: .caption))
-                .keyboardType(keyboardType)
-                .padding(.horizontal, 10)
-                .frame(maxWidth: .infinity, minHeight: 40)
-                .background(HGColor.metricBackground, in: RoundedRectangle(cornerRadius: 10))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var calculatedField: some View {
