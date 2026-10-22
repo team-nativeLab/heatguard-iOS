@@ -2,6 +2,7 @@ import SwiftUI
 
 struct EmergencyCallView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hasAppeared = false
     private let contact: HGEmergencyContact
     let isCancelling: Bool
     @Binding var error: HGErrorPresentation?
@@ -70,6 +71,18 @@ struct EmergencyCallView: View {
                 .font(HGFont.semiBold(15))
                 .foregroundStyle(HGColor.secondaryText)
                 .multilineTextAlignment(.center)
+        }
+        .scaleEffect(hasAppeared || reduceMotion ? 1 : 0.88)
+        .opacity(hasAppeared || reduceMotion ? 1 : 0)
+        .onAppear {
+            guard !hasAppeared else { return }
+            guard !reduceMotion else {
+                hasAppeared = true
+                return
+            }
+            withAnimation(.spring(response: 0.48, dampingFraction: 0.76)) {
+                hasAppeared = true
+            }
         }
     }
 
