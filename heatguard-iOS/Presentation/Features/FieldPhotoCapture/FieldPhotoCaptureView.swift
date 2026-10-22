@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct FieldPhotoCaptureView: View {
+    @Environment(\.dismiss) private var dismiss
     @State private var photos: [UIImage]
     @State private var isPhotoSelectorPresented = false
     @State private var isSaving = false
@@ -84,7 +85,12 @@ struct FieldPhotoCaptureView: View {
     }
 
     private var header: some View {
-        HGScreenHeader(onMenuTap: onMenuTap, notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
+        HGScreenHeader(
+            onMenuTap: { dismiss() },
+            leadingSystemImage: "chevron.left",
+            notificationCount: notificationCount,
+            onNotificationsTap: onNotificationsTap
+        )
     }
 
     private func photoPreview(height: CGFloat) -> some View {

@@ -6,7 +6,6 @@
 import SwiftUI
 
 struct ThermometerRecordView: View {
-    @Environment(\.dismiss) private var dismiss
     @State private var isManualEntryEnabled = false
     @State private var temperature: String
     @State private var humidity: String
@@ -17,6 +16,7 @@ struct ThermometerRecordView: View {
     @State private var validationMessage: String?
 
     let onContinue: (HGRecordDraft) -> Void
+    let onMenuTap: () -> Void
     let onNotificationsTap: () -> Void
     let notificationCount: Int
 
@@ -26,6 +26,7 @@ struct ThermometerRecordView: View {
         workplace: String? = nil,
         siteName: String? = nil,
         onContinue: @escaping (HGRecordDraft) -> Void = { _ in },
+        onMenuTap: @escaping () -> Void = {},
         onNotificationsTap: @escaping () -> Void = {},
         notificationCount: Int = 0
     ) {
@@ -36,6 +37,7 @@ struct ThermometerRecordView: View {
         self.workplace = workplace
         self.siteName = siteName
         self.onContinue = onContinue
+        self.onMenuTap = onMenuTap
         self.onNotificationsTap = onNotificationsTap
         self.notificationCount = notificationCount
     }
@@ -89,12 +91,7 @@ struct ThermometerRecordView: View {
     }
 
     private var header: some View {
-        HGScreenHeader(
-            onMenuTap: { dismiss() },
-            leadingSystemImage: "chevron.left",
-            notificationCount: notificationCount,
-            onNotificationsTap: onNotificationsTap
-        )
+        HGScreenHeader(onMenuTap: onMenuTap, notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
     }
 
     private var temperatureSummaryCard: some View {

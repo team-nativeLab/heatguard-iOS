@@ -510,6 +510,7 @@ struct HomeView: View {
                 workplace: dashboard.workplace,
                 siteName: dashboard.siteName,
                 onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) },
+                onMenuTap: showMenuDrawer,
                 onNotificationsTap: showNotifications,
                 notificationCount: unreadNotificationCount
             )
@@ -556,7 +557,6 @@ struct HomeView: View {
                 onFailure: showSaveFailure,
                 onPhotoRequired: showPhotoRequired,
                 initialPhotos: resumedImages(for: .thermometer),
-                onMenuTap: showMenuDrawer,
                 onNotificationsTap: showNotifications,
                 notificationCount: unreadNotificationCount
             )
