@@ -2,12 +2,24 @@ import SwiftUI
 
 struct HGScreenHeader: View {
     var onMenuTap: () -> Void = {}
+    var leadingSystemImage: String? = nil
     var notificationCount: Int? = nil
     var onNotificationsTap: (() -> Void)? = nil
 
     var body: some View {
         HStack {
-            headerButton("menu", action: onMenuTap)
+            if let leadingSystemImage {
+                Button(action: onMenuTap) {
+                    Image(systemName: leadingSystemImage)
+                        .font(.system(size: 19, weight: .medium))
+                        .foregroundStyle(HGColor.primaryText)
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("뒤로")
+            } else {
+                headerButton("menu", action: onMenuTap)
+            }
             Spacer()
             Text("현장가드")
                 .font(HGFont.bold(20, relativeTo: .title2))

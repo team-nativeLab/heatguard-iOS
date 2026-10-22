@@ -510,7 +510,6 @@ struct HomeView: View {
                 workplace: dashboard.workplace,
                 siteName: dashboard.siteName,
                 onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) },
-                onMenuTap: showMenuDrawer,
                 onNotificationsTap: showNotifications,
                 notificationCount: unreadNotificationCount
             )
