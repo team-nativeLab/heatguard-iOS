@@ -15,8 +15,26 @@ struct HGPhotoWeatherInput: View {
                 .foregroundStyle(HGColor.secondaryText)
 
             HStack(spacing: 8) {
-                inputField("온도 (°C)", placeholder: "예: 30", text: $temperature, keyboard: .decimalPad)
-                inputField("습도 (%)", placeholder: "예: 60", text: $humidity, keyboard: .decimalPad)
+                HGTextField(
+                    title: "온도 (°C)",
+                    placeholder: "예: 30",
+                    text: $temperature,
+                    fieldHeight: 40,
+                    cornerRadius: 10,
+                    textSize: 13,
+                    inputType: .decimal,
+                    style: .compact
+                )
+                HGTextField(
+                    title: "습도 (%)",
+                    placeholder: "예: 60",
+                    text: $humidity,
+                    fieldHeight: 40,
+                    cornerRadius: 10,
+                    textSize: 13,
+                    inputType: .decimal,
+                    style: .compact
+                )
             }
         }
         .padding(HGLayout.cardPadding)
@@ -25,27 +43,6 @@ struct HGPhotoWeatherInput: View {
             RoundedRectangle(cornerRadius: HGLayout.surfaceCardCornerRadius)
                 .stroke(HGColor.inputBorder, lineWidth: 1)
         }
-    }
-
-    private func inputField(
-        _ title: String,
-        placeholder: String,
-        text: Binding<String>,
-        keyboard: UIKeyboardType
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(HGFont.medium(11, relativeTo: .caption2))
-                .foregroundStyle(HGColor.secondaryText)
-
-            TextField(placeholder, text: text)
-                .keyboardType(keyboard)
-                .font(HGFont.regular(13, relativeTo: .caption))
-                .padding(.horizontal, 10)
-                .frame(maxWidth: .infinity, minHeight: 40)
-                .background(HGColor.metricBackground, in: RoundedRectangle(cornerRadius: 10))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     static func validatedValues(

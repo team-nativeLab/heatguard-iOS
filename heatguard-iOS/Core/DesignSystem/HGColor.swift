@@ -16,6 +16,7 @@ enum HGColor {
     static let homeMetricIconBackground = Color(red: 235 / 255, green: 240 / 255, blue: 251 / 255)
     static let homeActionIconBackground = Color(red: 237 / 255, green: 241 / 255, blue: 251 / 255)
     static let homeTimelineLine = Color(red: 232 / 255, green: 235 / 255, blue: 242 / 255)
+    static let menuDivider = Color(red: 229 / 255, green: 235 / 255, blue: 242 / 255)
     static let homeTimelineBorder = Color(red: 190 / 255, green: 195 / 255, blue: 208 / 255)
     static let homeChevron = Color(red: 172 / 255, green: 175 / 255, blue: 191 / 255)
     static let successBackground = Color(red: 226 / 255, green: 246 / 255, blue: 235 / 255)
@@ -40,8 +41,8 @@ enum HGColor {
     static let homeHeatLevelText = Color(red: 1, green: 107 / 255, blue: 0)
     static let emergencyNoticeText = Color.red
     static let emergencyNoticeBackground = Color.red.opacity(0.08)
-    static let emergencyCallBackground = Color.orange.opacity(0.18)
-    static let emergencyCallForeground = Color.orange.opacity(0.75)
-    static let emergencyCallText = Color.orange
+    static let emergencyCallBackground = Color(red: 1, green: 221 / 255, blue: 222 / 255)
+    static let emergencyCallForeground = Color(red: 1, green: 75 / 255, blue: 70 / 255)
+    static let emergencyCallText = Color(red: 1, green: 75 / 255, blue: 70 / 255)
     static let saveFailureIconBackground = Color.red.opacity(0.1)
 }

@@ -11,18 +11,22 @@ enum HGTextFieldInputType {
     case email
     case currentPassword
     case newPassword
+    case decimal
+    case number
 
     var keyboardType: UIKeyboardType {
         switch self {
         case .standard: .default
         case .email: .emailAddress
         case .currentPassword, .newPassword: .default
+        case .decimal: .decimalPad
+        case .number: .numberPad
         }
     }
 
     var textContentType: UITextContentType? {
         switch self {
-        case .standard: nil
+        case .standard, .decimal, .number: nil
         case .email: .emailAddress
         case .currentPassword: .password
         case .newPassword: .newPassword
@@ -31,7 +35,7 @@ enum HGTextFieldInputType {
 
     var autocapitalization: TextInputAutocapitalization? {
         switch self {
-        case .standard: nil
+        case .standard, .decimal, .number: nil
         case .email: .never
         case .currentPassword, .newPassword: .never
         }
@@ -40,6 +44,11 @@ enum HGTextFieldInputType {
     var disablesAutocorrection: Bool {
         self == .email || self == .currentPassword || self == .newPassword
     }
+}
+
+enum HGTextFieldStyle {
+    case standard
+    case compact
 }
 
 struct HGTextField: View {
@@ -55,6 +64,7 @@ struct HGTextField: View {
     var textSize: CGFloat = 14
     var titleLeadingPadding: CGFloat = 0
     var inputType: HGTextFieldInputType = .standard
+    var style: HGTextFieldStyle = .standard
 
     @FocusState private var isFocused: Bool
     @State private var isSecureTextVisible = false
@@ -62,8 +72,8 @@ struct HGTextField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(HGFont.bold(13, relativeTo: .caption))
-                .foregroundStyle(HGColor.primaryText)
+                .font(titleFont)
+                .foregroundStyle(titleColor)
                 .padding(.leading, titleLeadingPadding)
 
             HStack(spacing: 12) {
@@ -104,10 +114,10 @@ struct HGTextField: View {
             .textContentType(inputType.textContentType)
             .textInputAutocapitalization(inputType.autocapitalization)
             .autocorrectionDisabled(inputType.disablesAutocorrection)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, horizontalPadding)
             .frame(height: fieldHeight)
             .disabled(isReadOnly)
-            .background(isReadOnly ? HGColor.readOnlyField : HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: cornerRadius))
+            .background(fieldBackground, in: RoundedRectangle(cornerRadius: cornerRadius))
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .stroke(borderColor, lineWidth: 1)
@@ -119,6 +129,7 @@ struct HGTextField: View {
                     .foregroundStyle(HGColor.error)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var borderColor: Color {
@@ -126,5 +137,34 @@ struct HGTextField: View {
             return HGColor.error
         }
         return isFocused ? HGColor.primary : .clear
+    }
+
+    private var titleFont: Font {
+        switch style {
+        case .standard: HGFont.bold(13, relativeTo: .caption)
+        case .compact: HGFont.medium(11, relativeTo: .caption2)
+        }
+    }
+
+    private var titleColor: Color {
+        switch style {
+        case .standard: HGColor.primaryText
+        case .compact: HGColor.secondaryText
+        }
+    }
+
+    private var horizontalPadding: CGFloat {
+        switch style {
+        case .standard: 16
+        case .compact: 10
+        }
+    }
+
+    private var fieldBackground: Color {
+        if isReadOnly { return HGColor.readOnlyField }
+        return switch style {
+        case .standard: HGColor.fieldBackground
+        case .compact: HGColor.metricBackground
+        }
     }
 }

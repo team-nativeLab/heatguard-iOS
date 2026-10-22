@@ -31,8 +31,11 @@ struct HGMenuProfile: Equatable {
 
 struct HGMenuDrawer: View {
     private enum Metrics {
-        static let maximumWidth: CGFloat = 320
-        static let widthRatio: CGFloat = 0.78
+        static let width: CGFloat = 300
+        static let horizontalInset: CGFloat = 24
+        static let topSafeAreaInset: CGFloat = 24
+        static let bottomSafeAreaInset: CGFloat = 14
+        static let rowHeight: CGFloat = 52
         static let dismissThreshold: CGFloat = 0.35
     }
 
@@ -49,15 +52,19 @@ struct HGMenuDrawer: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let drawerWidth = min(proxy.size.width * Metrics.widthRatio, Metrics.maximumWidth)
+            let drawerWidth = min(proxy.size.width, Metrics.width)
             let restingOffset = isPresented ? 0 : -drawerWidth
             let drawerOffset = max(-drawerWidth, restingOffset + min(dragOffset, 0))
 
             drawerContent
-                .padding(.top, proxy.safeAreaInsets.top)
+                .padding(.horizontal, Metrics.horizontalInset)
+                .padding(.top, Metrics.topSafeAreaInset)
+                .padding(.bottom, Metrics.bottomSafeAreaInset)
                 .frame(width: drawerWidth)
-                .frame(maxHeight: .infinity)
-                .background(HGColor.surface)
+                .frame(maxHeight: .infinity, alignment: .topLeading)
+                .background {
+                    HGColor.surface.ignoresSafeArea()
+                }
                 .offset(x: drawerOffset)
                 .gesture(dismissDragGesture(drawerWidth: drawerWidth))
                 .animation(.easeInOut(duration: 0.24), value: isPresented)
@@ -68,10 +75,10 @@ struct HGMenuDrawer: View {
     private var drawerContent: some View {
         VStack(spacing: 0) {
             profileSection
-            Divider()
+            divider
             menuSection
             Spacer()
-            Divider()
+            divider
             accountActions
         }
     }
@@ -82,9 +89,9 @@ struct HGMenuDrawer: View {
                 .font(HGFont.bold(18, relativeTo: .title3))
                 .foregroundStyle(HGColor.primary)
                 .frame(width: 48, height: 48)
-                .background(HGColor.homeMetricIconBackground, in: Circle())
+                .background(HGColor.photoSelectionBackground, in: Circle())
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(profile.name)
                     .font(HGFont.bold(18, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
@@ -96,20 +103,12 @@ struct HGMenuDrawer: View {
                 if !profile.email.isEmpty {
                     Text(profile.email)
                         .font(HGFont.regular(12, relativeTo: .caption))
-                        .foregroundStyle(HGColor.secondaryText)
+                        .foregroundStyle(HGColor.placeholder)
                 }
             }
             Spacer()
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(HGColor.secondaryText)
-                    .frame(width: 32, height: 32)
-            }
-            .accessibilityLabel("메뉴 닫기")
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 22)
+        .padding(.bottom, 24)
     }
 
     private var menuSection: some View {
@@ -118,22 +117,30 @@ struct HGMenuDrawer: View {
             drawerRow(title: "내 정보 수정", action: onProfileEdit)
             drawerRow(title: "문의하기", action: onInquiry)
         }
-        .padding(.top, 9)
+        .padding(.top, 8)
     }
 
     private var accountActions: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             Button("로그아웃", action: onLogout)
-                .font(HGFont.bold(14, relativeTo: .subheadline))
+                .font(HGFont.medium(15, relativeTo: .subheadline))
                 .foregroundStyle(HGColor.primaryText)
+                .padding(.top, 15)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48, alignment: .topLeading)
 
             Button("회원탈퇴", action: onWithdrawal)
-                .font(HGFont.regular(12, relativeTo: .caption))
-                .foregroundStyle(HGColor.secondaryText)
+                .font(HGFont.regular(13, relativeTo: .caption))
+                .underline()
+                .foregroundStyle(HGColor.placeholder)
+                .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 22)
+    }
+
+    private var divider: some View {
+        HGColor.menuDivider
+            .frame(height: 1)
     }
 
     private func drawerRow(title: String, action: @escaping () -> Void) -> some View {
@@ -143,13 +150,11 @@ struct HGMenuDrawer: View {
                     .font(HGFont.medium(15, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
                 Spacer()
-                Image("ChevronRight")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 16, height: 16)
+                Text("›")
+                    .font(HGFont.regular(18, relativeTo: .title3))
+                    .foregroundStyle(HGColor.placeholder)
             }
-            .padding(.horizontal, 24)
-            .frame(height: 53)
+            .frame(height: Metrics.rowHeight)
         }
         .buttonStyle(.plain)
     }

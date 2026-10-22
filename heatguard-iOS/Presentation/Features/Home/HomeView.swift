@@ -136,7 +136,6 @@ struct HomeView: View {
             case .calling:
                 EmergencyCallView(
                     isCancelling: isUpdatingEmergencyCall,
-                    canCancel: activeEmergencyCallStatus?.canCancel ?? false,
                     contact: HGEmergencyContact(name: "본사", phoneNumber: dashboard.companyPhone),
                     error: $emergencyStatusError,
                     onPhoneCall: callCompanyPhone,
@@ -191,7 +190,7 @@ struct HomeView: View {
 
     @ViewBuilder
     private var menuDrawerOverlay: some View {
-        Color.black.opacity(isMenuDrawerVisible ? 0.35 : 0)
+        Color.black.opacity(isMenuDrawerVisible ? 0.4 : 0)
             .ignoresSafeArea()
             .contentShape(Rectangle())
             .onTapGesture { dismissMenuDrawer() }
@@ -315,7 +314,7 @@ struct HomeView: View {
             .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
             .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
             .padding(.horizontal, 26)
-            .padding(.top, isCompact ? 2 : 9)
+            .padding(.top, isCompact ? 10 : 17)
         }
         .padding(.horizontal, -12)
         .foregroundStyle(HGColor.primaryText)
@@ -404,21 +403,32 @@ struct HomeView: View {
     }
 
     private func cancelEmergencyCall() {
-        guard let activeEmergencyCallID, activeEmergencyCallStatus?.canCancel == true else {
-            emergencyStatusError = HGErrorPresentation(
-                title: "긴급 호출 오류",
-                message: "취소할 긴급 호출 정보를 찾지 못했습니다.",
-                diagnosticCode: "EMERGENCY_CALL_ID_MISSING"
-            )
-            return
-        }
-
+        guard !isUpdatingEmergencyCall else { return }
         Task {
             isUpdatingEmergencyCall = true
             defer { isUpdatingEmergencyCall = false }
 
             do {
-                try await HGEmergencyCallService().updateCall(id: activeEmergencyCallID, status: .cancelled)
+                let service = HGEmergencyCallService()
+                let currentCall: HGEmergencyCall?
+                if let activeEmergencyCallID,
+                   let activeEmergencyCallStatus,
+                   activeEmergencyCallStatus.canCancel {
+                    currentCall = HGEmergencyCall(id: activeEmergencyCallID, status: activeEmergencyCallStatus)
+                } else {
+                    currentCall = try await service.fetchCurrentCall()
+                }
+
+                guard let currentCall, currentCall.status.canCancel else {
+                    emergencyStatusError = HGErrorPresentation(
+                        title: "긴급 호출 오류",
+                        message: "취소할 수 있는 진행 중인 호출을 찾지 못했습니다.",
+                        diagnosticCode: "EMERGENCY_CALL_NOT_CANCELLABLE"
+                    )
+                    return
+                }
+
+                try await service.updateCall(id: currentCall.id, status: .cancelled)
                 self.activeEmergencyCallID = nil
                 self.activeEmergencyCallStatus = nil
                 emergencySheet = nil
@@ -547,7 +557,6 @@ struct HomeView: View {
                 onFailure: showSaveFailure,
                 onPhotoRequired: showPhotoRequired,
                 initialPhotos: resumedImages(for: .thermometer),
-                onMenuTap: showMenuDrawer,
                 onNotificationsTap: showNotifications,
                 notificationCount: unreadNotificationCount
             )

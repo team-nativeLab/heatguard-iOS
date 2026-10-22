@@ -1,23 +1,21 @@
 import SwiftUI
 
 struct EmergencyCallView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let contact: HGEmergencyContact
     let isCancelling: Bool
-    let canCancel: Bool
     @Binding var error: HGErrorPresentation?
     let onPhoneCall: () -> Void
     let onCancel: () -> Void
 
     init(
         isCancelling: Bool = false,
-        canCancel: Bool = true,
         contact: HGEmergencyContact = .siteManager,
         error: Binding<HGErrorPresentation?> = .constant(nil),
         onPhoneCall: @escaping () -> Void = {},
         onCancel: @escaping () -> Void = {}
     ) {
         self.isCancelling = isCancelling
-        self.canCancel = canCancel
         self.contact = contact
         _error = error
         self.onPhoneCall = onPhoneCall
@@ -36,7 +34,7 @@ struct EmergencyCallView: View {
                 .padding(.top, 28)
         } actions: {
             HGSecondaryButton(title: isCancelling ? "취소 중..." : "호출 취소", action: onCancel)
-                .disabled(isCancelling || !canCancel)
+                .disabled(isCancelling)
                 .padding(.horizontal, 28)
         }
         .alert(error?.title ?? "긴급 호출 오류", isPresented: errorAlert) {
@@ -54,6 +52,10 @@ struct EmergencyCallView: View {
         VStack(spacing: 12) {
             ZStack {
                 Circle().fill(HGColor.emergencyCallBackground).frame(width: 138, height: 138)
+                if !reduceMotion {
+                    HGEmergencyPulse(delay: 0)
+                    HGEmergencyPulse(delay: 0.9)
+                }
                 Circle().fill(HGColor.emergencyCallForeground).frame(width: 110, height: 110)
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 42))
@@ -77,5 +79,27 @@ struct EmergencyCallView: View {
 
     private var errorAlert: Binding<Bool> {
         Binding(get: { error != nil }, set: { if !$0 { error = nil } })
+    }
+}
+
+private struct HGEmergencyPulse: View {
+    @State private var isExpanded = false
+
+    let delay: Double
+
+    var body: some View {
+        Circle()
+            .fill(HGColor.emergencyCallBackground)
+            .frame(width: 138, height: 138)
+            .scaleEffect(isExpanded ? 1.65 : 1)
+            .opacity(isExpanded ? 0 : 0.8)
+            .animation(
+                .easeOut(duration: 1.8)
+                    .delay(delay)
+                    .repeatForever(autoreverses: false),
+                value: isExpanded
+            )
+            .onAppear { isExpanded = true }
+            .accessibilityHidden(true)
     }
 }
