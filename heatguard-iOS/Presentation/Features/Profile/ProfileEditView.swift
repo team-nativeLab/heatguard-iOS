@@ -34,10 +34,23 @@ struct ProfileEditView: View {
 
                 VStack(spacing: 20) {
                     if let companyName = profile?.companyName, !companyName.isEmpty {
-                        HGTextField(title: "회사명", placeholder: "", text: .constant(companyName), fieldHeight: 48)
-                            .disabled(true)
+                        HGTextField(
+                            title: "회사명",
+                            placeholder: "",
+                            text: .constant(companyName),
+                            isReadOnly: true,
+                            trailingLabel: "변경 불가",
+                            fieldHeight: 48
+                        )
                     }
-                    HGTextField(title: "이름", placeholder: "이름을 입력해주세요", text: $name, fieldHeight: 48)
+                    HGTextField(
+                        title: "이름",
+                        placeholder: "이름을 입력해주세요",
+                        text: $name,
+                        isReadOnly: true,
+                        trailingLabel: "변경 불가",
+                        fieldHeight: 48
+                    )
                     HGTextField(
                         title: "이메일", placeholder: "example@email.com", text: $email, isReadOnly: true,
                         trailingLabel: "변경 불가", fieldHeight: 48, inputType: .email)
