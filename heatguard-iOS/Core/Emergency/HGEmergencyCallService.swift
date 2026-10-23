@@ -58,7 +58,7 @@ enum HGEmergencyCallStatus: String, Codable {
     case cancelled = "CANCELLED"
     case completed = "COMPLETED"
 
-    var canCancel: Bool { self == .active || self == .acknowledged }
+    var canCancel: Bool { self == .active }
 }
 
 enum HGEmergencyCallError: LocalizedError {
