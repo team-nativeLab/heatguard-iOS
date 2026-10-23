@@ -28,20 +28,24 @@ struct HGFixedContent<Content: View>: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let scale = Self.scale(contentHeight: contentHeight, availableHeight: geometry.size.height)
+            let scale = Self.scale(
+                contentHeight: contentHeight,
+                availableHeight: geometry.size.height,
+                keyboardVisible: keyboardAware && isKeyboardVisible
+            )
             let isCompact = compactHeightThreshold.map { geometry.size.height < $0 } ?? false
             Group {
                 if keyboardAware {
                     ScrollView {
                         content(isCompact)
-                            .frame(width: geometry.size.width / max(isKeyboardVisible ? 1 : scale, 0.01))
+                            .frame(width: geometry.size.width / max(scale, 0.01))
                             .fixedSize(horizontal: false, vertical: true)
                             .background {
                                 GeometryReader { contentGeometry in
                                     Color.clear.preference(key: HGContentHeightKey.self, value: contentGeometry.size.height)
                                 }
                             }
-                            .scaleEffect(isKeyboardVisible ? 1 : scale, anchor: .top)
+                            .scaleEffect(scale, anchor: .top)
                             .frame(
                                 width: geometry.size.width,
                                 height: isKeyboardVisible ? nil : geometry.size.height,
@@ -80,7 +84,8 @@ struct HGFixedContent<Content: View>: View {
         }
     }
 
-    static func scale(contentHeight: CGFloat, availableHeight: CGFloat) -> CGFloat {
+    static func scale(contentHeight: CGFloat, availableHeight: CGFloat, keyboardVisible: Bool = false) -> CGFloat {
+        guard !keyboardVisible else { return 1 }
         guard contentHeight > 0 else { return 1 }
         return min(1, max(0, availableHeight) / contentHeight)
     }

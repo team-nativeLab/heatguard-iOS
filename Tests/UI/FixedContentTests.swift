@@ -13,4 +13,9 @@ final class FixedContentTests: XCTestCase {
         XCTAssertEqual(scale, 0.6, accuracy: 0.001)
         XCTAssertLessThanOrEqual(800 * scale, 480)
     }
+
+    func testKeyboardVisibleContentIsNotScaledDown() {
+        let scale = HGFixedContent<EmptyView>.scale(contentHeight: 800, availableHeight: 360, keyboardVisible: true)
+        XCTAssertEqual(scale, 1)
+    }
 }
