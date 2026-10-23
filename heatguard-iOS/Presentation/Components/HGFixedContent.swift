@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// 고정 화면의 콘텐츠 비율을 유지하며 사용 가능한 높이에 맞춥니다.
 /// 버튼은 이 영역 바깥의 safeAreaInset에 두어 위치와 터치 크기를 유지합니다.
@@ -6,6 +7,7 @@ struct HGFixedContent<Content: View>: View {
     private let content: (Bool) -> Content
     private let compactHeightThreshold: CGFloat?
     @State private var contentHeight: CGFloat = 0
+    @State private var isKeyboardVisible = false
 
     init(@ViewBuilder content: @escaping () -> Content) {
         self.compactHeightThreshold = nil
@@ -21,17 +23,42 @@ struct HGFixedContent<Content: View>: View {
         GeometryReader { geometry in
             let scale = Self.scale(contentHeight: contentHeight, availableHeight: geometry.size.height)
             let isCompact = compactHeightThreshold.map { geometry.size.height < $0 } ?? false
-            content(isCompact)
-                .frame(width: geometry.size.width / max(scale, 0.01))
-                .fixedSize(horizontal: false, vertical: true)
-                .background {
-                    GeometryReader { contentGeometry in
-                        Color.clear.preference(key: HGContentHeightKey.self, value: contentGeometry.size.height)
+            Group {
+                if isKeyboardVisible {
+                    ScrollView {
+                        content(isCompact)
+                            .frame(width: geometry.size.width)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(minHeight: geometry.size.height, alignment: .top)
                     }
+                    .scrollIndicators(.hidden)
+                    .scrollDismissesKeyboard(.interactively)
+                } else {
+                    content(isCompact)
+                        .frame(width: geometry.size.width / max(scale, 0.01))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .background {
+                            GeometryReader { contentGeometry in
+                                Color.clear.preference(key: HGContentHeightKey.self, value: contentGeometry.size.height)
+                            }
+                        }
+                        .scaleEffect(scale, anchor: .top)
+                        .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
                 }
-                .scaleEffect(scale, anchor: .top)
-                .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
-                .onPreferenceChange(HGContentHeightKey.self) { contentHeight = $0 }
+            }
+            .onPreferenceChange(HGContentHeightKey.self) { contentHeight = $0 }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                isKeyboardVisible = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                isKeyboardVisible = false
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("완료") { UIApplication.shared.dismissKeyboard() }
+            }
         }
     }
 

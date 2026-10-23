@@ -79,9 +79,6 @@ struct ThermometerRecordView: View {
                 .background(HGColor.appBackground)
         }
         .toolbar(.hidden, for: .navigationBar)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {}
-        }
         .dismissKeyboardOnBackgroundTap()
         .alert("입력값을 확인해주세요", isPresented: validationAlert) {
             Button("확인", role: .cancel) {}
