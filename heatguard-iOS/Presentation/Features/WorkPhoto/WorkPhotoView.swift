@@ -58,7 +58,7 @@ struct WorkPhotoView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            HGFixedContent {
+            HGFixedContent(keyboardAware: true) {
                 formContent
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.bottom, 16)

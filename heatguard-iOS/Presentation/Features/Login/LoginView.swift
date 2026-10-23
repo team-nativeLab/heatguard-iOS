@@ -20,7 +20,7 @@ struct LoginView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            HGFixedContent {
+            HGFixedContent(keyboardAware: true) {
                 VStack(spacing: 0) {
                     Image("BrandIcon")
                         .resizable()

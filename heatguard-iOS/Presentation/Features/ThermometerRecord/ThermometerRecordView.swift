@@ -46,7 +46,7 @@ struct ThermometerRecordView: View {
         VStack(spacing: 0) {
             header
 
-            HGFixedContent {
+            HGFixedContent(keyboardAware: true) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("온도계 기록")
                         .font(HGFont.bold(20, relativeTo: .title2))

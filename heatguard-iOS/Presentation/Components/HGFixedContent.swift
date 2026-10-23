@@ -6,16 +6,23 @@ import UIKit
 struct HGFixedContent<Content: View>: View {
     private let content: (Bool) -> Content
     private let compactHeightThreshold: CGFloat?
+    private let keyboardAware: Bool
     @State private var contentHeight: CGFloat = 0
     @State private var isKeyboardVisible = false
 
-    init(@ViewBuilder content: @escaping () -> Content) {
+    init(keyboardAware: Bool = false, @ViewBuilder content: @escaping () -> Content) {
         self.compactHeightThreshold = nil
+        self.keyboardAware = keyboardAware
         self.content = { _ in content() }
     }
 
-    init(compactHeightThreshold: CGFloat, @ViewBuilder content: @escaping (Bool) -> Content) {
+    init(
+        compactHeightThreshold: CGFloat,
+        keyboardAware: Bool = false,
+        @ViewBuilder content: @escaping (Bool) -> Content
+    ) {
         self.compactHeightThreshold = compactHeightThreshold
+        self.keyboardAware = keyboardAware
         self.content = content
     }
 
@@ -24,13 +31,24 @@ struct HGFixedContent<Content: View>: View {
             let scale = Self.scale(contentHeight: contentHeight, availableHeight: geometry.size.height)
             let isCompact = compactHeightThreshold.map { geometry.size.height < $0 } ?? false
             Group {
-                if isKeyboardVisible {
+                if keyboardAware {
                     ScrollView {
                         content(isCompact)
-                            .frame(width: geometry.size.width)
+                            .frame(width: geometry.size.width / max(isKeyboardVisible ? 1 : scale, 0.01))
                             .fixedSize(horizontal: false, vertical: true)
-                            .frame(minHeight: geometry.size.height, alignment: .top)
+                            .background {
+                                GeometryReader { contentGeometry in
+                                    Color.clear.preference(key: HGContentHeightKey.self, value: contentGeometry.size.height)
+                                }
+                            }
+                            .scaleEffect(isKeyboardVisible ? 1 : scale, anchor: .top)
+                            .frame(
+                                width: geometry.size.width,
+                                height: isKeyboardVisible ? nil : geometry.size.height,
+                                alignment: .top
+                            )
                     }
+                    .scrollDisabled(!isKeyboardVisible)
                     .scrollIndicators(.hidden)
                     .scrollDismissesKeyboard(.interactively)
                 } else {

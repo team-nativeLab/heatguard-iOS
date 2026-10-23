@@ -13,7 +13,7 @@ struct WithdrawalGuideView: View {
     }
 
     var body: some View {
-        HGFixedContent {
+        HGFixedContent(keyboardAware: true) {
             VStack(alignment: .leading, spacing: 0) {
                 Text("탈퇴하기 전에 꼭 확인해주세요")
                     .font(HGFont.bold(22, relativeTo: .title2))
