@@ -46,7 +46,7 @@ struct ThermometerRecordView: View {
         VStack(spacing: 0) {
             header
 
-            HGFixedContent {
+            HGFixedContent(keyboardAware: true) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("온도계 기록")
                         .font(HGFont.bold(20, relativeTo: .title2))
@@ -79,9 +79,6 @@ struct ThermometerRecordView: View {
                 .background(HGColor.appBackground)
         }
         .toolbar(.hidden, for: .navigationBar)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {}
-        }
         .dismissKeyboardOnBackgroundTap()
         .alert("입력값을 확인해주세요", isPresented: validationAlert) {
             Button("확인", role: .cancel) {}

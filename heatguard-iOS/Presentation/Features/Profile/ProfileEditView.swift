@@ -19,7 +19,7 @@ struct ProfileEditView: View {
     }
 
     var body: some View {
-        HGFixedContent {
+        HGFixedContent(keyboardAware: true) {
             VStack(spacing: 28) {
                 VStack(spacing: 8) {
                     Text(name.prefix(1))
@@ -126,7 +126,7 @@ private struct PasswordChangeView: View {
     @State private var isComplete = false
 
     var body: some View {
-        HGFixedContent {
+        HGFixedContent(keyboardAware: true) {
             VStack(alignment: .leading, spacing: 0) {
                 Text("현재 비밀번호를 확인한 뒤\n새 비밀번호로 변경할 수 있어요")
                     .font(HGFont.regular(13, relativeTo: .subheadline))

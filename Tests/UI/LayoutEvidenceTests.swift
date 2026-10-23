@@ -48,7 +48,13 @@ final class LayoutEvidenceTests: XCTestCase {
                 }
                 XCTAssertEqual(image.size, size)
                 let scrollViews = descendants(of: host.view).compactMap { $0 as? UIScrollView }
-                XCTAssertTrue(scrollViews.allSatisfy { $0 is UITextView }, "\(name): 고정 화면에 스크롤 컨테이너가 남아 있습니다")
+                let contentScrollViews = scrollViews.filter { !($0 is UITextView) }
+                let keyboardAwareScreens = ["login", "work", "work-design", "rest", "rest-design", "thermometer", "profile", "withdrawal"]
+                XCTAssertEqual(
+                    contentScrollViews.count,
+                    keyboardAwareScreens.contains(name) ? 1 : 0,
+                    "\(name): 키보드 대응 스크롤 컨테이너 수가 예상과 다릅니다"
+                )
                 let attachment = XCTAttachment(image: image)
                 attachment.name = "\(name)-\(Int(size.width))x\(Int(size.height))-fixture"
                 attachment.lifetime = .keepAlways
