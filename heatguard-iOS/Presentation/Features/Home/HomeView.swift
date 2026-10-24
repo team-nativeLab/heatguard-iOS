@@ -136,6 +136,7 @@ struct HomeView: View {
             case .calling:
                 EmergencyCallView(
                     isCancelling: isUpdatingEmergencyCall,
+                    canCancel: activeEmergencyCallStatus?.canCancel ?? false,
                     contact: HGEmergencyContact(name: "본사", phoneNumber: dashboard.companyPhone),
                     error: $emergencyStatusError,
                     onPhoneCall: callCompanyPhone,
@@ -410,21 +411,22 @@ struct HomeView: View {
 
             do {
                 let service = HGEmergencyCallService()
-                let currentCall: HGEmergencyCall?
-                if let activeEmergencyCallID,
-                   let activeEmergencyCallStatus,
-                   activeEmergencyCallStatus.canCancel {
-                    currentCall = HGEmergencyCall(id: activeEmergencyCallID, status: activeEmergencyCallStatus)
-                } else {
-                    currentCall = try await service.fetchCurrentCall()
-                }
+                let currentCall = try await service.fetchCurrentCall()
 
                 guard let currentCall, currentCall.status.canCancel else {
                     emergencyStatusError = HGErrorPresentation(
-                        title: "긴급 호출 오류",
-                        message: "취소할 수 있는 진행 중인 호출을 찾지 못했습니다.",
-                        diagnosticCode: "EMERGENCY_CALL_NOT_CANCELLABLE"
+                        title: currentCall?.status == .acknowledged ? "이미 접수된 호출입니다" : "긴급 호출 오류",
+                        message: currentCall?.status == .acknowledged
+                            ? "접수된 긴급 호출은 취소할 수 없습니다. 현장 관리자에게 연락해주세요."
+                            : "취소할 수 있는 진행 중인 호출을 찾지 못했습니다.",
+                        diagnosticCode: currentCall?.status == .acknowledged
+                            ? "EMERGENCY_CALL_ALREADY_ACKNOWLEDGED"
+                            : "EMERGENCY_CALL_NOT_CANCELLABLE"
                     )
+                    if let currentCall {
+                        activeEmergencyCallID = currentCall.id
+                        activeEmergencyCallStatus = currentCall.status
+                    }
                     return
                 }
 
@@ -432,6 +434,22 @@ struct HomeView: View {
                 self.activeEmergencyCallID = nil
                 self.activeEmergencyCallStatus = nil
                 emergencySheet = nil
+            } catch let error as HGAPIError {
+                if case let .server(_, statusCode, serverCode) = error,
+                   statusCode == 409,
+                   serverCode == "INVALID_STATUS_TRANSITION" {
+                    if let currentCall = try? await HGEmergencyCallService().fetchCurrentCall() {
+                        activeEmergencyCallID = currentCall.id
+                        activeEmergencyCallStatus = currentCall.status
+                    }
+                    emergencyStatusError = HGErrorPresentation(
+                        title: "이미 접수된 호출입니다",
+                        message: "접수된 긴급 호출은 취소할 수 없습니다. 현장 관리자에게 연락해주세요.",
+                        diagnosticCode: "EMERGENCY_CALL_ALREADY_ACKNOWLEDGED"
+                    )
+                } else {
+                    emergencyStatusError = HGErrorPresentation(error: error)
+                }
             } catch {
                 emergencyStatusError = HGErrorPresentation(error: error)
             }

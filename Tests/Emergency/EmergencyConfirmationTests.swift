@@ -3,6 +3,13 @@ import XCTest
 
 @MainActor
 final class EmergencyConfirmationTests: XCTestCase {
+    func testOnlyActiveEmergencyCallsCanBeCancelled() {
+        XCTAssertTrue(HGEmergencyCallStatus.active.canCancel)
+        XCTAssertFalse(HGEmergencyCallStatus.acknowledged.canCancel)
+        XCTAssertFalse(HGEmergencyCallStatus.cancelled.canCancel)
+        XCTAssertFalse(HGEmergencyCallStatus.completed.canCancel)
+    }
+
     func testConfirmedNewCallIsCreatedOnce() async throws {
         var creates = 0
         let call = try await HGEmergencyCallConfirmation.perform(currentCall: { nil }, createCall: {
