@@ -13,9 +13,14 @@ struct LoginView: View {
 
     private let authenticationService = HGAuthenticationService()
     private let onAuthenticated: (TeamSession) -> Void
+    private let onAppAccountTap: () -> Void
 
-    init(onAuthenticated: @escaping (TeamSession) -> Void = { _ in }) {
+    init(
+        onAuthenticated: @escaping (TeamSession) -> Void = { _ in },
+        onAppAccountTap: @escaping () -> Void = {}
+    ) {
         self.onAuthenticated = onAuthenticated
+        self.onAppAccountTap = onAppAccountTap
     }
 
     var body: some View {
@@ -66,6 +71,12 @@ struct LoginView: View {
                         .padding(.horizontal, 24)
                         .padding(.top, 14)
                         .padding(.bottom, 10)
+                    Button("앱 계정으로 현장 연동") {
+                        onAppAccountTap()
+                    }
+                    .font(HGFont.semiBold(14))
+                    .foregroundStyle(HGColor.primary)
+                    .padding(.bottom, 18)
                 }
                 .frame(minHeight: geometry.size.height)
             }

@@ -323,7 +323,7 @@ struct HomeView: View {
 
     private func checkCard(isCompact: Bool) -> some View {
         Button {
-            flowPath.append(HomeFlowRoute.checklist)
+            flowPath.append(HomeFlowRoute.checklistOverview)
         } label: {
             VStack(alignment: .leading, spacing: 0) {
                 Text("오늘 체크 시간")
@@ -510,6 +510,16 @@ struct HomeView: View {
     @ViewBuilder
     private func destinationView(for route: HomeFlowRoute) -> some View {
         switch route {
+        case .checklistOverview:
+            ChecklistOverviewView(
+                times: checklist.times,
+                checkedCount: checklist.checkedCount,
+                totalCount: checklist.totalCount,
+                siteName: dashboard.siteName,
+                teamName: dashboard.teamName
+            ) {
+                flowPath.append(HomeFlowRoute.checklist)
+            }
         case .checklist:
             ChecklistView(
                 times: checklist.times,
@@ -818,6 +828,7 @@ private enum EmergencySheet: Identifiable, Equatable {
 }
 
 private enum HomeFlowRoute: Hashable {
+    case checklistOverview
     case checklist
     case thermometer
     case workPhoto
