@@ -13,7 +13,7 @@ struct RestPhotoView: View {
     let onSave: (HGRecordSaveResult) -> Void
     let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
     let onPhotoRequired: (HGRecordDraft) -> Void
-    let onMenuTap: () -> Void
+    let onBack: () -> Void
     let onNotificationsTap: () -> Void
     let notificationCount: Int
     private let teamName: String?
@@ -32,17 +32,17 @@ struct RestPhotoView: View {
         weather: HomeWeather? = nil,
         initialRestStartedAt: Date? = nil,
         initialRestEndedAt: Date? = nil,
+        onBack: @escaping () -> Void = {},
         teamName: String? = nil,
         workplace: String? = nil,
         siteName: String? = nil,
-        onMenuTap: @escaping () -> Void = {},
         onNotificationsTap: @escaping () -> Void = {},
         notificationCount: Int = 0
     ) {
         self.onSave = onSave
         self.onFailure = onFailure
         self.onPhotoRequired = onPhotoRequired
-        self.onMenuTap = onMenuTap
+        self.onBack = onBack
         self.onNotificationsTap = onNotificationsTap
         self.notificationCount = notificationCount
         self.teamName = teamName
@@ -116,7 +116,12 @@ struct RestPhotoView: View {
     }
 
     private var header: some View {
-        HGScreenHeader(onMenuTap: onMenuTap, notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
+        HGScreenHeader(
+            onMenuTap: onBack,
+            leadingSystemImage: "chevron.left",
+            notificationCount: notificationCount,
+            onNotificationsTap: onNotificationsTap
+        )
     }
 
     private var restForm: some View {
