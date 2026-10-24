@@ -57,8 +57,8 @@ struct HGMenuDrawer: View {
 
             drawerContent
                 .padding(.horizontal, Metrics.horizontalInset)
-                .padding(.top, proxy.safeAreaInsets.top + Metrics.contentSafeAreaSpacing)
-                .padding(.bottom, proxy.safeAreaInsets.bottom + Metrics.contentSafeAreaSpacing)
+                .padding(.top, Metrics.contentSafeAreaSpacing)
+                .padding(.bottom, Metrics.contentSafeAreaSpacing)
                 .frame(width: drawerWidth)
                 .frame(maxHeight: .infinity, alignment: .topLeading)
                 .background {
@@ -161,7 +161,8 @@ struct HGMenuDrawer: View {
                     .font(HGFont.regular(18, relativeTo: .title3))
                     .foregroundStyle(HGColor.placeholder)
             }
-            .frame(height: Metrics.rowHeight)
+            .frame(maxWidth: .infinity, minHeight: Metrics.rowHeight, alignment: .leading)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
