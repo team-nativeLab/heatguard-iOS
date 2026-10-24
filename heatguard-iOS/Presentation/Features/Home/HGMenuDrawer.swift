@@ -33,8 +33,7 @@ struct HGMenuDrawer: View {
     private enum Metrics {
         static let width: CGFloat = 300
         static let horizontalInset: CGFloat = 24
-        static let topSafeAreaInset: CGFloat = 24
-        static let bottomSafeAreaInset: CGFloat = 14
+        static let contentSafeAreaSpacing: CGFloat = 4
         static let rowHeight: CGFloat = 52
         static let dismissThreshold: CGFloat = 0.35
     }
@@ -58,8 +57,8 @@ struct HGMenuDrawer: View {
 
             drawerContent
                 .padding(.horizontal, Metrics.horizontalInset)
-                .padding(.top, Metrics.topSafeAreaInset)
-                .padding(.bottom, Metrics.bottomSafeAreaInset)
+                .padding(.top, proxy.safeAreaInsets.top + Metrics.contentSafeAreaSpacing)
+                .padding(.bottom, proxy.safeAreaInsets.bottom + Metrics.contentSafeAreaSpacing)
                 .frame(width: drawerWidth)
                 .frame(maxHeight: .infinity, alignment: .topLeading)
                 .background {
@@ -122,18 +121,26 @@ struct HGMenuDrawer: View {
 
     private var accountActions: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Button("로그아웃", action: onLogout)
-                .font(HGFont.medium(15, relativeTo: .subheadline))
-                .foregroundStyle(HGColor.primaryText)
-                .padding(.top, 15)
-                .frame(maxWidth: .infinity)
-                .frame(height: 48, alignment: .topLeading)
+            Button(action: onLogout) {
+                Text("로그아웃")
+                    .font(HGFont.semiBold(15, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.primaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 15)
+            .frame(height: 48, alignment: .topLeading)
 
-            Button("회원탈퇴", action: onWithdrawal)
-                .font(HGFont.regular(13, relativeTo: .caption))
-                .underline()
-                .foregroundStyle(HGColor.placeholder)
-                .padding(.top, 4)
+            Button(action: onWithdrawal) {
+                Text("회원탈퇴")
+                    .font(HGFont.regular(13, relativeTo: .caption))
+                    .foregroundStyle(HGColor.placeholder)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

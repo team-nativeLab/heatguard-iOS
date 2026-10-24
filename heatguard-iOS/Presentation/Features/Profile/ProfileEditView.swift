@@ -34,23 +34,9 @@ struct ProfileEditView: View {
 
                 VStack(spacing: 20) {
                     if let companyName = profile?.companyName, !companyName.isEmpty {
-                        HGTextField(
-                            title: "회사명",
-                            placeholder: "",
-                            text: .constant(companyName),
-                            isReadOnly: true,
-                            trailingLabel: "변경 불가",
-                            fieldHeight: 48
-                        )
+                        profileValue(title: "회사명", value: companyName)
                     }
-                    HGTextField(
-                        title: "이름",
-                        placeholder: "이름을 입력해주세요",
-                        text: $name,
-                        isReadOnly: true,
-                        trailingLabel: "변경 불가",
-                        fieldHeight: 48
-                    )
+                    profileValue(title: "이름", value: name)
                     HGTextField(
                         title: "이메일", placeholder: "example@email.com", text: $email, isReadOnly: true,
                         trailingLabel: "변경 불가", fieldHeight: 48, inputType: .email)
@@ -101,6 +87,22 @@ struct ProfileEditView: View {
 
     private var isValid: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func profileValue(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(HGFont.bold(13, relativeTo: .caption))
+                .foregroundStyle(HGColor.primaryText)
+
+            Text(value)
+                .font(HGFont.regular(15, relativeTo: .body))
+                .foregroundStyle(HGColor.primaryText)
+                .padding(.horizontal, 24)
+                .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
+                .background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: 12))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var errorAlert: Binding<Bool> {

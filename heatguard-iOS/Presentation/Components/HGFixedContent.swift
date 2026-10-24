@@ -76,12 +76,6 @@ struct HGFixedContent<Content: View>: View {
                 isKeyboardVisible = false
             }
         }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("완료") { UIApplication.shared.dismissKeyboard() }
-            }
-        }
     }
 
     static func scale(contentHeight: CGFloat, availableHeight: CGFloat, keyboardVisible: Bool = false) -> CGFloat {
