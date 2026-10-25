@@ -3,10 +3,16 @@ import UIKit
 
 struct HomeView: View {
     let onSessionEnded: () -> Void
+    private let onTeamSelectionRequested: () -> Void
     private let loadsRemoteData: Bool
 
-    init(initialDashboard: HomeDashboard? = nil, onSessionEnded: @escaping () -> Void = {}) {
+    init(
+        initialDashboard: HomeDashboard? = nil,
+        onSessionEnded: @escaping () -> Void = {},
+        onTeamSelectionRequested: @escaping () -> Void = {}
+    ) {
         self.onSessionEnded = onSessionEnded
+        self.onTeamSelectionRequested = onTeamSelectionRequested
         self.loadsRemoteData = initialDashboard == nil
         _dashboard = State(initialValue: initialDashboard ?? .unavailable)
         _checklist = State(initialValue: initialDashboard?.checklist ?? HGChecklistSummary(times: [], checkedCount: nil, totalCount: nil))
@@ -203,6 +209,9 @@ struct HomeView: View {
             isPresented: isMenuDrawerVisible,
             onDismiss: { dismissMenuDrawer() },
             onHome: { dismissMenuDrawer(afterDismiss: returnToHome) },
+            onTeamSelection: {
+                dismissMenuDrawer(afterDismiss: onTeamSelectionRequested)
+            },
             onProfileEdit: {
                 dismissMenuDrawer {
                     flowPath.append(HomeFlowRoute.profileEdit)
