@@ -10,7 +10,7 @@ struct AppAccountFlowView: View {
     private let service = HGAppSiteLinkingService()
     @State private var isAuthenticated = false
     @State private var hasClaimedLink = false
-    @State private var isRegistering = false
+    @State private var isRegistering: Bool
     @State private var email = ""
     @State private var password = ""
     @State private var verificationCode = ""
@@ -21,6 +21,22 @@ struct AppAccountFlowView: View {
     @State private var busy = false
     @State private var error: HGErrorPresentation?
     @State private var notice: String?
+
+    init(
+        linkToken: String? = nil,
+        startsWithRegistration: Bool = false,
+        onClose: @escaping () -> Void,
+        onSiteSelected: @escaping (HGAppSite) -> Void = { _ in },
+        onSiteUnlinked: @escaping (String) -> Void = { _ in },
+        onLinkClaimed: @escaping () -> Void = {}
+    ) {
+        self.linkToken = linkToken
+        self.onClose = onClose
+        self.onSiteSelected = onSiteSelected
+        self.onSiteUnlinked = onSiteUnlinked
+        self.onLinkClaimed = onLinkClaimed
+        _isRegistering = State(initialValue: startsWithRegistration)
+    }
 
     var body: some View {
         Group {
