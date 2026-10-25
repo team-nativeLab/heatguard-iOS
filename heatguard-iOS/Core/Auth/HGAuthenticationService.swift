@@ -357,7 +357,10 @@ final class HGAuthTokenStore {
     func save(_ token: String) throws {
         let valueData = Data(token.utf8)
         let query = itemQuery
-        let attributes = [kSecValueData as String: valueData]
+        let attributes: [String: Any] = [
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+            kSecValueData as String: valueData
+        ]
         let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
 
         if updateStatus == errSecSuccess {
@@ -371,6 +374,7 @@ final class HGAuthTokenStore {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
             kSecValueData as String: valueData
         ]
         let status = SecItemAdd(item as CFDictionary, nil)
@@ -382,6 +386,7 @@ final class HGAuthTokenStore {
     func load() throws -> String? {
         let query = itemQuery.merging([
             kSecReturnData as String: true,
+            kSecReturnAttributes as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]) { _, new in new }
         var result: CFTypeRef?
@@ -392,10 +397,21 @@ final class HGAuthTokenStore {
         }
         guard
             status == errSecSuccess,
-            let data = result as? Data,
+            let attributes = result as? [String: Any],
+            let data = attributes[kSecValueData as String] as? Data,
             let token = String(data: data, encoding: .utf8)
         else {
             throw keychainError(operation: "불러오기", status: status)
+        }
+
+        if (attributes[kSecAttrAccessible as String] as? String) != (kSecAttrAccessibleWhenUnlockedThisDeviceOnly as String) {
+            let accessibilityStatus = SecItemUpdate(
+                itemQuery as CFDictionary,
+                [kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly] as CFDictionary
+            )
+            guard accessibilityStatus == errSecSuccess else {
+                throw keychainError(operation: "접근 권한 갱신", status: accessibilityStatus)
+            }
         }
 
         return token
