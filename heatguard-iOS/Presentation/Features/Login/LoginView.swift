@@ -26,8 +26,9 @@ struct LoginView: View {
     var body: some View {
         GeometryReader { geometry in
             let horizontalInset = min(28, max(18, geometry.size.width * 0.06))
+            let fieldInset = min(36, max(28, geometry.size.width * 0.08))
 
-            HGFixedContent(keyboardAware: true) {
+            HGFixedContent {
                 VStack(spacing: 0) {
                     Image("BrandIcon")
                         .resizable()
@@ -53,7 +54,7 @@ struct LoginView: View {
                         .padding(.top, 31)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, horizontalInset)
+                    .padding(.horizontal, fieldInset)
                     .padding(.top, 34)
 
                     Spacer(minLength: 32)
