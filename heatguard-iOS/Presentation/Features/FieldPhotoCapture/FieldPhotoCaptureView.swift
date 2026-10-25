@@ -123,7 +123,9 @@ struct FieldPhotoCaptureView: View {
                 FieldMeasurementRow(measurement: measurement)
 
                 if index < measurements.count - 1 {
-                    Divider()
+                    Rectangle()
+                        .fill(HGColor.homeTimelineBorder)
+                        .frame(height: 1)
                         .padding(.leading, 91)
                 }
             }
