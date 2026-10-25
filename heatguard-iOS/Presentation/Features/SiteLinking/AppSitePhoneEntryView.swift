@@ -57,6 +57,7 @@ struct AppSitePhoneEntryView: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 12)
         }
+        .dismissKeyboardOnBackgroundTap()
         .background(HGColor.surface.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden()
