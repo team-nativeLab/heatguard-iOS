@@ -35,10 +35,14 @@ struct HeatGuardApp: App {
             ProgressView()
         } else if showsAppAccountFlow {
             NavigationStack {
-                AppAccountFlowView(linkToken: pendingLinkToken) {
-                    showsAppAccountFlow = false
-                    pendingLinkToken = nil
-                }
+                AppAccountFlowView(
+                    linkToken: pendingLinkToken,
+                    onClose: {
+                        showsAppAccountFlow = false
+                        pendingLinkToken = nil
+                    },
+                    onLinkClaimed: { pendingLinkToken = nil }
+                )
             }
         } else if isAuthenticated {
             HomeView(onSessionEnded: { isAuthenticated = false })

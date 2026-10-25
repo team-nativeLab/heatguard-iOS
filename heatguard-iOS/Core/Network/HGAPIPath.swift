@@ -1,7 +1,7 @@
 import Foundation
 
 enum HGAPIPath {
-    static let appEmailCodes = "/api/v1/auth/app/email-codes"
+    static let registrationEmailCodes = "/api/v1/auth/email-codes"
     static let appRegister = "/api/v1/auth/app/register"
     static let appLogin = "/api/v1/auth/app/login"
     static let appLogout = "/api/v1/auth/app/logout"
