@@ -13,14 +13,14 @@ struct LoginView: View {
 
     private let authenticationService = HGAuthenticationService()
     private let onAuthenticated: (TeamSession) -> Void
-    private let onAppAccountTap: () -> Void
+    private let onSignUpTap: () -> Void
 
     init(
         onAuthenticated: @escaping (TeamSession) -> Void = { _ in },
-        onAppAccountTap: @escaping () -> Void = {}
+        onSignUpTap: @escaping () -> Void = {}
     ) {
         self.onAuthenticated = onAuthenticated
-        self.onAppAccountTap = onAppAccountTap
+        self.onSignUpTap = onSignUpTap
     }
 
     var body: some View {
@@ -38,7 +38,7 @@ struct LoginView: View {
                             .font(HGFont.bold(25, relativeTo: .title))
                             .lineSpacing(5)
                             .fixedSize(horizontal: false, vertical: true)
-                        Text("현장작업자 계정으로 로그인할 수 있어요")
+                        Text("팀 계정 이메일과 비밀번호로 로그인할 수 있어요")
                             .font(HGFont.regular(14))
                             .foregroundStyle(HGColor.secondaryText)
                             .padding(.top, 8)
@@ -52,7 +52,7 @@ struct LoginView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, min(58, max(24, (geometry.size.width - 280) / 2)))
-                    .padding(.top, 52)
+                    .padding(.top, 34)
 
                     Spacer(minLength: 32)
                     HGPrimaryButton(
@@ -64,19 +64,16 @@ struct LoginView: View {
                         tint: HGColor.loginPrimary
                     ) { login() }
                     .padding(.horizontal, min(40, max(20, (geometry.size.width - 280) / 2)))
-                    Text("계정 생성과 재설정은 현장관리자에게 문의해주세요")
-                        .font(HGFont.regular(12, relativeTo: .caption))
-                        .foregroundStyle(HGColor.secondaryText)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                        .padding(.top, 14)
-                        .padding(.bottom, 10)
-                    Button("앱 계정으로 현장 연동") {
-                        onAppAccountTap()
+                    HStack(spacing: 6) {
+                        Text("계정이 없으신가요?")
+                            .foregroundStyle(HGColor.secondaryText)
+                        Button("회원가입", action: onSignUpTap)
+                            .font(HGFont.semiBold(13))
+                            .foregroundStyle(HGColor.primary)
                     }
-                    .font(HGFont.semiBold(14))
-                    .foregroundStyle(HGColor.primary)
-                    .padding(.bottom, 18)
+                    .font(HGFont.regular(12, relativeTo: .caption))
+                    .padding(.top, 14)
+                    .padding(.bottom, 14)
                 }
                 .frame(minHeight: geometry.size.height)
             }

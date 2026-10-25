@@ -12,6 +12,7 @@ struct HeatGuardApp: App {
     @State private var isRestoringSession = true
     @State private var isAuthenticated = false
     @State private var showsAppAccountFlow = false
+    @State private var startsAccountRegistration = false
     @State private var selectedAppSite: HGAppSite?
     @State private var pendingLinkToken: String?
 
@@ -35,13 +36,16 @@ struct HeatGuardApp: App {
             NavigationStack {
                 AppAccountFlowView(
                     linkToken: pendingLinkToken,
+                    startsWithRegistration: startsAccountRegistration,
                     onClose: {
                         showsAppAccountFlow = false
+                        startsAccountRegistration = false
                         pendingLinkToken = nil
                     },
                     onSiteSelected: { site in
                         selectedAppSite = site
                         showsAppAccountFlow = false
+                        startsAccountRegistration = false
                     },
                     onSiteUnlinked: { siteID in
                         if selectedAppSite?.id == siteID { selectedAppSite = nil }
@@ -60,7 +64,10 @@ struct HeatGuardApp: App {
         } else {
             LoginView(
                 onAuthenticated: { _ in isAuthenticated = true },
-                onAppAccountTap: { showsAppAccountFlow = true }
+                onSignUpTap: {
+                    startsAccountRegistration = true
+                    showsAppAccountFlow = true
+                }
             )
         }
     }
