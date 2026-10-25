@@ -10,6 +10,7 @@ import SwiftUI
 @main
 struct HeatGuardApp: App {
     @State private var isRestoringSession = true
+    @State private var hasFinishedIntro = false
     @State private var isAuthenticated = false
     @State private var showsAppAccountFlow = false
     @State private var startsAccountRegistration = false
@@ -20,7 +21,7 @@ struct HeatGuardApp: App {
         WindowGroup {
             rootView
                 .preferredColorScheme(.light)
-                .task { await restoreSession() }
+                .task { await startApp() }
                 .onOpenURL(perform: handleIncomingURL)
                 .onReceive(NotificationCenter.default.publisher(for: .hgSessionExpired)) { notification in
                     handleSessionExpired(notification.object as? String)
@@ -30,7 +31,9 @@ struct HeatGuardApp: App {
 
     @ViewBuilder
     private var rootView: some View {
-        if isRestoringSession {
+        if !hasFinishedIntro {
+            IntroView()
+        } else if isRestoringSession {
             ProgressView()
         } else if showsAppAccountFlow {
             NavigationStack {
@@ -70,6 +73,18 @@ struct HeatGuardApp: App {
                 }
             )
         }
+    }
+
+    @MainActor
+    private func startApp() async {
+        async let introDuration: Void = waitForIntroDuration()
+        await restoreSession()
+        await introDuration
+        hasFinishedIntro = true
+    }
+
+    private func waitForIntroDuration() async {
+        try? await Task.sleep(nanoseconds: 1_500_000_000)
     }
 
     @MainActor
