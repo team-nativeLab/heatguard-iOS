@@ -1,18 +1,14 @@
 import Foundation
 
 enum HGAPIPath {
-    static let registrationEmailCodes = "/api/v1/auth/email-codes"
-    static let appRegister = "/api/v1/auth/app/register"
-    static let appLogin = "/api/v1/auth/app/login"
-    static let appLogout = "/api/v1/auth/app/logout"
-    static let appMe = "/api/v1/auth/app/me"
-    static let appSites = "/api/v1/app/sites"
-    static let siteDashboard = "/api/v1/site/dashboard"
-    static let appLinkClaim = "/api/v1/app/links/claim"
+    static let teamEmailCodes = "/api/v1/auth/team/email-codes"
+    static let teamRegister = "/api/v1/auth/team/register"
     static let teamLogin = "/api/v1/auth/team/login"
     static let teamMe = "/api/v1/auth/team/me"
     static let teamLogout = "/api/v1/auth/team/logout"
     static let teamPassword = "/api/v1/auth/team/password"
+    static let teamMemberships = "/api/v1/team/memberships"
+    static let teamInvitationAccept = "/api/v1/team/invitations/accept"
     static let teamProfile = "/api/v1/team/profile"
     static let teamHome = "/api/v1/team"
     static let teamChecklist = "/api/v1/team/checklist"
@@ -28,6 +24,6 @@ enum HGAPIPath {
     static func teamEmergencyCall(id: String) -> String { "\(teamEmergencyCalls)/\(id)" }
     static func teamInquiry(id: String) -> String { "\(teamInquiries)/\(id)" }
     static func teamNotificationRead(id: String) -> String { "\(teamNotifications)/\(id)/read" }
-    static func appSiteSelect(id: String) -> String { "\(appSites)/\(id)/select" }
-    static func appSiteUnlink(id: String) -> String { "\(appSites)/\(id)/link" }
+    static func teamMembershipSelect(id: String) -> String { "\(teamMemberships)/\(id)/select" }
+    static func teamMembershipLeave(id: String) -> String { "\(teamMemberships)/\(id)" }
 }

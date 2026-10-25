@@ -32,6 +32,56 @@ struct HGAuthenticationService {
         return TeamSession()
     }
 
+    func requestRegistrationCode(email: String) async throws {
+        try await client.sendVoid(
+            TeamEmailCodeRequest(email: email),
+            method: "POST",
+            path: HGAPIPath.teamEmailCodes
+        )
+    }
+
+    func register(email: String, password: String, verificationCode: String) async throws {
+        try await client.sendVoid(
+            TeamRegisterRequest(
+                email: email,
+                password: password,
+                confirmPassword: password,
+                verificationCode: verificationCode
+            ),
+            method: "POST",
+            path: HGAPIPath.teamRegister
+        )
+    }
+
+    func acceptInvitation(token: String) async throws {
+        let _: TeamInvitationAcceptance = try await client.send(
+            TeamInvitationAcceptRequest(token: token),
+            method: "POST",
+            path: HGAPIPath.teamInvitationAccept,
+            requiresAuthentication: true
+        )
+    }
+
+    func memberships() async throws -> HGTeamMemberships {
+        try await client.get(path: HGAPIPath.teamMemberships, requiresAuthentication: true)
+    }
+
+    func selectMembership(teamID: String) async throws {
+        try await client.sendVoid(
+            method: "POST",
+            path: HGAPIPath.teamMembershipSelect(id: teamID),
+            requiresAuthentication: true
+        )
+    }
+
+    func leaveMembership(teamID: String) async throws {
+        try await client.sendVoid(
+            method: "DELETE",
+            path: HGAPIPath.teamMembershipLeave(id: teamID),
+            requiresAuthentication: true
+        )
+    }
+
     func restoreSession() async throws -> TeamSession? {
         try credentialStore.clear()
         guard !sessionState.isSignedOut else { return nil }
@@ -108,6 +158,58 @@ struct HGAuthenticationService {
 private struct TeamLoginRequest: Encodable {
     let email: String
     let password: String
+}
+
+private struct TeamEmailCodeRequest: Encodable { let email: String }
+
+private struct TeamRegisterRequest: Encodable {
+    let email: String
+    let password: String
+    let confirmPassword: String
+    let verificationCode: String
+}
+
+private struct TeamInvitationAcceptRequest: Encodable { let token: String }
+
+private struct TeamInvitationAcceptance: Decodable {
+    let userID: String?
+    let teamID: String?
+    let siteID: String?
+
+    enum CodingKeys: String, CodingKey {
+        case userID = "userId"
+        case teamID = "teamId"
+        case siteID = "siteId"
+    }
+}
+
+struct HGTeamMemberships: Decodable {
+    let items: [HGTeamMembership]
+    let selectedTeamID: String?
+
+    enum CodingKeys: String, CodingKey {
+        case items
+        case selectedTeamID = "selectedTeamId"
+    }
+}
+
+struct HGTeamMembership: Decodable, Identifiable, Equatable {
+    let teamID: String
+    let teamName: String
+    let siteID: String?
+    let siteName: String?
+    let companyID: String?
+
+    var id: String { teamID }
+    var displayName: String { siteName ?? teamName }
+
+    enum CodingKeys: String, CodingKey {
+        case teamID = "teamId"
+        case teamName
+        case siteID = "siteId"
+        case siteName
+        case companyID = "companyId"
+    }
 }
 
 private struct TeamLoginResponse: Decodable {

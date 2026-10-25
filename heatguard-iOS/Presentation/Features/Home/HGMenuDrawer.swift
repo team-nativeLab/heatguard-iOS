@@ -44,6 +44,7 @@ struct HGMenuDrawer: View {
     let isPresented: Bool
     let onDismiss: () -> Void
     let onHome: () -> Void
+    let onTeamSelection: () -> Void
     let onProfileEdit: () -> Void
     let onInquiry: () -> Void
     let onLogout: () -> Void
@@ -113,6 +114,7 @@ struct HGMenuDrawer: View {
     private var menuSection: some View {
         VStack(spacing: 0) {
             drawerRow(title: "홈", action: onHome)
+            drawerRow(title: "내 현장 목록", action: onTeamSelection)
             drawerRow(title: "내 정보 수정", action: onProfileEdit)
             drawerRow(title: "문의하기", action: onInquiry)
         }
@@ -190,6 +192,7 @@ struct HGMenuDrawer: View {
         isPresented: true,
         onDismiss: {},
         onHome: {},
+        onTeamSelection: {},
         onProfileEdit: {},
         onInquiry: {},
         onLogout: {},

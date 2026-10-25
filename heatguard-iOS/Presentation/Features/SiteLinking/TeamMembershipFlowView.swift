@@ -1,24 +1,22 @@
 import SwiftUI
 
-struct AppAccountFlowView: View {
+struct TeamMembershipFlowView: View {
     let linkToken: String?
     let onClose: () -> Void
-    var onSiteSelected: (HGAppSite) -> Void = { _ in }
-    var onSiteUnlinked: (String) -> Void = { _ in }
-    var onLinkClaimed: () -> Void = {}
+    let onAuthenticated: (TeamSession) -> Void
+    let onTeamSelected: () -> Void
 
-    private let service = HGAppSiteLinkingService()
+    private let service = HGAuthenticationService()
     @State private var isRestoringSession = true
     @State private var isAuthenticated = false
-    @State private var hasClaimedLink = false
+    @State private var hasAcceptedInvitation = false
     @State private var isRegistering: Bool
     @State private var email = ""
     @State private var password = ""
     @State private var verificationCode = ""
-    @State private var phoneNumber = ""
-    @State private var sites: [HGAppSite] = []
-    @State private var selectedSiteID: String?
-    @State private var selectingSiteID: String?
+    @State private var memberships: [HGTeamMembership] = []
+    @State private var selectedTeamID: String?
+    @State private var selectingTeamID: String?
     @State private var busy = false
     @State private var error: HGErrorPresentation?
     @State private var notice: String?
@@ -27,34 +25,24 @@ struct AppAccountFlowView: View {
         linkToken: String? = nil,
         startsWithRegistration: Bool = false,
         onClose: @escaping () -> Void,
-        onSiteSelected: @escaping (HGAppSite) -> Void = { _ in },
-        onSiteUnlinked: @escaping (String) -> Void = { _ in },
-        onLinkClaimed: @escaping () -> Void = {}
+        onAuthenticated: @escaping (TeamSession) -> Void = { _ in },
+        onTeamSelected: @escaping () -> Void = {}
     ) {
         self.linkToken = linkToken
         self.onClose = onClose
-        self.onSiteSelected = onSiteSelected
-        self.onSiteUnlinked = onSiteUnlinked
-        self.onLinkClaimed = onLinkClaimed
+        self.onAuthenticated = onAuthenticated
+        self.onTeamSelected = onTeamSelected
         _isRegistering = State(initialValue: startsWithRegistration)
     }
 
     var body: some View {
         Group {
             if isRestoringSession {
-                ProgressView()
-                    .tint(HGColor.primary)
+                ProgressView().tint(HGColor.primary)
             } else if !isAuthenticated {
                 accessForm
-            } else if let linkToken, !hasClaimedLink {
-                AppSitePhoneEntryView(
-                    onSubmit: { phone in
-                        Task { await claimLink(token: linkToken, phone: phone) }
-                    },
-                    onBack: { hasClaimedLink = true }
-                )
             } else {
-                siteList
+                membershipList
             }
         }
         .task { await restore() }
@@ -72,19 +60,20 @@ struct AppAccountFlowView: View {
             Text(notice ?? "")
         }
         .onChange(of: linkToken) { _, newToken in
-            if newToken != nil { hasClaimedLink = false }
+            hasAcceptedInvitation = false
+            if newToken != nil, isAuthenticated { Task { await acceptInvitationIfNeeded() } }
         }
     }
 
     private var accessForm: some View {
         VStack(spacing: 0) {
-            flowHeader(title: isRegistering ? "앱 계정 만들기" : "앱 계정 로그인")
+            flowHeader(title: isRegistering ? "회원가입" : "로그인")
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text(isRegistering ? "이메일로 가입하기" : "앱 계정으로 로그인")
+                    Text(isRegistering ? "현장 작업자 계정 만들기" : "현장 작업자 계정으로 로그인")
                         .font(HGFont.bold(25, relativeTo: .title2))
                         .foregroundStyle(HGColor.primaryText)
-                    Text("현장 연동을 위해 앱 계정이 필요해요.")
+                    Text("이메일 계정으로 로그인하고 초대받은 현장에 참여할 수 있어요.")
                         .font(HGFont.regular(14, relativeTo: .subheadline))
                         .foregroundStyle(HGColor.secondaryText)
                     HGTextField(title: "이메일", placeholder: "example@email.com", text: $email, inputType: .email)
@@ -97,7 +86,7 @@ struct AppAccountFlowView: View {
                             .disabled(busy)
                             HGTextField(
                                 title: "이메일 인증 코드",
-                                placeholder: "6자리 코드",
+                                placeholder: "인증 코드",
                                 text: $verificationCode,
                                 inputType: .number
                             )
@@ -108,14 +97,17 @@ struct AppAccountFlowView: View {
                         placeholder: "비밀번호를 입력해주세요",
                         text: $password,
                         isSecure: true,
-                        inputType: .newPassword
+                        inputType: isRegistering ? .newPassword : .currentPassword
                     )
                     if let error {
                         Text(error.alertMessage)
                             .font(HGFont.regular(12, relativeTo: .caption))
                             .foregroundStyle(HGColor.error)
                     }
-                    HGPrimaryButton(title: busy ? "처리 중..." : (isRegistering ? "가입하고 로그인" : "로그인"), isEnabled: !busy) {
+                    HGPrimaryButton(
+                        title: busy ? "처리 중..." : (isRegistering ? "회원가입" : "로그인"),
+                        isEnabled: !busy
+                    ) {
                         Task { await submitAccess() }
                     }
                     Button(isRegistering ? "이미 계정이 있어요 · 로그인" : "계정이 없으신가요? · 회원가입") {
@@ -135,87 +127,57 @@ struct AppAccountFlowView: View {
         .toolbar(.hidden, for: .navigationBar)
     }
 
-    private var siteList: some View {
+    private var membershipList: some View {
         VStack(spacing: 0) {
-            flowHeader(
-                title: "내 현장 목록",
-                backgroundColor: HGColor.appBackground,
-                height: 44,
-                topInset: 10
-            )
-            ScrollView {
-                if sites.isEmpty {
-                    ContentUnavailableView(
-                        "연동된 현장이 없어요",
-                        systemImage: "building.2",
-                        description: Text("현장 관리자가 공유한 연동 링크를 열어 현장을 추가해주세요.")
-                    )
-                    .padding(.top, 72)
-                } else {
+            flowHeader(title: "내 현장 목록", backgroundColor: HGColor.appBackground, height: 54, topInset: 10)
+            if memberships.isEmpty {
+                ContentUnavailableView(
+                    "초대받은 현장이 없어요",
+                    systemImage: "building.2",
+                    description: Text("현장 관리자가 보낸 초대 링크를 열어 현장에 참여해주세요.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(sites) { site in
-                            siteCard(site)
+                        ForEach(memberships) { membership in
+                            membershipCard(membership)
                         }
                     }
                     .padding(.horizontal, 24)
-                    .padding(.top, 38)
+                    .padding(.top, 36)
                     .padding(.bottom, 24)
                 }
+                .scrollIndicators(.hidden)
+                .refreshable { await loadMemberships() }
             }
-            .scrollIndicators(.hidden)
-            .refreshable { await loadSites() }
-
-            Button {
-                hasClaimedLink = false
-                notice = "현장 관리자가 공유한 새 연동 링크를 열면 이 계정에 현장이 추가됩니다."
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 22, weight: .semibold))
-                    Text("새로운 현장 연동하기")
-                        .font(HGFont.semiBold(17, relativeTo: .headline))
-                }
-                .foregroundStyle(HGColor.primary)
-                .frame(maxWidth: .infinity)
-                .frame(height: 54)
-                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 14))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(HGColor.primary, lineWidth: 1.5)
-                }
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 24)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
         }
         .background(HGColor.appBackground.ignoresSafeArea())
+        .overlay {
+            if busy { ProgressView().tint(HGColor.primary) }
+        }
     }
 
-    private func siteCard(_ site: HGAppSite) -> some View {
-        let isSelected = selectedSiteID == site.id
+    private func membershipCard(_ membership: HGTeamMembership) -> some View {
+        let isSelected = selectedTeamID == membership.teamID
         return Button {
-            Task { await select(site) }
+            Task { await select(membership) }
         } label: {
             HStack(spacing: 12) {
                 ZStack {
                     if isSelected {
-                        Circle()
-                            .fill(HGColor.primary)
+                        Circle().fill(HGColor.primary)
                         Image(systemName: "checkmark")
                             .font(.system(size: 20, weight: .bold))
                             .foregroundStyle(.white)
                     }
                 }
                 .frame(width: 32, height: 32)
-
-                Text(site.siteName)
+                Text(membership.displayName)
                     .font(HGFont.semiBold(16, relativeTo: .headline))
                     .foregroundStyle(isSelected ? HGColor.primaryText : HGColor.photoSelectionText)
                     .lineLimit(1)
-
                 Spacer(minLength: 8)
-
                 Text(isSelected ? "선택됨" : "선택 안됨")
                     .font(HGFont.semiBold(13, relativeTo: .subheadline))
                     .foregroundStyle(isSelected ? HGColor.primary : HGColor.photoSelectionText)
@@ -232,13 +194,13 @@ struct AppAccountFlowView: View {
             }
         }
         .buttonStyle(.plain)
-        .disabled(selectingSiteID != nil)
+        .disabled(selectingTeamID != nil)
         .contextMenu {
-            Button("현장 연동 해제", role: .destructive) {
-                Task { await unlink(site) }
+            Button("현장 참여 해제", role: .destructive) {
+                Task { await leave(membership) }
             }
         }
-        .accessibilityLabel("\(site.siteName), \(isSelected ? "선택됨" : "선택 안됨")")
+        .accessibilityLabel("\(membership.displayName), \(isSelected ? "선택됨" : "선택 안됨")")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
@@ -272,10 +234,12 @@ struct AppAccountFlowView: View {
     @MainActor
     private func restore() async {
         defer { isRestoringSession = false }
-
         do {
-            isAuthenticated = try await service.restoreSession()
-            if isAuthenticated && linkToken == nil { await loadSites() }
+            isAuthenticated = try await service.restoreSession() != nil
+            if isAuthenticated {
+                await acceptInvitationIfNeeded()
+                if linkToken == nil { await loadMemberships() }
+            }
         } catch {
             isAuthenticated = false
         }
@@ -286,8 +250,8 @@ struct AppAccountFlowView: View {
         busy = true
         defer { busy = false }
         do {
-            try await service.requestEmailCode(email: email.trimmingCharacters(in: .whitespacesAndNewlines))
-            notice = "인증 코드를 이메일로 보냈어요. 10분 안에 입력해주세요."
+            try await service.requestRegistrationCode(email: email.trimmingCharacters(in: .whitespacesAndNewlines))
+            notice = "인증 코드를 이메일로 보냈어요."
         } catch {
             self.error = HGErrorPresentation(error: error)
         }
@@ -303,39 +267,32 @@ struct AppAccountFlowView: View {
             if isRegistering {
                 try await service.register(email: normalizedEmail, password: password, verificationCode: verificationCode)
             }
-            try await service.login(email: normalizedEmail, password: password)
+            let session = try await service.login(email: normalizedEmail, password: password)
             isAuthenticated = true
-            if linkToken == nil { await loadSites() }
+            onAuthenticated(session)
+            if linkToken != nil {
+                await acceptInvitationIfNeeded()
+            } else {
+                await loadMemberships()
+            }
         } catch {
             self.error = HGErrorPresentation(error: error)
         }
     }
 
     @MainActor
-    private func claimLink(token: String, phone: String) async {
+    private func acceptInvitationIfNeeded() async {
+        guard let linkToken, !linkToken.isEmpty, !hasAcceptedInvitation else { return }
         busy = true
         defer { busy = false }
         do {
-            let linkedSite = try await service.claim(token: token, managerPhone: phone)
-            sites = try await service.fetchSites()
-            selectedSiteID = linkedSite.siteID
-            UserDefaults.standard.set(linkedSite.siteID, forKey: "selected-app-site-id")
-            hasClaimedLink = true
-            onLinkClaimed()
-            notice = "\(linkedSite.siteName) 현장이 연동됐어요."
-        } catch {
-            self.error = HGErrorPresentation(error: error)
-        }
-    }
-
-    @MainActor
-    private func loadSites() async {
-        do {
-            sites = try await service.fetchSites()
-            selectedSiteID = UserDefaults.standard.string(forKey: "selected-app-site-id")
-            if let selectedSiteID, !sites.contains(where: { $0.id == selectedSiteID }) {
-                self.selectedSiteID = nil
-                UserDefaults.standard.removeObject(forKey: "selected-app-site-id")
+            try await service.acceptInvitation(token: linkToken)
+            hasAcceptedInvitation = true
+            await loadMemberships()
+            if let selectedTeamID {
+                if memberships.contains(where: { $0.teamID == selectedTeamID }) {
+                    onTeamSelected()
+                }
             }
         } catch {
             self.error = HGErrorPresentation(error: error)
@@ -343,39 +300,44 @@ struct AppAccountFlowView: View {
     }
 
     @MainActor
-    private func select(_ site: HGAppSite) async {
-        guard selectingSiteID == nil, selectedSiteID != site.id else { return }
-        selectingSiteID = site.id
-        defer { selectingSiteID = nil }
+    private func loadMemberships() async {
         do {
-            _ = try await service.select(siteID: site.id)
-            selectedSiteID = site.id
-            UserDefaults.standard.set(site.id, forKey: "selected-app-site-id")
-            onSiteSelected(site)
-        } catch {
-            self.error = HGErrorPresentation(error: error)
-        }
-    }
-
-    @MainActor
-    private func unlink(_ site: HGAppSite) async {
-        do {
-            try await service.unlink(siteID: site.id)
-            onSiteUnlinked(site.id)
-            if selectedSiteID == site.id {
-                selectedSiteID = nil
-                UserDefaults.standard.removeObject(forKey: "selected-app-site-id")
+            let result = try await service.memberships()
+            memberships = result.items
+            selectedTeamID = result.selectedTeamID
+            if let selectedTeamID, !memberships.contains(where: { $0.teamID == selectedTeamID }) {
+                self.selectedTeamID = nil
             }
-            await loadSites()
         } catch {
             self.error = HGErrorPresentation(error: error)
         }
     }
 
     @MainActor
-    private func logout() async {
-        await service.logout()
-        isAuthenticated = false
-        sites = []
+    private func select(_ membership: HGTeamMembership) async {
+        guard selectingTeamID == nil, selectedTeamID != membership.teamID else {
+            if selectedTeamID == membership.teamID { onTeamSelected() }
+            return
+        }
+        selectingTeamID = membership.teamID
+        defer { selectingTeamID = nil }
+        do {
+            try await service.selectMembership(teamID: membership.teamID)
+            selectedTeamID = membership.teamID
+            onTeamSelected()
+        } catch {
+            self.error = HGErrorPresentation(error: error)
+        }
+    }
+
+    @MainActor
+    private func leave(_ membership: HGTeamMembership) async {
+        do {
+            try await service.leaveMembership(teamID: membership.teamID)
+            if selectedTeamID == membership.teamID { selectedTeamID = nil }
+            await loadMemberships()
+        } catch {
+            self.error = HGErrorPresentation(error: error)
+        }
     }
 }

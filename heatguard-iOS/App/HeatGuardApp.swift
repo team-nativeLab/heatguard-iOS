@@ -12,10 +12,9 @@ struct HeatGuardApp: App {
     @State private var isRestoringSession = true
     @State private var hasFinishedIntro = false
     @State private var isAuthenticated = false
-    @State private var showsAppAccountFlow = false
+    @State private var showsTeamFlow = false
     @State private var startsAccountRegistration = false
-    @State private var selectedAppSite: HGAppSite?
-    @State private var pendingLinkToken: String?
+    @State private var pendingInvitationToken: String?
 
     var body: some Scene {
         WindowGroup {
@@ -35,41 +34,27 @@ struct HeatGuardApp: App {
             IntroView()
         } else if isRestoringSession {
             ProgressView()
-        } else if showsAppAccountFlow {
+        } else if showsTeamFlow {
             NavigationStack {
-                AppAccountFlowView(
-                    linkToken: pendingLinkToken,
+                TeamMembershipFlowView(
+                    linkToken: pendingInvitationToken,
                     startsWithRegistration: startsAccountRegistration,
-                    onClose: {
-                        showsAppAccountFlow = false
-                        startsAccountRegistration = false
-                        pendingLinkToken = nil
-                    },
-                    onSiteSelected: { site in
-                        selectedAppSite = site
-                        showsAppAccountFlow = false
-                        startsAccountRegistration = false
-                    },
-                    onSiteUnlinked: { siteID in
-                        if selectedAppSite?.id == siteID { selectedAppSite = nil }
-                    },
-                    onLinkClaimed: { pendingLinkToken = nil }
+                    onClose: closeTeamFlow,
+                    onAuthenticated: { _ in isAuthenticated = true },
+                    onTeamSelected: finishTeamSelection
                 )
             }
-        } else if let selectedAppSite {
-            AppSiteDashboardView(
-                site: selectedAppSite,
-                onChangeSite: { showsAppAccountFlow = true },
-                onLogout: { Task { await logoutAppAccount() } }
-            )
         } else if isAuthenticated {
-            HomeView(onSessionEnded: handleTeamSessionEnded)
+            HomeView(
+                onSessionEnded: handleSessionEnded,
+                onTeamSelectionRequested: { showsTeamFlow = true }
+            )
         } else {
             LoginView(
-                onAuthenticated: { _ in isAuthenticated = true },
+                onAuthenticated: { _ in Task { await routeAuthenticatedSession() } },
                 onSignUpTap: {
                     startsAccountRegistration = true
-                    showsAppAccountFlow = true
+                    showsTeamFlow = true
                 }
             )
         }
@@ -89,80 +74,86 @@ struct HeatGuardApp: App {
 
     @MainActor
     private func restoreSession() async {
-        isAuthenticated = (try? await HGAuthenticationService().restoreSession()) != nil
-        if !isAuthenticated && !showsAppAccountFlow {
-            let service = HGAppSiteLinkingService()
-            if (try? await service.restoreSession()) == true {
-                await restoreSelectedAppSite(using: service)
-            }
+        try? HGAuthTokenStore(account: "app-session-access-token").clear()
+        UserDefaults.standard.removeObject(forKey: "selected-app-site-id")
+        do {
+            isAuthenticated = (try await HGAuthenticationService().restoreSession()) != nil
+            if isAuthenticated { await routeToSelectedTeamIfNeeded() }
+        } catch {
+            isAuthenticated = false
         }
         isRestoringSession = false
     }
 
     @MainActor
-    private func restoreSelectedAppSite(using service: HGAppSiteLinkingService) async {
-        let sites: [HGAppSite]
-        do {
-            sites = try await service.fetchSites()
-        } catch {
-            showsAppAccountFlow = true
-            return
-        }
+    private func routeAuthenticatedSession() async {
+        isAuthenticated = true
+        await routeToSelectedTeamIfNeeded()
+    }
 
-        let selectedID = UserDefaults.standard.string(forKey: "selected-app-site-id")
-        guard let selectedID, let site = sites.first(where: { $0.id == selectedID }) else {
-            if selectedID != nil { UserDefaults.standard.removeObject(forKey: "selected-app-site-id") }
-            showsAppAccountFlow = true
-            return
-        }
-
+    @MainActor
+    private func routeToSelectedTeamIfNeeded() async {
         do {
-            _ = try await service.select(siteID: selectedID)
-            selectedAppSite = site
-        } catch let error as HGAPIError {
-            if case let .server(_, statusCode, _) = error, [403, 404].contains(statusCode) {
-                UserDefaults.standard.removeObject(forKey: "selected-app-site-id")
-                showsAppAccountFlow = true
-            } else {
-                selectedAppSite = site
+            let memberships = try await HGAuthenticationService().memberships()
+            if let selectedTeamID = memberships.selectedTeamID,
+               memberships.items.contains(where: { $0.teamID == selectedTeamID }) {
+                showsTeamFlow = false
+                return
             }
+            if memberships.items.count == 1, let onlyMembership = memberships.items.first {
+                try await HGAuthenticationService().selectMembership(teamID: onlyMembership.teamID)
+                showsTeamFlow = false
+                return
+            }
+            showsTeamFlow = true
         } catch {
-            selectedAppSite = site
+            // Keep the authenticated worker in the team-selection flow so the API error is visible.
+            showsTeamFlow = true
         }
     }
 
     @MainActor
-    private func logoutAppAccount() async {
-        UserDefaults.standard.removeObject(forKey: "selected-app-site-id")
-        selectedAppSite = nil
-        showsAppAccountFlow = false
-        await HGAppSiteLinkingService().logout()
+    private func finishTeamSelection() {
+        isAuthenticated = true
+        showsTeamFlow = false
+        startsAccountRegistration = false
+        pendingInvitationToken = nil
     }
 
     @MainActor
-    private func handleTeamSessionEnded() {
+    private func closeTeamFlow() {
+        showsTeamFlow = false
+        startsAccountRegistration = false
+        pendingInvitationToken = nil
+        if isAuthenticated {
+            Task { await routeToSelectedTeamIfNeeded() }
+        }
+    }
+
+    @MainActor
+    private func handleSessionEnded() {
+        HGAuthenticationService().endLocalSession()
         isAuthenticated = false
-        Task { await logoutAppAccount() }
+        showsTeamFlow = false
     }
 
     @MainActor
     private func handleSessionExpired(_ expiredToken: String?) {
-        guard let expiredToken else { return }
-        if (try? HGAuthTokenStore.shared.load()) == expiredToken {
-            HGAuthenticationService().endLocalSession(clearDraft: false)
-            isAuthenticated = false
-        } else if (try? HGAuthTokenStore(account: "app-session-access-token").load()) == expiredToken {
-            Task { await logoutAppAccount() }
-        }
+        guard let expiredToken, (try? HGAuthTokenStore.shared.load()) == expiredToken else { return }
+        HGAuthenticationService().endLocalSession(clearDraft: false)
+        isAuthenticated = false
+        showsTeamFlow = false
     }
 
     private func handleIncomingURL(_ url: URL) {
         guard url.scheme == "heatguard",
-              url.host == "link",
-              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              let token = components.queryItems?.first(where: { $0.name == "token" })?.value,
-              !token.isEmpty else { return }
-        pendingLinkToken = token
-        showsAppAccountFlow = true
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
+        let token = components.queryItems?.first(where: { $0.name == "token" })?.value
+            ?? url.pathComponents.dropFirst().first
+        guard let token, !token.isEmpty else { return }
+        guard ["link", "team-invite"].contains(url.host ?? "") else { return }
+        pendingInvitationToken = token
+        startsAccountRegistration = false
+        showsTeamFlow = true
     }
 }
