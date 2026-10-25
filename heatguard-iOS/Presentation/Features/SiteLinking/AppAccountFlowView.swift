@@ -3,6 +3,7 @@ import SwiftUI
 struct AppAccountFlowView: View {
     let linkToken: String?
     let onClose: () -> Void
+    var onLinkClaimed: () -> Void = {}
 
     private let service = HGAppSiteLinkingService()
     @State private var isAuthenticated = false
@@ -14,6 +15,7 @@ struct AppAccountFlowView: View {
     @State private var phoneNumber = ""
     @State private var sites: [HGAppSite] = []
     @State private var selectedSiteID: String?
+    @State private var selectingSiteID: String?
     @State private var busy = false
     @State private var error: HGErrorPresentation?
     @State private var notice: String?
@@ -46,6 +48,9 @@ struct AppAccountFlowView: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(notice ?? "")
+        }
+        .onChange(of: linkToken) { _, newToken in
+            if newToken != nil { hasClaimedLink = false }
         }
     }
 
@@ -105,62 +110,114 @@ struct AppAccountFlowView: View {
 
     private var siteList: some View {
         VStack(spacing: 0) {
-            flowHeader(title: "내 현장 목록")
-            if sites.isEmpty {
-                ContentUnavailableView(
-                    "연동된 현장이 없어요",
-                    systemImage: "building.2",
-                    description: Text("관리자가 공유한 연동 링크를 열어 현장을 추가해주세요.")
-                )
-                Spacer()
-            } else {
-                List(sites) { site in
-                    HStack(spacing: 12) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(HGColor.checklistSuccess)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(site.siteName).font(HGFont.semiBold(15))
-                            if let managerName = site.managerName {
-                                Text("담당자 · \(managerName)")
-                                    .font(HGFont.regular(12, relativeTo: .caption))
-                                    .foregroundStyle(HGColor.secondaryText)
-                            }
-                        }
-                        Spacer()
-                        Button(selectedSiteID == site.id ? "선택됨" : "선택") {
-                            Task { await select(site) }
-                        }
-                        .font(HGFont.medium(12))
-                        .foregroundStyle(HGColor.primary)
-                        Menu {
-                            Button("현장 연동 해제", role: .destructive) {
-                                Task { await unlink(site) }
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis")
-                                .foregroundStyle(HGColor.secondaryText)
-                                .padding(8)
+            flowHeader(title: "내 현장 목록", backgroundColor: HGColor.appBackground)
+            ScrollView {
+                if sites.isEmpty {
+                    ContentUnavailableView(
+                        "연동된 현장이 없어요",
+                        systemImage: "building.2",
+                        description: Text("현장 관리자가 공유한 연동 링크를 열어 현장을 추가해주세요.")
+                    )
+                    .padding(.top, 72)
+                } else {
+                    LazyVStack(spacing: 12) {
+                        ForEach(sites) { site in
+                            siteCard(site)
                         }
                     }
-                    .padding(.vertical, 6)
-                    .listRowBackground(HGColor.surface)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 32)
+                    .padding(.bottom, 24)
                 }
-                .scrollContentBackground(.hidden)
-                .background(HGColor.appBackground)
             }
-            Spacer(minLength: 8)
-            Button("로그아웃") {
-                Task { await logout() }
+            .scrollIndicators(.hidden)
+            .refreshable { await loadSites() }
+
+            Button {
+                hasClaimedLink = false
+                notice = "현장 관리자가 공유한 새 연동 링크를 열면 이 계정에 현장이 추가됩니다."
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 22, weight: .semibold))
+                    Text("새로운 현장 연동하기")
+                        .font(HGFont.semiBold(17, relativeTo: .headline))
+                }
+                .foregroundStyle(HGColor.primary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 72)
+                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 18))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(HGColor.primary, lineWidth: 1.5)
+                }
             }
-            .font(HGFont.medium(14))
-            .foregroundStyle(HGColor.secondaryText)
+            .buttonStyle(.plain)
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
             .padding(.bottom, 16)
         }
         .background(HGColor.appBackground.ignoresSafeArea())
-        .refreshable { await loadSites() }
     }
 
-    private func flowHeader(title: String) -> some View {
+    private func siteCard(_ site: HGAppSite) -> some View {
+        let isSelected = selectedSiteID == site.id
+        return Button {
+            Task { await select(site) }
+        } label: {
+            HStack(spacing: 16) {
+                ZStack {
+                    if isSelected {
+                        Circle()
+                            .fill(HGColor.primary)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .frame(width: 46, height: 46)
+
+                Text(site.siteName)
+                    .font(HGFont.semiBold(17, relativeTo: .headline))
+                    .foregroundStyle(isSelected ? HGColor.primaryText : HGColor.photoSelectionText)
+                    .lineLimit(1)
+
+                Spacer(minLength: 8)
+
+                Text(isSelected ? "선택됨" : "선택 안됨")
+                    .font(HGFont.semiBold(13, relativeTo: .subheadline))
+                    .foregroundStyle(isSelected ? HGColor.primary : HGColor.photoSelectionText)
+                    .padding(.horizontal, isSelected ? 0 : 14)
+                    .padding(.vertical, isSelected ? 0 : 8)
+                    .background {
+                        if !isSelected {
+                            Capsule().fill(HGColor.menuDivider)
+                        }
+                    }
+            }
+            .padding(.horizontal, 24)
+            .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
+            .background(
+                isSelected ? HGColor.photoSelectionBackground : HGColor.readOnlyField,
+                in: RoundedRectangle(cornerRadius: 18)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(isSelected ? HGColor.primary : HGColor.homeTimelineBorder, lineWidth: isSelected ? 1.5 : 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(selectingSiteID != nil)
+        .contextMenu {
+            Button("현장 연동 해제", role: .destructive) {
+                Task { await unlink(site) }
+            }
+        }
+        .accessibilityLabel("\(site.siteName), \(isSelected ? "선택됨" : "선택 안됨")")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func flowHeader(title: String, backgroundColor: Color = HGColor.surface) -> some View {
         ZStack {
             Text(title)
                 .font(HGFont.semiBold(18, relativeTo: .headline))
@@ -178,7 +235,7 @@ struct AppAccountFlowView: View {
         }
         .frame(height: 48)
         .padding(.horizontal, 12)
-        .background(HGColor.surface)
+        .background(backgroundColor)
     }
 
     @MainActor
@@ -231,6 +288,7 @@ struct AppAccountFlowView: View {
             selectedSiteID = linkedSite.siteID
             UserDefaults.standard.set(linkedSite.siteID, forKey: "selected-app-site-id")
             hasClaimedLink = true
+            onLinkClaimed()
             notice = "\(linkedSite.siteName) 현장이 연동됐어요."
         } catch {
             self.error = HGErrorPresentation(error: error)
@@ -253,6 +311,9 @@ struct AppAccountFlowView: View {
 
     @MainActor
     private func select(_ site: HGAppSite) async {
+        guard selectingSiteID == nil, selectedSiteID != site.id else { return }
+        selectingSiteID = site.id
+        defer { selectingSiteID = nil }
         do {
             _ = try await service.select(siteID: site.id)
             selectedSiteID = site.id

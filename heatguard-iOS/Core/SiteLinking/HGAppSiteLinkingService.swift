@@ -14,7 +14,7 @@ struct HGAppSiteLinkingService {
         let _: HGAppEmailCodeResponse = try await client.send(
             HGAppEmailCodeRequest(email: email),
             method: "POST",
-            path: HGAPIPath.appEmailCodes
+            path: HGAPIPath.registrationEmailCodes
         )
     }
 
