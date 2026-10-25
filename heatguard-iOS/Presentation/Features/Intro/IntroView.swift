@@ -10,30 +10,30 @@ struct IntroView: View {
                     endPoint: .bottom
                 )
 
-                Image("IntroBlueGlow")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: geometry.size.width * 1.14)
-                    .position(x: geometry.size.width * 0.17, y: geometry.size.height * 0.84)
+                Ellipse()
+                    .fill(Color(red: 191 / 255, green: 217 / 255, blue: 1).opacity(0.6))
+                    .frame(width: 300, height: 260)
+                    .blur(radius: 40)
+                    .position(x: geometry.size.width * 0.174, y: geometry.size.height * 0.835)
 
-                Image("IntroWarmGlow")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: geometry.size.width * 1.04)
-                    .position(x: geometry.size.width * 0.82, y: geometry.size.height * 0.86)
+                Ellipse()
+                    .fill(Color(red: 1, green: 216 / 255, blue: 194 / 255).opacity(0.55))
+                    .frame(width: 260, height: 220)
+                    .blur(radius: 40)
+                    .position(x: geometry.size.width * 0.821, y: geometry.size.height * 0.858)
 
                 brand
                     .position(x: geometry.size.width / 2, y: geometry.size.height * 0.474)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea()
         }
+        .ignoresSafeArea()
         .accessibilityIdentifier("intro-screen")
     }
 
     private var brand: some View {
         VStack(spacing: 0) {
-            Image("BrandIcon")
+            Image("IntroBrandLogo")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 112, height: 112)
