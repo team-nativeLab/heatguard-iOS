@@ -77,6 +77,14 @@ struct HGAppSiteLinkingService {
         return response.items
     }
 
+    func fetchDashboard(siteID: String) async throws -> HGAppSiteDashboard {
+        try await client.get(
+            path: HGAPIPath.siteDashboard,
+            requiresAuthentication: true,
+            headers: ["X-Site-Id": siteID]
+        )
+    }
+
     func select(siteID: String) async throws -> HGAppSiteSelection {
         try await client.send(
             HGEmptyRequest(),
