@@ -96,7 +96,9 @@ struct AppAccountFlowView: View {
                 }
                 .padding(24)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
+        .dismissKeyboardOnBackgroundTap()
         .background(HGColor.surface.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
     }

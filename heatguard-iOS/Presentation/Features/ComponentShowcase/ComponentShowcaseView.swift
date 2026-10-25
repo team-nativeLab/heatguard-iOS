@@ -71,6 +71,8 @@ struct ComponentShowcaseView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnBackgroundTap()
         .background(HGColor.appBackground)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
