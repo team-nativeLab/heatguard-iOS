@@ -8,7 +8,7 @@ enum HGEmergencyCallConfirmation {
         currentCall: () async throws -> HGEmergencyCall?,
         createCall: () async throws -> String
     ) async throws -> HGEmergencyCall {
-        if let call = try await currentCall() { return call }
+        if let call = try await currentCall(), call.status == .active { return call }
         return HGEmergencyCall(id: try await createCall(), status: .active)
     }
 }
