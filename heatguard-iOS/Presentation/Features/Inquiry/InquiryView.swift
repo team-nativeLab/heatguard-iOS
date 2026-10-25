@@ -43,12 +43,7 @@ struct InquiryView: View {
             Button("확인", role: .cancel) {}
         }
         .dismissKeyboardOnBackgroundTap()
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("완료") { UIApplication.shared.dismissKeyboard() }
-            }
-        }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     private var inquiryForm: some View {

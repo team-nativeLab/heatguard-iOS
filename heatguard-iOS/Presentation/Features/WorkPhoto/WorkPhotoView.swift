@@ -15,7 +15,7 @@ struct WorkPhotoView: View {
     let onSave: (HGRecordSaveResult) -> Void
     let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
     let onPhotoRequired: (HGRecordDraft) -> Void
-    let onMenuTap: () -> Void
+    let onBack: () -> Void
     let onNotificationsTap: () -> Void
     let notificationCount: Int
     private let teamName: String?
@@ -32,17 +32,17 @@ struct WorkPhotoView: View {
         initialTemperature: Double? = nil,
         initialHumidity: Double? = nil,
         weather: HomeWeather? = nil,
+        onBack: @escaping () -> Void = {},
         teamName: String? = nil,
         workplace: String? = nil,
         siteName: String? = nil,
-        onMenuTap: @escaping () -> Void = {},
         onNotificationsTap: @escaping () -> Void = {},
         notificationCount: Int = 0
     ) {
         self.onSave = onSave
         self.onFailure = onFailure
         self.onPhotoRequired = onPhotoRequired
-        self.onMenuTap = onMenuTap
+        self.onBack = onBack
         self.onNotificationsTap = onNotificationsTap
         self.notificationCount = notificationCount
         self.teamName = teamName
@@ -115,7 +115,12 @@ struct WorkPhotoView: View {
     }
 
     private var header: some View {
-        HGScreenHeader(onMenuTap: onMenuTap, notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
+        HGScreenHeader(
+            onMenuTap: onBack,
+            leadingSystemImage: "chevron.left",
+            notificationCount: notificationCount,
+            onNotificationsTap: onNotificationsTap
+        )
     }
 
     private var memoSection: some View {
