@@ -2,9 +2,9 @@ import SwiftUI
 
 struct HGScreenHeader: View {
     var onMenuTap: () -> Void = {}
-    var leadingSystemImage: String? = nil
-    var notificationCount: Int? = nil
-    var onNotificationsTap: (() -> Void)? = nil
+    var leadingSystemImage: String?
+    var notificationCount: Int?
+    var onNotificationsTap: (() -> Void)?
 
     var body: some View {
         HStack {

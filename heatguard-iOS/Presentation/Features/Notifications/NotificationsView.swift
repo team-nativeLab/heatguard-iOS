@@ -93,8 +93,7 @@ struct NotificationsView: View {
         .alert(error?.title ?? "알림 조회 오류", isPresented: errorAlert) {
             Button("다시 시도") {
                 Task {
-                    if failedToLoadMore { await loadMore() }
-                    else { await loadFirstPage() }
+                    if failedToLoadMore { await loadMore() } else { await loadFirstPage() }
                 }
             }
             Button("확인", role: .cancel) {}
@@ -128,14 +127,21 @@ struct NotificationsView: View {
         }
         return grouped.keys.sorted(by: >).map { date in
             let label: String
-            if calendar.isDateInToday(date) { label = "오늘" }
-            else if calendar.isDateInYesterday(date) { label = "어제" }
-            else { label = "" }
+            if calendar.isDateInToday(date) {
+                label = "오늘"
+            } else if calendar.isDateInYesterday(date) {
+                label = "어제"
+            } else {
+                label = ""
+            }
             let formatter = DateFormatter()
             formatter.locale = HGDateFormatting.locale
             formatter.timeZone = HGDateFormatting.timeZone
             formatter.dateFormat = "M월 d일 (E)"
-            let dateLabel = date == .distantPast ? "날짜 정보 없음" : (label.isEmpty ? formatter.string(from: date) : "\(label) · \(formatter.string(from: date))")
+            let formattedDate = formatter.string(from: date)
+            let dateLabel = date == .distantPast
+                ? "날짜 정보 없음"
+                : (label.isEmpty ? formattedDate : "\(label) · \(formattedDate)")
             return NotificationDayGroup(date: date, dateLabel: dateLabel, items: grouped[date] ?? [])
         }
     }
@@ -231,11 +237,11 @@ private struct NotificationRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
-            Image(systemName: notification.category == .emergency ? "exclamationmark.triangle.fill" : notification.category == .record ? "thermometer.medium" : "bell.fill")
+            Image(systemName: iconName)
                 .font(.system(size: 20))
                 .foregroundStyle(notification.category == .emergency ? HGColor.error : HGColor.primary)
                 .frame(width: 44, height: 44)
-                .background(notification.category == .emergency ? HGColor.saveFailureIconBackground : HGColor.homeActionIconBackground, in: RoundedRectangle(cornerRadius: 14))
+                .background(iconBackground, in: RoundedRectangle(cornerRadius: 14))
             VStack(alignment: .leading, spacing: 6) {
                 Text(notification.title)
                     .font(HGFont.bold(14, relativeTo: .subheadline))
@@ -253,6 +259,20 @@ private struct NotificationRow: View {
         .padding(.vertical, 14)
         .background(notification.read ? HGColor.surface : Color(red: 244 / 255, green: 247 / 255, blue: 254 / 255))
         .contentShape(Rectangle())
+    }
+
+    private var iconName: String {
+        switch notification.category {
+        case .emergency: "exclamationmark.triangle.fill"
+        case .record: "thermometer.medium"
+        default: "bell.fill"
+        }
+    }
+
+    private var iconBackground: Color {
+        notification.category == .emergency
+            ? HGColor.saveFailureIconBackground
+            : HGColor.homeActionIconBackground
     }
 }
 

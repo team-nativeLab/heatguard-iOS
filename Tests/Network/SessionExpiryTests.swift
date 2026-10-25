@@ -101,7 +101,15 @@ final class SessionExpiryTests: XCTestCase {
             let data = try JSONSerialization.data(withJSONObject: [
                 "success": false, "error": ["code": code, "message": "fixture"]
             ])
-            return (try XCTUnwrap(HTTPURLResponse(url: XCTUnwrap(request.url), statusCode: status, httpVersion: nil, headerFields: nil)), data)
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: XCTUnwrap(request.url),
+                    statusCode: status,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+            return (response, data)
         }
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [SessionExpiryURLProtocol.self]
@@ -124,8 +132,11 @@ final class SessionExpiryTests: XCTestCase {
 
 private final class SessionExpiryURLProtocol: URLProtocol {
     nonisolated(unsafe) static var handler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
+    // URLProtocol requires class overrides for these methods.
+    // swiftlint:disable static_over_final_class
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    // swiftlint:enable static_over_final_class
     override func startLoading() {
         do {
             let (response, data) = try XCTUnwrap(Self.handler)(request)

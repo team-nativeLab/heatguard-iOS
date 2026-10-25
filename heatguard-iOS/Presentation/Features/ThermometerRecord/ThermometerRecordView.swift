@@ -110,7 +110,12 @@ struct ThermometerRecordView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
 
-                Text("습도 \(displayedHumidity) · 체감 \(displayedApparentTemperature.map { $0.formatted(.number.precision(.fractionLength(1))) + " °C" } ?? "—")")
+                Text(
+                    "습도 \(displayedHumidity) · 체감 " +
+                        (displayedApparentTemperature.map {
+                            $0.formatted(.number.precision(.fractionLength(1))) + " °C"
+                        } ?? "—")
+                )
                     .font(HGFont.semiBold(13, relativeTo: .caption))
                     .foregroundStyle(summaryText)
                     .padding(.top, 14)

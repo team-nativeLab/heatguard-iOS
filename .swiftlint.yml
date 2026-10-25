@@ -1,0 +1,21 @@
+included:
+  - heatguard-iOS
+  - Tests
+
+line_length:
+  warning: 140
+  error: 200
+
+# Existing SwiftUI screens are composed as large declarative view trees.
+file_length:
+  warning: 1200
+  error: 1600
+type_body_length:
+  warning: 800
+  error: 1000
+function_body_length:
+  warning: 150
+  error: 200
+cyclomatic_complexity:
+  warning: 20
+  error: 30

@@ -66,7 +66,10 @@ final class RecordUploadVerificationTests: XCTestCase {
                 data = try JSONSerialization.data(withJSONObject: ["success": true, "data": ["recordId": "fixture-record"]])
             } else if scenario == .detailUnavailable {
                 status = 503
-                data = try JSONSerialization.data(withJSONObject: ["success": false, "error": ["code": "UNAVAILABLE", "message": "fixture"]])
+                data = try JSONSerialization.data(withJSONObject: [
+                    "success": false,
+                    "error": ["code": "UNAVAILABLE", "message": "fixture"]
+                ])
             } else {
                 let urls = scenario == .noConnectedPhotos ? [] : ["https://photos.example.invalid/fixture.jpg"]
                 data = try JSONSerialization.data(withJSONObject: ["success": true, "data": [
@@ -112,8 +115,11 @@ private final class RequestLog: @unchecked Sendable {
 private final class RecordFixtureURLProtocol: URLProtocol {
     nonisolated(unsafe) static var handler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
 
+    // URLProtocol requires class overrides for these methods.
+    // swiftlint:disable static_over_final_class
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    // swiftlint:enable static_over_final_class
 
     override func startLoading() {
         do {

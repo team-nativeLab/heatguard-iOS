@@ -18,7 +18,11 @@ final class HomeWeatherLayoutTests: XCTestCase {
             companyName: "테스트 본사", companyPhone: nil, managerPhone: nil,
             siteName: "테스트 현장", teamName: "테스트 팀", workplace: "작업 현장",
             weather: weather(delta: 3.2),
-            checklist: HGChecklistSummary(times: ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"], checkedCount: 3, totalCount: 6),
+            checklist: HGChecklistSummary(
+                times: ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"],
+                checkedCount: 3,
+                totalCount: 6
+            ),
             unreadNotificationCount: 0
         )
         for size in [CGSize(width: 402, height: 978), CGSize(width: 402, height: 874), CGSize(width: 320, height: 568)] {

@@ -29,8 +29,15 @@ final class LayoutEvidenceTests: XCTestCase {
                 ("field-photo", AnyView(FieldPhotoCaptureView())),
                 ("emergency-prompt", AnyView(EmergencyAlertView())),
                 ("emergency-active", AnyView(EmergencyCallView())),
-                ("saved", AnyView(SaveSuccessView(result: HGRecordSaveResult(recordID: "fixture", draft: HGRecordDraft(type: .work, memo: ""), expectedPhotoCount: 2, photoVerification: .checked(photoURLCount: 2), savedAt: Date(timeIntervalSince1970: 0))))),
-                ("saved-partial", AnyView(SaveSuccessView(result: HGRecordSaveResult(recordID: "fixture", draft: HGRecordDraft(type: .work, memo: ""), expectedPhotoCount: 2, photoVerification: .unavailable(diagnosticCode: "FIXTURE"), savedAt: Date(timeIntervalSince1970: 0))))),
+                ("saved", AnyView(SaveSuccessView(result: savedResult(photoVerification: .checked(photoURLCount: 2))))),
+                (
+                    "saved-partial",
+                    AnyView(
+                        SaveSuccessView(
+                            result: savedResult(photoVerification: .unavailable(diagnosticCode: "FIXTURE"))
+                        )
+                    )
+                ),
                 ("profile", AnyView(ProfileEditView())),
                 ("withdrawal", AnyView(WithdrawalGuideView()))
             ]
@@ -65,5 +72,15 @@ final class LayoutEvidenceTests: XCTestCase {
     }
     private func descendants(of view: UIView) -> [UIView] {
         view.subviews.flatMap { [$0] + descendants(of: $0) }
+    }
+
+    private func savedResult(photoVerification: HGRecordPhotoVerification) -> HGRecordSaveResult {
+        HGRecordSaveResult(
+            recordID: "fixture",
+            draft: HGRecordDraft(type: .work, memo: ""),
+            expectedPhotoCount: 2,
+            photoVerification: photoVerification,
+            savedAt: Date(timeIntervalSince1970: 0)
+        )
     }
 }

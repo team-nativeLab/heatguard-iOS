@@ -34,8 +34,7 @@ struct InquiryView: View {
         .alert(error?.title ?? "문의 오류", isPresented: errorAlert) {
             Button("다시 시도") {
                 Task {
-                    if failedToLoadMore { await loadMoreInquiries() }
-                    else { await loadInquiries() }
+                    if failedToLoadMore { await loadMoreInquiries() } else { await loadInquiries() }
                 }
             }
             Button("확인", role: .cancel) {}

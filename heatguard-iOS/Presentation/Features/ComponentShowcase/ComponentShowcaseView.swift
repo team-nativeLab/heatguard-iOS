@@ -43,15 +43,25 @@ struct ComponentShowcaseView: View {
 
                 sectionTitle("액션 행")
                 VStack(spacing: 12) {
-                    HGActionRow(title: "현장 사진", subtitle: "사진 촬영 또는 앨범에서 선택", leading: {
-                        Image(systemName: "camera")
-                            .foregroundStyle(HGColor.primary)
-                    }) {}
+                    HGActionRow(
+                        title: "현장 사진",
+                        subtitle: "사진 촬영 또는 앨범에서 선택",
+                        leading: {
+                            Image(systemName: "camera")
+                                .foregroundStyle(HGColor.primary)
+                        },
+                        action: {}
+                    )
 
-                    HGActionRow(title: "기록 내역", subtitle: "지금까지의 기록을 확인하세요", leading: {
-                        Image(systemName: "chart.bar")
-                            .foregroundStyle(HGColor.primary)
-                    }) {}
+                    HGActionRow(
+                        title: "기록 내역",
+                        subtitle: "지금까지의 기록을 확인하세요",
+                        leading: {
+                            Image(systemName: "chart.bar")
+                                .foregroundStyle(HGColor.primary)
+                        },
+                        action: {}
+                    )
                 }
             }
             .padding(20)

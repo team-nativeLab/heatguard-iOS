@@ -254,10 +254,22 @@ private struct PasswordChangeView: View {
         !currentPassword.isEmpty && meetsPasswordRule && passwordsMatch
     }
 
-    private var errorAlert: Binding<Bool> { Binding(get: { error != nil }, set: { if !$0 { error = nil } }) }
+    private var errorAlert: Binding<Bool> {
+        Binding(get: { error != nil }, set: { if !$0 { error = nil } })
+    }
     @MainActor private func changePassword() async {
         isSubmitting = true; defer { isSubmitting = false }
-        do { try await HGAuthenticationService().changePassword(currentPassword: currentPassword, newPassword: newPassword); isComplete = true; currentPassword = ""; newPassword = ""; confirmation = "" }
-        catch { self.error = HGErrorPresentation(error: error) }
+        do {
+            try await HGAuthenticationService().changePassword(
+                currentPassword: currentPassword,
+                newPassword: newPassword
+            )
+            isComplete = true
+            currentPassword = ""
+            newPassword = ""
+            confirmation = ""
+        } catch {
+            self.error = HGErrorPresentation(error: error)
+        }
     }
 }

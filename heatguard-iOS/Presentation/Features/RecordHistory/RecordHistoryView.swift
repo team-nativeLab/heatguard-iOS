@@ -92,8 +92,7 @@ struct RecordHistoryView: View {
         .alert(error?.title ?? "기록 조회 오류", isPresented: errorAlert) {
             Button("다시 시도") {
                 Task {
-                    if failedToLoadMore { await loadMoreRecords() }
-                    else { await loadRecords() }
+                    if failedToLoadMore { await loadMoreRecords() } else { await loadRecords() }
                 }
             }
             Button("확인", role: .cancel) {}
@@ -190,14 +189,22 @@ struct RecordHistoryView: View {
         }
         return grouped.keys.sorted(by: >).map { date in
             let prefix: String
-            if calendar.isDateInToday(date) { prefix = "오늘 · " }
-            else if calendar.isDateInYesterday(date) { prefix = "어제 · " }
-            else { prefix = "" }
+            if calendar.isDateInToday(date) {
+                prefix = "오늘 · "
+            } else if calendar.isDateInYesterday(date) {
+                prefix = "어제 · "
+            } else {
+                prefix = ""
+            }
             let formatter = DateFormatter()
             formatter.locale = HGDateFormatting.locale
             formatter.timeZone = HGDateFormatting.timeZone
             formatter.dateFormat = "M월 d일 (E)"
-            return RecordDayGroup(date: date, label: date == .distantPast ? "날짜 정보 없음" : prefix + formatter.string(from: date), items: grouped[date] ?? [])
+            return RecordDayGroup(
+                date: date,
+                label: date == .distantPast ? "날짜 정보 없음" : prefix + formatter.string(from: date),
+                items: grouped[date] ?? []
+            )
         }
     }
 
@@ -236,8 +243,7 @@ struct RecordHistoryView: View {
             nextCursor = page.page.nextCursor
             hasMore = page.page.hasMore && page.page.nextCursor != nil
             error = nil
-        }
-        catch { self.error = HGErrorPresentation(error: error) }
+        } catch { self.error = HGErrorPresentation(error: error) }
     }
 
     @MainActor private func loadMoreRecords() async {
@@ -270,9 +276,23 @@ private struct RecordDayGroup {
 private enum RecordFilter: CaseIterable, Identifiable {
     case all, thermometer, work, rest
     var id: Self { self }
-    var title: String { switch self { case .all: "전체"; case .thermometer: "온도계"; case .work: "작업 사진"; case .rest: "휴식 사진" } }
+    var title: String {
+        switch self {
+        case .all: "전체"
+        case .thermometer: "온도계"
+        case .work: "작업 사진"
+        case .rest: "휴식 사진"
+        }
+    }
     var emptyDescription: String { self == .all ? "" : title }
-    func matches(_ type: HGRecordType) -> Bool { switch self { case .all: true; case .thermometer: type == .thermometer; case .work: type == .work; case .rest: type == .rest } }
+    func matches(_ type: HGRecordType) -> Bool {
+        switch self {
+        case .all: true
+        case .thermometer: type == .thermometer
+        case .work: type == .work
+        case .rest: type == .rest
+        }
+    }
 }
 
 private struct RecordCountMetric: View {

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AppSitePhoneEntryView: View {
     let onSubmit: (String) -> Void
-    var onBack: (() -> Void)? = nil
+    var onBack: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isPhoneFieldFocused: Bool
