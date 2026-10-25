@@ -44,7 +44,13 @@ struct ProfileEditView: View {
                         .font(HGFont.regular(12, relativeTo: .caption))
                         .foregroundStyle(HGColor.secondaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    HGTextField(title: "전화번호", placeholder: "전화번호를 입력해주세요", text: $phone, fieldHeight: 48)
+                    HGTextField(
+                        title: "전화번호",
+                        placeholder: "전화번호를 입력해주세요",
+                        text: $phone,
+                        fieldHeight: 48,
+                        inputType: .phone
+                    )
                     NavigationLink {
                         PasswordChangeView()
                     } label: {

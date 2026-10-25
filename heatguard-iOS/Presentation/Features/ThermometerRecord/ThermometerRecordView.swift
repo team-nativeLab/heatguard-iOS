@@ -7,6 +7,7 @@ import SwiftUI
 
 struct ThermometerRecordView: View {
     @State private var isManualEntryEnabled = false
+    @State private var isKeyboardVisible = false
     @State private var temperature: String
     @State private var humidity: String
     private let apparentTemperature: Double?
@@ -73,10 +74,19 @@ struct ThermometerRecordView: View {
         .padding(.top, HGLayout.screenTopPadding)
         .background(HGColor.appBackground)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            HGPrimaryButton(title: "기록 저장", action: continueToPhoto)
-                .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
-                .padding(.vertical, 8)
-                .background(HGColor.appBackground)
+            if !isKeyboardVisible {
+                HGPrimaryButton(title: "기록 저장", action: continueToPhoto)
+                    .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
+                    .padding(.vertical, 8)
+                    .background(HGColor.appBackground)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            withAnimation(.easeOut(duration: 0.2)) { isKeyboardVisible = true }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(.easeOut(duration: 0.2)) { isKeyboardVisible = false }
         }
         .toolbar(.hidden, for: .navigationBar)
         .dismissKeyboardOnBackgroundTap()

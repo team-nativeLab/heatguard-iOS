@@ -13,6 +13,7 @@ enum HGTextFieldInputType {
     case newPassword
     case decimal
     case number
+    case phone
 
     var keyboardType: UIKeyboardType {
         switch self {
@@ -21,12 +22,13 @@ enum HGTextFieldInputType {
         case .currentPassword, .newPassword: .default
         case .decimal: .decimalPad
         case .number: .numberPad
+        case .phone: .phonePad
         }
     }
 
     var textContentType: UITextContentType? {
         switch self {
-        case .standard, .decimal, .number: nil
+        case .standard, .decimal, .number, .phone: nil
         case .email: .emailAddress
         case .currentPassword: .password
         case .newPassword: .newPassword
@@ -35,14 +37,14 @@ enum HGTextFieldInputType {
 
     var autocapitalization: TextInputAutocapitalization? {
         switch self {
-        case .standard, .decimal, .number: nil
+        case .standard, .decimal, .number, .phone: nil
         case .email: .never
         case .currentPassword, .newPassword: .never
         }
     }
 
     var disablesAutocorrection: Bool {
-        self == .email || self == .currentPassword || self == .newPassword
+        self == .email || self == .currentPassword || self == .newPassword || self == .phone
     }
 }
 

@@ -75,7 +75,12 @@ struct AppAccountFlowView: View {
                             }
                             .font(HGFont.semiBold(14))
                             .disabled(busy)
-                            HGTextField(title: "이메일 인증 코드", placeholder: "6자리 코드", text: $verificationCode)
+                            HGTextField(
+                                title: "이메일 인증 코드",
+                                placeholder: "6자리 코드",
+                                text: $verificationCode,
+                                inputType: .number
+                            )
                         }
                     }
                     HGTextField(
