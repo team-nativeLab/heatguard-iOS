@@ -137,7 +137,12 @@ struct AppAccountFlowView: View {
 
     private var siteList: some View {
         VStack(spacing: 0) {
-            flowHeader(title: "내 현장 목록", backgroundColor: HGColor.appBackground)
+            flowHeader(
+                title: "내 현장 목록",
+                backgroundColor: HGColor.appBackground,
+                height: 44,
+                topInset: 10
+            )
             ScrollView {
                 if sites.isEmpty {
                     ContentUnavailableView(
@@ -152,8 +157,8 @@ struct AppAccountFlowView: View {
                             siteCard(site)
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 32)
+                    .padding(.horizontal, 24)
+                    .padding(.top, 38)
                     .padding(.bottom, 24)
                 }
             }
@@ -172,17 +177,17 @@ struct AppAccountFlowView: View {
                 }
                 .foregroundStyle(HGColor.primary)
                 .frame(maxWidth: .infinity)
-                .frame(height: 72)
-                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 18))
+                .frame(height: 54)
+                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 14))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 18)
+                    RoundedRectangle(cornerRadius: 14)
                         .stroke(HGColor.primary, lineWidth: 1.5)
                 }
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 24)
             .padding(.top, 12)
-            .padding(.bottom, 16)
+            .padding(.bottom, 24)
         }
         .background(HGColor.appBackground.ignoresSafeArea())
     }
@@ -192,7 +197,7 @@ struct AppAccountFlowView: View {
         return Button {
             Task { await select(site) }
         } label: {
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 ZStack {
                     if isSelected {
                         Circle()
@@ -202,10 +207,10 @@ struct AppAccountFlowView: View {
                             .foregroundStyle(.white)
                     }
                 }
-                .frame(width: 46, height: 46)
+                .frame(width: 32, height: 32)
 
                 Text(site.siteName)
-                    .font(HGFont.semiBold(17, relativeTo: .headline))
+                    .font(HGFont.semiBold(16, relativeTo: .headline))
                     .foregroundStyle(isSelected ? HGColor.primaryText : HGColor.photoSelectionText)
                     .lineLimit(1)
 
@@ -214,22 +219,15 @@ struct AppAccountFlowView: View {
                 Text(isSelected ? "선택됨" : "선택 안됨")
                     .font(HGFont.semiBold(13, relativeTo: .subheadline))
                     .foregroundStyle(isSelected ? HGColor.primary : HGColor.photoSelectionText)
-                    .padding(.horizontal, isSelected ? 0 : 14)
-                    .padding(.vertical, isSelected ? 0 : 8)
-                    .background {
-                        if !isSelected {
-                            Capsule().fill(HGColor.menuDivider)
-                        }
-                    }
             }
-            .padding(.horizontal, 24)
-            .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
+            .padding(.horizontal, 18)
+            .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
             .background(
                 isSelected ? HGColor.photoSelectionBackground : HGColor.readOnlyField,
-                in: RoundedRectangle(cornerRadius: 18)
+                in: RoundedRectangle(cornerRadius: 14)
             )
             .overlay {
-                RoundedRectangle(cornerRadius: 18)
+                RoundedRectangle(cornerRadius: 14)
                     .stroke(isSelected ? HGColor.primary : HGColor.homeTimelineBorder, lineWidth: isSelected ? 1.5 : 1)
             }
         }
@@ -244,7 +242,12 @@ struct AppAccountFlowView: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private func flowHeader(title: String, backgroundColor: Color = HGColor.surface) -> some View {
+    private func flowHeader(
+        title: String,
+        backgroundColor: Color = HGColor.surface,
+        height: CGFloat = 48,
+        topInset: CGFloat = 0
+    ) -> some View {
         ZStack {
             Text(title)
                 .font(HGFont.semiBold(18, relativeTo: .headline))
@@ -260,8 +263,9 @@ struct AppAccountFlowView: View {
                 Spacer()
             }
         }
-        .frame(height: 48)
-        .padding(.horizontal, 12)
+        .frame(height: height)
+        .padding(.horizontal, 14)
+        .padding(.top, topInset)
         .background(backgroundColor)
     }
 
