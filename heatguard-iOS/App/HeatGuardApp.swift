@@ -63,7 +63,7 @@ struct HeatGuardApp: App {
                 onLogout: { Task { await logoutAppAccount() } }
             )
         } else if isAuthenticated {
-            HomeView(onSessionEnded: { isAuthenticated = false })
+            HomeView(onSessionEnded: handleTeamSessionEnded)
         } else {
             LoginView(
                 onAuthenticated: { _ in isAuthenticated = true },
@@ -133,10 +133,16 @@ struct HeatGuardApp: App {
 
     @MainActor
     private func logoutAppAccount() async {
-        await HGAppSiteLinkingService().logout()
         UserDefaults.standard.removeObject(forKey: "selected-app-site-id")
         selectedAppSite = nil
         showsAppAccountFlow = false
+        await HGAppSiteLinkingService().logout()
+    }
+
+    @MainActor
+    private func handleTeamSessionEnded() {
+        isAuthenticated = false
+        Task { await logoutAppAccount() }
     }
 
     @MainActor
