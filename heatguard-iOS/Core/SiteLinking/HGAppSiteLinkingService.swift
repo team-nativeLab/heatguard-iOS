@@ -51,6 +51,13 @@ struct HGAppSiteLinkingService {
         try? await client.sendVoid(method: "POST", path: HGAPIPath.appLogout, requiresAuthentication: true)
     }
 
+    func expireSession(matching token: String) -> Bool {
+        guard (try? tokenStore.load()) == token else { return false }
+        try? tokenStore.clear()
+        UserDefaults.standard.removeObject(forKey: "selected-app-site-id")
+        return true
+    }
+
     func claim(token: String, managerPhone: String) async throws -> HGAppSite {
         let normalizedPhone = managerPhone.filter(\.isNumber)
         let nationalPhone: String
@@ -89,6 +96,28 @@ struct HGAppSiteLinkingService {
     func unlink(siteID: String) async throws {
         try await client.sendVoid(method: "DELETE", path: HGAPIPath.appSiteUnlink(id: siteID), requiresAuthentication: true)
     }
+
+    func dashboard(siteID: String) async throws -> HGLinkedSiteDashboard {
+        try await client.get(path: "/api/v1/site/dashboard", requiresAuthentication: true,
+                             headers: ["X-Site-Id": siteID])
+    }
+}
+
+struct HGLinkedSiteDashboard: Decodable {
+    struct Summary: Decodable { let todayRecordCount: Int; let activeEmergencyCount: Int }
+    struct Weather: Decodable { let temperature: Double?; let humidity: Double?; let apparentTemperature: Double? }
+    struct Record: Decodable, Identifiable {
+        let recordId: String
+        let type: String
+        let measuredAt: String?
+        let workplace: String?
+        let teamName: String?
+        var id: String { recordId }
+    }
+    let summary: Summary
+    let weather: Weather?
+    let heatLevel: Int
+    let recentRecords: [Record]
 }
 
 struct HGAppSite: Decodable, Identifiable, Equatable {

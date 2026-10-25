@@ -53,12 +53,14 @@ struct HGAPIClient {
     func get<Response: Decodable>(
         path: String,
         requiresAuthentication: Bool = false,
-        queryItems: [URLQueryItem] = []
+        queryItems: [URLQueryItem] = [],
+        headers: [String: String] = [:]
     ) async throws -> Response {
         try await request(
             method: "GET",
             path: path,
             requiresAuthentication: requiresAuthentication,
+            headers: headers,
             queryItems: queryItems
         )
     }

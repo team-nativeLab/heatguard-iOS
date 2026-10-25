@@ -3,6 +3,7 @@ import SwiftUI
 struct AppSitePhoneEntryView: View {
     let onSubmit: (String) -> Void
     var onBack: (() -> Void)?
+    var busy = false
 
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isPhoneFieldFocused: Bool
@@ -50,7 +51,7 @@ struct AppSitePhoneEntryView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 24)
 
-            HGPrimaryButton(title: "연동하기", isEnabled: isValidPhoneNumber) {
+            HGPrimaryButton(title: busy ? "연동 중..." : "연동하기", isEnabled: isValidPhoneNumber && !busy) {
                 isPhoneFieldFocused = false
                 onSubmit(digits)
             }
@@ -59,6 +60,7 @@ struct AppSitePhoneEntryView: View {
         }
         .dismissKeyboardOnBackgroundTap()
         .background(HGColor.surface.ignoresSafeArea())
+        .disabled(busy)
         .toolbar(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden()
     }

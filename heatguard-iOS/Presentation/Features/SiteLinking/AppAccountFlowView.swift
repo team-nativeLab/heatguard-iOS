@@ -11,7 +11,11 @@ struct AppAccountFlowView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var verificationCode = ""
-    @State private var phoneNumber = ""
+    @State private var additionalLinkToken: String?
+    @State private var linkURL = ""
+    @State private var openedSite: HGAppSite?
+    @State private var removingSite: HGAppSite?
+    @Environment(\.scenePhase) private var scenePhase
     @State private var sites: [HGAppSite] = []
     @State private var selectedSiteID: String?
     @State private var busy = false
@@ -22,18 +26,44 @@ struct AppAccountFlowView: View {
         Group {
             if !isAuthenticated {
                 accessForm
-            } else if let linkToken, !hasClaimedLink {
+            } else if let linkToken = additionalLinkToken ?? linkToken, !hasClaimedLink {
                 AppSitePhoneEntryView(
                     onSubmit: { phone in
                         Task { await claimLink(token: linkToken, phone: phone) }
                     },
-                    onBack: { hasClaimedLink = true }
+                    onBack: { hasClaimedLink = true; Task { await loadSites() } },
+                    busy: busy
                 )
             } else {
                 siteList
             }
         }
         .task { await restore() }
+        .onReceive(NotificationCenter.default.publisher(for: .hgSessionExpired)) { notification in
+            guard let token = notification.object as? String, service.expireSession(matching: token) else { return }
+            isAuthenticated = false
+            sites = []
+            selectedSiteID = nil
+            openedSite = nil
+        }
+        .onChange(of: linkToken) { _, _ in
+            additionalLinkToken = nil
+            hasClaimedLink = false
+            openedSite = nil
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active && isAuthenticated { Task { await loadSites() } }
+        }
+        .sheet(item: $openedSite, onDismiss: { Task { await loadSites() } }, content: { site in
+            NavigationStack { AppLinkedSiteDashboardView(site: site) }
+        })
+        .confirmationDialog("이 현장의 연동을 해제할까요?", isPresented: Binding(
+            get: { removingSite != nil }, set: { if !$0 { removingSite = nil } }
+        )) {
+            if let site = removingSite {
+                Button("연동 해제", role: .destructive) { Task { await unlink(site) } }
+            }
+        } message: { Text("다른 현장의 연동은 유지됩니다.") }
         .alert(
             error?.title ?? "현장 연동",
             isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
@@ -127,14 +157,14 @@ struct AppAccountFlowView: View {
                             }
                         }
                         Spacer()
-                        Button(selectedSiteID == site.id ? "선택됨" : "선택") {
+                        Button(selectedSiteID == site.id ? "현장 열기" : "선택") {
                             Task { await select(site) }
                         }
                         .font(HGFont.medium(12))
                         .foregroundStyle(HGColor.primary)
                         Menu {
                             Button("현장 연동 해제", role: .destructive) {
-                                Task { await unlink(site) }
+                                removingSite = site
                             }
                         } label: {
                             Image(systemName: "ellipsis")
@@ -149,6 +179,14 @@ struct AppAccountFlowView: View {
                 .background(HGColor.appBackground)
             }
             Spacer(minLength: 8)
+            VStack(spacing: 8) {
+                TextField("관리자가 전달한 연동 링크", text: $linkURL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .textFieldStyle(.roundedBorder)
+                Button("새로운 현장 연동하기") { openAdditionalLink() }
+                    .disabled(busy || linkURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }.padding(.horizontal, 24)
             Button("로그아웃") {
                 Task { await logout() }
             }
@@ -157,6 +195,7 @@ struct AppAccountFlowView: View {
             .padding(.bottom, 16)
         }
         .background(HGColor.appBackground.ignoresSafeArea())
+        .disabled(busy)
         .refreshable { await loadSites() }
     }
 
@@ -223,15 +262,16 @@ struct AppAccountFlowView: View {
 
     @MainActor
     private func claimLink(token: String, phone: String) async {
+        guard !busy else { return }
         busy = true
         defer { busy = false }
         do {
             let linkedSite = try await service.claim(token: token, managerPhone: phone)
-            sites = try await service.fetchSites()
             selectedSiteID = linkedSite.siteID
             UserDefaults.standard.set(linkedSite.siteID, forKey: "selected-app-site-id")
             hasClaimedLink = true
             notice = "\(linkedSite.siteName) 현장이 연동됐어요."
+            await loadSites()
         } catch {
             self.error = HGErrorPresentation(error: error)
         }
@@ -241,6 +281,7 @@ struct AppAccountFlowView: View {
     private func loadSites() async {
         do {
             sites = try await service.fetchSites()
+            if let openedSite, !sites.contains(where: { $0.id == openedSite.id }) { self.openedSite = nil }
             selectedSiteID = UserDefaults.standard.string(forKey: "selected-app-site-id")
             if let selectedSiteID, !sites.contains(where: { $0.id == selectedSiteID }) {
                 self.selectedSiteID = nil
@@ -253,10 +294,14 @@ struct AppAccountFlowView: View {
 
     @MainActor
     private func select(_ site: HGAppSite) async {
+        guard !busy else { return }
+        busy = true
+        defer { busy = false }
         do {
             _ = try await service.select(siteID: site.id)
             selectedSiteID = site.id
             UserDefaults.standard.set(site.id, forKey: "selected-app-site-id")
+            openedSite = site
         } catch {
             self.error = HGErrorPresentation(error: error)
         }
@@ -264,6 +309,9 @@ struct AppAccountFlowView: View {
 
     @MainActor
     private func unlink(_ site: HGAppSite) async {
+        guard !busy else { return }
+        busy = true
+        defer { busy = false; removingSite = nil }
         do {
             try await service.unlink(siteID: site.id)
             if selectedSiteID == site.id {
@@ -281,5 +329,26 @@ struct AppAccountFlowView: View {
         await service.logout()
         isAuthenticated = false
         sites = []
+        selectedSiteID = nil
+        openedSite = nil
+        UserDefaults.standard.removeObject(forKey: "selected-app-site-id")
+    }
+
+    private func openAdditionalLink() {
+        guard let url = URL(string: linkURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
+        let token: String?
+        if url.scheme == "heatguard", url.host == "link" {
+            token = components.queryItems?.first(where: { $0.name == "token" })?.value
+        } else if url.scheme == "https", url.path.hasPrefix("/api/v1/app/links/") {
+            token = url.lastPathComponent
+        } else { token = nil }
+        guard let token, !token.isEmpty else {
+            notice = "관리자가 전달한 현장 연동 링크를 입력해주세요."
+            return
+        }
+        additionalLinkToken = token
+        hasClaimedLink = false
+        linkURL = ""
     }
 }
