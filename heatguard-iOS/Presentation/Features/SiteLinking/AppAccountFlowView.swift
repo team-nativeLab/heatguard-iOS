@@ -152,7 +152,7 @@ struct AppAccountFlowView: View {
                     )
                     .padding(.top, 72)
                 } else {
-                    LazyVStack(spacing: 12) {
+                    LazyVStack(spacing: 10) {
                         ForEach(sites) { site in
                             siteCard(site)
                         }

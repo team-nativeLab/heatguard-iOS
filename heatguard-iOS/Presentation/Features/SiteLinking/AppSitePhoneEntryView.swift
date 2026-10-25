@@ -22,40 +22,67 @@ struct AppSitePhoneEntryView: View {
                 .padding(.top, 8)
 
             VStack(alignment: .leading, spacing: 0) {
-                Text("현장 연동 인증")
-                    .font(HGFont.bold(25, relativeTo: .title2))
+                Text("휴대폰 번호를\n입력해주세요")
+                    .font(HGFont.bold(26, relativeTo: .title2))
                     .foregroundStyle(HGColor.primaryText)
-                    .padding(.top, 48)
+                    .lineSpacing(0)
 
-                Text("현장 관리자에게 등록된 전화번호를 입력해주세요.")
-                    .font(HGFont.regular(15, relativeTo: .subheadline))
+                Text("관리자와 합의한 전화번호로 인증해주세요.")
+                    .font(HGFont.regular(14, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.secondaryText)
                     .padding(.top, 10)
 
-                phoneField
-                    .padding(.top, 32)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("휴대폰 번호")
+                        .font(HGFont.bold(13, relativeTo: .caption))
+                        .foregroundStyle(HGColor.primaryText)
+
+                    phoneField
+                }
+                .padding(.top, 36)
 
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "lock.shield")
                         .font(.system(size: 14, weight: .medium))
-                    Text("전화번호는 본인 확인에만 사용되고 안전하게 보관돼요.")
+                    Text("번호는 본인 확인에만 사용되고 안전하게 보관돼요")
                         .font(HGFont.regular(12, relativeTo: .caption))
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .foregroundStyle(HGColor.secondaryText)
-                .padding(.top, 14)
+                .foregroundStyle(Color(red: 156 / 255, green: 163 / 255, blue: 175 / 255))
+                .padding(.top, 10)
 
                 Spacer(minLength: 24)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 24)
+            .padding(.top, 26)
 
-            HGPrimaryButton(title: "연동하기", isEnabled: isValidPhoneNumber) {
+            Button {
                 isPhoneFieldFocused = false
                 onSubmit(digits)
+            } label: {
+                Text("연동하기")
+                    .font(HGFont.bold(16, relativeTo: .body))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 59 / 255, green: 140 / 255, blue: 245 / 255),
+                                Color(red: 31 / 255, green: 111 / 255, blue: 224 / 255)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        in: RoundedRectangle(cornerRadius: 16)
+                    )
+                    .shadow(color: HGColor.primary.opacity(0.28), radius: 10, y: 8)
             }
+            .disabled(!isValidPhoneNumber)
+            .opacity(isValidPhoneNumber ? 1 : 0.55)
             .padding(.horizontal, 24)
-            .padding(.bottom, 12)
+            .padding(.bottom, 6)
         }
         .dismissKeyboardOnBackgroundTap()
         .background(HGColor.surface.ignoresSafeArea())
@@ -65,10 +92,6 @@ struct AppSitePhoneEntryView: View {
 
     private var header: some View {
         ZStack {
-            Text("현장 연동")
-                .font(HGFont.semiBold(18, relativeTo: .headline))
-                .foregroundStyle(HGColor.primaryText)
-
             HStack {
                 Button {
                     if let onBack { onBack() } else { dismiss() }
@@ -92,18 +115,19 @@ struct AppSitePhoneEntryView: View {
     private var phoneField: some View {
         HStack(spacing: 12) {
             Text("+82")
-                .font(HGFont.medium(16, relativeTo: .body))
-                .foregroundStyle(HGColor.primaryText)
+                .font(HGFont.medium(15, relativeTo: .body))
+                .foregroundStyle(HGColor.secondaryText)
 
             Rectangle()
-                .fill(HGColor.inputBorder)
-                .frame(width: 1, height: 24)
+                .fill(Color(red: 232 / 255, green: 235 / 255, blue: 245 / 255))
+                .frame(width: 1, height: 18)
 
             TextField("휴대폰 번호", text: $phoneNumber)
-                .font(HGFont.regular(16, relativeTo: .body))
+                .font(HGFont.bold(17, relativeTo: .body))
                 .keyboardType(.phonePad)
                 .textContentType(.telephoneNumber)
                 .focused($isPhoneFieldFocused)
+                .tracking(0.34)
                 .onChange(of: phoneNumber) { _, value in
                     let normalized = String(value.filter { $0.isNumber || $0 == "-" }.prefix(13))
                     if normalized != value { phoneNumber = normalized }
@@ -118,13 +142,15 @@ struct AppSitePhoneEntryView: View {
                 .accessibilityLabel("전화번호 지우기")
             }
         }
-        .padding(.horizontal, 16)
-        .frame(height: 56)
-        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 18)
+        .frame(height: 58)
+        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
         .overlay {
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(isPhoneFieldFocused ? HGColor.primary : HGColor.inputBorder, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(isPhoneFieldFocused ? HGColor.primary : HGColor.inputBorder, lineWidth: 1.5)
         }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: isPhoneFieldFocused ? HGColor.primary.opacity(0.12) : .clear, radius: 4)
     }
 }
 
