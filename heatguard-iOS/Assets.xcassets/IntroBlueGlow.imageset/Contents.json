@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "intro-blue-glow.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

@@ -6,6 +6,9 @@
 import SwiftUI
 
 enum HGColor {
+    static let introBackgroundEnd = Color(red: 238 / 255, green: 244 / 255, blue: 1)
+    static let introTitle = Color(red: 17 / 255, green: 24 / 255, blue: 39 / 255)
+    static let introSubtitle = Color(red: 107 / 255, green: 114 / 255, blue: 128 / 255)
     static let appBackground = Color(red: 246 / 255, green: 249 / 255, blue: 252 / 255)
     static let surface = Color.white
     static let fieldBackground = Color(red: 247 / 255, green: 250 / 255, blue: 255 / 255)
