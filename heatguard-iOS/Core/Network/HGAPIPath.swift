@@ -7,6 +7,7 @@ enum HGAPIPath {
     static let appLogout = "/api/v1/auth/app/logout"
     static let appMe = "/api/v1/auth/app/me"
     static let appSites = "/api/v1/app/sites"
+    static let siteDashboard = "/api/v1/site/dashboard"
     static let appLinkClaim = "/api/v1/app/links/claim"
     static let teamLogin = "/api/v1/auth/team/login"
     static let teamMe = "/api/v1/auth/team/me"

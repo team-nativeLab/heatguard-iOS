@@ -12,6 +12,7 @@ struct HeatGuardApp: App {
     @State private var isRestoringSession = true
     @State private var isAuthenticated = false
     @State private var showsAppAccountFlow = false
+    @State private var selectedAppSite: HGAppSite?
     @State private var pendingLinkToken: String?
 
     var body: some Scene {
@@ -21,10 +22,7 @@ struct HeatGuardApp: App {
                 .task { await restoreSession() }
                 .onOpenURL(perform: handleIncomingURL)
                 .onReceive(NotificationCenter.default.publisher(for: .hgSessionExpired)) { notification in
-                    guard let expiredToken = notification.object as? String,
-                          (try? HGAuthTokenStore.shared.load()) == expiredToken else { return }
-                    HGAuthenticationService().endLocalSession(clearDraft: false)
-                    isAuthenticated = false
+                    handleSessionExpired(notification.object as? String)
                 }
         }
     }
@@ -41,9 +39,22 @@ struct HeatGuardApp: App {
                         showsAppAccountFlow = false
                         pendingLinkToken = nil
                     },
+                    onSiteSelected: { site in
+                        selectedAppSite = site
+                        showsAppAccountFlow = false
+                    },
+                    onSiteUnlinked: { siteID in
+                        if selectedAppSite?.id == siteID { selectedAppSite = nil }
+                    },
                     onLinkClaimed: { pendingLinkToken = nil }
                 )
             }
+        } else if let selectedAppSite {
+            AppSiteDashboardView(
+                site: selectedAppSite,
+                onChangeSite: { showsAppAccountFlow = true },
+                onLogout: { Task { await logoutAppAccount() } }
+            )
         } else if isAuthenticated {
             HomeView(onSessionEnded: { isAuthenticated = false })
         } else {
@@ -58,9 +69,63 @@ struct HeatGuardApp: App {
     private func restoreSession() async {
         isAuthenticated = (try? await HGAuthenticationService().restoreSession()) != nil
         if !isAuthenticated && !showsAppAccountFlow {
-            showsAppAccountFlow = (try? await HGAppSiteLinkingService().restoreSession()) == true
+            let service = HGAppSiteLinkingService()
+            if (try? await service.restoreSession()) == true {
+                await restoreSelectedAppSite(using: service)
+            }
         }
         isRestoringSession = false
+    }
+
+    @MainActor
+    private func restoreSelectedAppSite(using service: HGAppSiteLinkingService) async {
+        let sites: [HGAppSite]
+        do {
+            sites = try await service.fetchSites()
+        } catch {
+            showsAppAccountFlow = true
+            return
+        }
+
+        let selectedID = UserDefaults.standard.string(forKey: "selected-app-site-id")
+        guard let selectedID, let site = sites.first(where: { $0.id == selectedID }) else {
+            if selectedID != nil { UserDefaults.standard.removeObject(forKey: "selected-app-site-id") }
+            showsAppAccountFlow = true
+            return
+        }
+
+        do {
+            _ = try await service.select(siteID: selectedID)
+            selectedAppSite = site
+        } catch let error as HGAPIError {
+            if case let .server(_, statusCode, _) = error, [403, 404].contains(statusCode) {
+                UserDefaults.standard.removeObject(forKey: "selected-app-site-id")
+                showsAppAccountFlow = true
+            } else {
+                selectedAppSite = site
+            }
+        } catch {
+            selectedAppSite = site
+        }
+    }
+
+    @MainActor
+    private func logoutAppAccount() async {
+        await HGAppSiteLinkingService().logout()
+        UserDefaults.standard.removeObject(forKey: "selected-app-site-id")
+        selectedAppSite = nil
+        showsAppAccountFlow = false
+    }
+
+    @MainActor
+    private func handleSessionExpired(_ expiredToken: String?) {
+        guard let expiredToken else { return }
+        if (try? HGAuthTokenStore.shared.load()) == expiredToken {
+            HGAuthenticationService().endLocalSession(clearDraft: false)
+            isAuthenticated = false
+        } else if (try? HGAuthTokenStore(account: "app-session-access-token").load()) == expiredToken {
+            Task { await logoutAppAccount() }
+        }
     }
 
     private func handleIncomingURL(_ url: URL) {

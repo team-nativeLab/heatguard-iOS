@@ -3,6 +3,8 @@ import SwiftUI
 struct AppAccountFlowView: View {
     let linkToken: String?
     let onClose: () -> Void
+    var onSiteSelected: (HGAppSite) -> Void = { _ in }
+    var onSiteUnlinked: (String) -> Void = { _ in }
     var onLinkClaimed: () -> Void = {}
 
     private let service = HGAppSiteLinkingService()
@@ -318,6 +320,7 @@ struct AppAccountFlowView: View {
             _ = try await service.select(siteID: site.id)
             selectedSiteID = site.id
             UserDefaults.standard.set(site.id, forKey: "selected-app-site-id")
+            onSiteSelected(site)
         } catch {
             self.error = HGErrorPresentation(error: error)
         }
@@ -327,6 +330,7 @@ struct AppAccountFlowView: View {
     private func unlink(_ site: HGAppSite) async {
         do {
             try await service.unlink(siteID: site.id)
+            onSiteUnlinked(site.id)
             if selectedSiteID == site.id {
                 selectedSiteID = nil
                 UserDefaults.standard.removeObject(forKey: "selected-app-site-id")
