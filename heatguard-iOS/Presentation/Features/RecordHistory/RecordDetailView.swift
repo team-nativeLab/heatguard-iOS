@@ -132,9 +132,13 @@ struct RecordDetailView: View {
                         Group {
                             if let imageURL = URL(string: url) {
                                 AsyncImage(url: imageURL) { phase in
-                                    if let image = try? phase.get() { image.resizable().scaledToFill() }
-                                    else if case .failure = phase { photoPlaceholder }
-                                    else { ProgressView() }
+                                    if let image = try? phase.get() {
+                                        image.resizable().scaledToFill()
+                                    } else if case .failure = phase {
+                                        photoPlaceholder
+                                    } else {
+                                        ProgressView()
+                                    }
                                 }
                             } else {
                                 photoPlaceholder
@@ -165,15 +169,23 @@ struct RecordDetailView: View {
     @ViewBuilder private func memoCard(_ record: HGRecordDetail) -> some View {
         if let memo = record.memo, !memo.isEmpty {
             HGCard { VStack(alignment: .leading, spacing: 8) {
-                Text("메모").font(HGFont.bold(15, relativeTo: .subheadline)); Text(memo).font(HGFont.regular(13, relativeTo: .subheadline)).foregroundStyle(HGColor.secondaryText)
+                Text("메모")
+                    .font(HGFont.bold(15, relativeTo: .subheadline))
+                Text(memo)
+                    .font(HGFont.regular(13, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.secondaryText)
             }}
         }
     }
 
     @MainActor private func loadRecord() async {
         isLoading = true; defer { isLoading = false }
-        do { record = try await HGRecordHistoryService().fetchDetail(id: recordID); error = nil }
-        catch { self.error = HGErrorPresentation(error: error) }
+        do {
+            record = try await HGRecordHistoryService().fetchDetail(id: recordID)
+            error = nil
+        } catch {
+            self.error = HGErrorPresentation(error: error)
+        }
     }
     private var errorAlert: Binding<Bool> { Binding(get: { error != nil }, set: { if !$0 { error = nil } }) }
 }
@@ -197,7 +209,7 @@ private struct DetailMetric: View {
 private struct DetailInfoRow: View {
     let title: String
     let value: String
-    var type: HGRecordType? = nil
+    var type: HGRecordType?
 
     var body: some View {
         HStack {
@@ -222,7 +234,12 @@ private struct DetailInfoRow: View {
         .frame(minHeight: 45)
     }
 }
-private extension AsyncImagePhase { func get() throws -> Image { if case let .success(image) = self { return image }; throw URLError(.cannotDecodeContentData) } }
+private extension AsyncImagePhase {
+    func get() throws -> Image {
+        if case let .success(image) = self { return image }
+        throw URLError(.cannotDecodeContentData)
+    }
+}
 private extension HGRecordDetail {
     var formattedMeasuredAt: String {
         HGDateFormatting.recordTimestamp(measuredAt)

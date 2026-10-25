@@ -16,7 +16,11 @@ struct HGChecklistService {
             path: HGAPIPath.teamChecklist,
             requiresAuthentication: true
         )
-        return HGChecklistSummary(times: home.checkTimes ?? [], checkedCount: checklist.items.filter(\.checked).count, totalCount: checklist.items.count)
+        return HGChecklistSummary(
+            times: home.checkTimes ?? [],
+            checkedCount: checklist.items.filter(\.checked).count,
+            totalCount: checklist.items.count
+        )
     }
 
     func fetchItems() async throws -> [HGChecklistItem] {

@@ -201,7 +201,6 @@ struct RestPhotoView: View {
         return calendar.date(from: components) ?? date
     }
 
-
 }
 
 #Preview { NavigationStack { RestPhotoView() } }

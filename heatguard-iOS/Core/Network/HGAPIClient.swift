@@ -67,8 +67,19 @@ struct HGAPIClient {
         try await sendVoid(method: method, path: path, body: nil, requiresAuthentication: requiresAuthentication)
     }
 
-    func sendVoid<Request: Encodable>(_ requestBody: Request, method: String, path: String, requiresAuthentication: Bool = false) async throws {
-        try await sendVoid(method: method, path: path, body: try JSONEncoder().encode(requestBody), requiresAuthentication: requiresAuthentication)
+    func sendVoid<Request: Encodable>(
+        _ requestBody: Request,
+        method: String,
+        path: String,
+        requiresAuthentication: Bool = false
+    ) async throws {
+        let body = try JSONEncoder().encode(requestBody)
+        try await sendVoid(
+            method: method,
+            path: path,
+            body: body,
+            requiresAuthentication: requiresAuthentication
+        )
     }
 
     private func sendVoid(method: String, path: String, body: Data?, requiresAuthentication: Bool) async throws {

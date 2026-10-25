@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct heatguard_iOSApp: App {
+struct HeatGuardApp: App {
     @State private var isRestoringSession = true
     @State private var isAuthenticated = false
     @State private var showsAppAccountFlow = false

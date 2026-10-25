@@ -36,11 +36,20 @@ final class NotificationRoutingTests: XCTestCase {
         XCTAssertNil(notification(type: .recordCreated).relatedEmergencyCall(HGEmergencyCall(id: "target", status: .active)))
     }
     func testMissingResourceDecodesIntoFallback() throws {
-        let value = try JSONDecoder().decode(HGNotification.self, from: Data(#"{"notificationId":"n","title":"알림","createdAt":"2026-10-04T00:00:00Z","type":"RECORD_CREATED","category":"RECORD","read":false}"#.utf8))
+        let payload = #"""
+        {"notificationId":"n","title":"알림","createdAt":"2026-10-04T00:00:00Z","type":"RECORD_CREATED","category":"RECORD","read":false}
+        """#
+        let value = try JSONDecoder().decode(HGNotification.self, from: Data(payload.utf8))
         XCTAssertEqual(value.destination, .detail)
     }
     func testAllWireTypesDecode() throws {
-        for (raw, value) in [("RECORD_CREATED", HGNotificationType.recordCreated), ("INQUIRY_ANSWERED", .inquiryAnswered), ("EMERGENCY_ACKNOWLEDGED", .emergencyAcknowledged), ("FUTURE_EVENT", .unknown("FUTURE_EVENT"))] {
+        let wireTypes: [(String, HGNotificationType)] = [
+            ("RECORD_CREATED", .recordCreated),
+            ("INQUIRY_ANSWERED", .inquiryAnswered),
+            ("EMERGENCY_ACKNOWLEDGED", .emergencyAcknowledged),
+            ("FUTURE_EVENT", .unknown("FUTURE_EVENT"))
+        ]
+        for (raw, value) in wireTypes {
             XCTAssertEqual(try JSONDecoder().decode(HGNotificationType.self, from: JSONEncoder().encode(raw)), value)
         }
     }
