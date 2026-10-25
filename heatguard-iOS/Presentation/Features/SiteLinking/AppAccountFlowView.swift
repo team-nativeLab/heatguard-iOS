@@ -8,6 +8,7 @@ struct AppAccountFlowView: View {
     var onLinkClaimed: () -> Void = {}
 
     private let service = HGAppSiteLinkingService()
+    @State private var isRestoringSession = true
     @State private var isAuthenticated = false
     @State private var hasClaimedLink = false
     @State private var isRegistering: Bool
@@ -40,7 +41,10 @@ struct AppAccountFlowView: View {
 
     var body: some View {
         Group {
-            if !isAuthenticated {
+            if isRestoringSession {
+                ProgressView()
+                    .tint(HGColor.primary)
+            } else if !isAuthenticated {
                 accessForm
             } else if let linkToken, !hasClaimedLink {
                 AppSitePhoneEntryView(
@@ -263,6 +267,8 @@ struct AppAccountFlowView: View {
 
     @MainActor
     private func restore() async {
+        defer { isRestoringSession = false }
+
         do {
             isAuthenticated = try await service.restoreSession()
             if isAuthenticated && linkToken == nil { await loadSites() }
