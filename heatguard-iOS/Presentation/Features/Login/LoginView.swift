@@ -25,6 +25,8 @@ struct LoginView: View {
 
     var body: some View {
         GeometryReader { geometry in
+            let horizontalInset = min(28, max(18, geometry.size.width * 0.06))
+
             HGFixedContent(keyboardAware: true) {
                 VStack(spacing: 0) {
                     Image("BrandIcon")
@@ -51,7 +53,7 @@ struct LoginView: View {
                         .padding(.top, 31)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, min(58, max(24, (geometry.size.width - 280) / 2)))
+                    .padding(.horizontal, horizontalInset)
                     .padding(.top, 34)
 
                     Spacer(minLength: 32)
@@ -63,7 +65,7 @@ struct LoginView: View {
                         cornerRadius: 14,
                         tint: HGColor.loginPrimary
                     ) { login() }
-                    .padding(.horizontal, min(40, max(20, (geometry.size.width - 280) / 2)))
+                    .padding(.horizontal, horizontalInset)
                     HStack(spacing: 6) {
                         Text("계정이 없으신가요?")
                             .foregroundStyle(HGColor.secondaryText)
