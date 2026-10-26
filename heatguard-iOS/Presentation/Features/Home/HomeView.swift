@@ -548,7 +548,6 @@ struct HomeView: View {
                 workplace: dashboard.workplace,
                 siteName: dashboard.siteName,
                 onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) },
-                onMenuTap: showMenuDrawer,
                 onNotificationsTap: showNotifications,
                 notificationCount: unreadNotificationCount
             )
@@ -562,7 +561,6 @@ struct HomeView: View {
                 initialTemperature: resumedDraft(for: .work)?.temperature,
                 initialHumidity: resumedDraft(for: .work)?.humidity,
                 weather: dashboard.weather,
-                onBack: removeCurrentRoute,
                 teamName: dashboard.teamName,
                 workplace: dashboard.workplace,
                 siteName: dashboard.siteName,
@@ -581,7 +579,6 @@ struct HomeView: View {
                 weather: dashboard.weather,
                 initialRestStartedAt: resumedDraft(for: .rest)?.restStartedAt,
                 initialRestEndedAt: resumedDraft(for: .rest)?.restEndedAt,
-                onBack: removeCurrentRoute,
                 teamName: dashboard.teamName,
                 workplace: dashboard.workplace,
                 siteName: dashboard.siteName,
@@ -604,7 +601,6 @@ struct HomeView: View {
                 onRetry: removeCurrentRoute,
                 onSave: showSaveSuccess,
                 onFailure: showSaveFailure,
-                onMenuTap: showMenuDrawer,
                 onNotificationsTap: showNotifications,
                 notificationCount: unreadNotificationCount
             )

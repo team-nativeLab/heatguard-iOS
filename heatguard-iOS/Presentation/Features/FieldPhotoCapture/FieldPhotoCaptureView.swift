@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct FieldPhotoCaptureView: View {
-    @Environment(\.dismiss) private var dismiss
     @State private var photos: [UIImage]
     @State private var isPhotoSelectorPresented = false
     @State private var isSaving = false
@@ -9,7 +8,6 @@ struct FieldPhotoCaptureView: View {
     let onSave: (HGRecordSaveResult) -> Void
     let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
     let onPhotoRequired: (HGRecordDraft) -> Void
-    let onMenuTap: () -> Void
     let onNotificationsTap: () -> Void
     let notificationCount: Int
 
@@ -19,7 +17,6 @@ struct FieldPhotoCaptureView: View {
         onFailure: @escaping (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void = { _, _, _ in },
         onPhotoRequired: @escaping (HGRecordDraft) -> Void = { _ in },
         initialPhotos: [UIImage] = [],
-        onMenuTap: @escaping () -> Void = {},
         onNotificationsTap: @escaping () -> Void = {},
         notificationCount: Int = 0
     ) {
@@ -27,51 +24,46 @@ struct FieldPhotoCaptureView: View {
         self.onSave = onSave
         self.onFailure = onFailure
         self.onPhotoRequired = onPhotoRequired
-        self.onMenuTap = onMenuTap
         self.onNotificationsTap = onNotificationsTap
         self.notificationCount = notificationCount
         _photos = State(initialValue: initialPhotos)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
+        HGFixedContent {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("현장 사진")
+                    .font(HGFont.bold(20, relativeTo: .title2))
+                    .foregroundStyle(HGColor.primaryText)
 
-            HGFixedContent {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("현장 사진")
-                        .font(HGFont.bold(20, relativeTo: .title2))
-                        .foregroundStyle(HGColor.primaryText)
+                Text("온도계 데이터를 입력하고 현장 사진을\n촬영해 주세요.")
+                    .font(HGFont.regular(14, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.primaryText)
+                    .padding(.top, 10)
 
-                    Text("온도계 데이터를 입력하고 현장 사진을\n촬영해 주세요.")
-                        .font(HGFont.regular(14, relativeTo: .subheadline))
-                        .foregroundStyle(HGColor.primaryText)
-                        .padding(.top, 10)
+                photoPreview(height: 290)
+                    .padding(.top, 35)
 
-                    photoPreview(height: 290)
-                        .padding(.top, 35)
+                Text("온도계 데이터 입력")
+                    .font(HGFont.bold(20, relativeTo: .title2))
+                    .foregroundStyle(HGColor.primaryText)
+                    .padding(.top, 28)
 
-                    Text("온도계 데이터 입력")
-                        .font(HGFont.bold(20, relativeTo: .title2))
-                        .foregroundStyle(HGColor.primaryText)
-                        .padding(.top, 28)
+                measurementCard
+                    .padding(.top, 11)
 
-                    measurementCard
-                        .padding(.top, 11)
+                Text("다시하기")
+                    .font(HGFont.bold(20, relativeTo: .title2))
+                    .foregroundStyle(HGColor.primaryText)
+                    .padding(.top, 17)
 
-                    Text("다시하기")
-                        .font(HGFont.bold(20, relativeTo: .title2))
-                        .foregroundStyle(HGColor.primaryText)
-                        .padding(.top, 17)
-
-                    photoSelector
-                        .padding(.top, 15)
-                }
-                .padding(.top, HGLayout.screenContentTopPadding)
+                photoSelector
+                    .padding(.top, 15)
             }
+            .padding(.top, HGLayout.screenContentTopPadding)
         }
         .padding(.horizontal, HGLayout.screenHorizontalPadding)
-        .padding(.top, HGLayout.screenTopPadding)
+        .padding(.top, 8)
         .background(HGColor.appBackground)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HGPrimaryButton(
@@ -86,16 +78,7 @@ struct FieldPhotoCaptureView: View {
                 .opacity(isPhotoSelectorPresented ? 0 : 1)
                 .allowsHitTesting(!isPhotoSelectorPresented)
         }
-        .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private var header: some View {
-        HGScreenHeader(
-            onMenuTap: { dismiss() },
-            leadingSystemImage: "chevron.left",
-            notificationCount: notificationCount,
-            onNotificationsTap: onNotificationsTap
-        )
+        .hgRouteNavigationHeader(notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
     }
 
     private func photoPreview(height: CGFloat) -> some View {

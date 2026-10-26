@@ -9,7 +9,6 @@ struct SaveBeforeConfirmationView: View {
     let onRetry: () -> Void
     let onSave: (HGRecordSaveResult) -> Void
     let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
-    let onMenuTap: () -> Void
     let onNotificationsTap: () -> Void
     let notificationCount: Int
 
@@ -18,7 +17,6 @@ struct SaveBeforeConfirmationView: View {
         onRetry: @escaping () -> Void = {},
         onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
         onFailure: @escaping (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void = { _, _, _ in },
-        onMenuTap: @escaping () -> Void = {},
         onNotificationsTap: @escaping () -> Void = {},
         notificationCount: Int = 0
     ) {
@@ -26,54 +24,49 @@ struct SaveBeforeConfirmationView: View {
         self.onRetry = onRetry
         self.onSave = onSave
         self.onFailure = onFailure
-        self.onMenuTap = onMenuTap
         self.onNotificationsTap = onNotificationsTap
         self.notificationCount = notificationCount
     }
 
     var body: some View {
 
-        VStack(spacing: 0) {
-            header
+        HGFixedContent {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("현장 사진")
+                    .font(HGFont.bold(20, relativeTo: .title2))
+                    .foregroundStyle(HGColor.primaryText)
 
-            HGFixedContent {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("현장 사진")
+                Text(photoInstruction)
+                    .font(HGFont.regular(14, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.primaryText)
+                    .padding(.top, 10)
+
+                missingPhotoNotice()
+                    .padding(.top, 35)
+
+                if draft.type == .thermometer {
+                    DisabledManualInputCard(
+                        temperature: draft.temperature.map { String(format: "%.1f", $0) } ?? "",
+                        humidity: draft.humidity.map { String(format: "%.0f", $0) } ?? ""
+                    )
+                    .padding(.top, 20)
+                }
+
+                Button(action: onRetry) {
+                    Text("다시하기")
                         .font(HGFont.bold(20, relativeTo: .title2))
                         .foregroundStyle(HGColor.primaryText)
-
-                    Text(photoInstruction)
-                        .font(HGFont.regular(14, relativeTo: .subheadline))
-                        .foregroundStyle(HGColor.primaryText)
-                        .padding(.top, 10)
-
-                    missingPhotoNotice()
-                        .padding(.top, 35)
-
-                    if draft.type == .thermometer {
-                        DisabledManualInputCard(
-                            temperature: draft.temperature.map { String(format: "%.1f", $0) } ?? "",
-                            humidity: draft.humidity.map { String(format: "%.0f", $0) } ?? ""
-                        )
-                        .padding(.top, 20)
-                    }
-
-                    Button(action: onRetry) {
-                        Text("다시하기")
-                            .font(HGFont.bold(20, relativeTo: .title2))
-                            .foregroundStyle(HGColor.primaryText)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, 17)
-
-                    photoSelector
-                        .padding(.top, 15)
                 }
-                .padding(.top, HGLayout.screenContentTopPadding)
+                .buttonStyle(.plain)
+                .padding(.top, 17)
+
+                photoSelector
+                    .padding(.top, 15)
             }
+            .padding(.top, HGLayout.screenContentTopPadding)
         }
         .padding(.horizontal, HGLayout.screenHorizontalPadding)
-        .padding(.top, HGLayout.screenTopPadding)
+        .padding(.top, 8)
         .frame(maxWidth: .infinity, alignment: .top)
         .background(HGColor.appBackground)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -89,11 +82,7 @@ struct SaveBeforeConfirmationView: View {
             .opacity(isPhotoSelectorPresented ? 0 : 1)
             .allowsHitTesting(!isPhotoSelectorPresented)
         }
-        .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private var header: some View {
-        HGScreenHeader(onMenuTap: onMenuTap, notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
+        .hgRouteNavigationHeader(notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
     }
 
     private func missingPhotoNotice() -> some View {
