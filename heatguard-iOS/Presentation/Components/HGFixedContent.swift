@@ -43,6 +43,11 @@ struct HGFixedContent<Content: View>: View {
                     }
                     .scrollIndicators(.hidden)
                     .scrollDismissesKeyboard(.interactively)
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        Color.clear
+                            .frame(height: 16)
+                            .allowsHitTesting(false)
+                    }
                 } else {
                     content(isCompact)
                         .frame(width: geometry.size.width / max(scale, 0.01))
