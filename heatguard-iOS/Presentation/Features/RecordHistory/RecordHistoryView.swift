@@ -13,7 +13,6 @@ struct RecordHistoryView: View {
     @State private var error: HGErrorPresentation?
     @State private var selectedFilter: RecordFilter = .all
     @State private var selectedPeriodEnd = Date.now
-    @State private var periodMode: RecordHistoryPeriodMode = .week
     @State private var showsPeriodPicker = false
 
     init(onRecordSelected: @escaping (HGRecordHistoryItem) -> Void = { _ in }, onCreateRecord: @escaping () -> Void = {}) {
@@ -29,7 +28,6 @@ struct RecordHistoryView: View {
                 List {
                     VStack(spacing: 0) {
                         periodSelector
-                        periodModeSelector.padding(.top, 12)
                         filterSelector.padding(.top, 14)
                         if !filteredRecords.isEmpty {
                             summaryCard.padding(.top, 14)
@@ -102,64 +100,67 @@ struct RecordHistoryView: View {
     }
 
     private var periodSelector: some View {
-        HStack(spacing: 10) {
-            Button { showsPeriodPicker = true } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "calendar")
-                        .foregroundStyle(HGColor.secondaryText)
-                    Text(selectedPeriodTitle)
-                        .font(HGFont.medium(14, relativeTo: .subheadline))
-                        .foregroundStyle(HGColor.primaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .layoutPriority(1)
-                    Image(systemName: "chevron.down")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(HGColor.secondaryText)
-                }
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint("기준 날짜를 선택합니다")
-
-            Spacer(minLength: 4)
-
-            Button("오늘") {
-                selectedPeriodEnd = .now
-            }
-            .font(HGFont.semiBold(13, relativeTo: .subheadline))
-            .foregroundStyle(HGColor.primary)
-            .frame(minWidth: 44, minHeight: 44)
-            .accessibilityHint("기록 기간을 오늘이 포함된 기간으로 이동합니다")
-        }
-        .padding(.leading, 20)
-        .padding(.trailing, 8)
-        .frame(height: 52)
-        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
-    }
-
-    private var periodModeSelector: some View {
-        HStack(spacing: 0) {
-            ForEach(RecordHistoryPeriodMode.allCases) { mode in
-                Button {
-                    periodMode = mode
-                } label: {
-                    Text(mode.title)
-                        .font(HGFont.medium(13, relativeTo: .subheadline))
-                        .foregroundStyle(periodMode == mode ? .white : HGColor.secondaryText)
-                        .frame(maxWidth: .infinity, minHeight: 36)
-                        .background {
-                            if periodMode == mode {
-                                Capsule().fill(HGColor.primary)
-                            }
-                        }
-                        .contentShape(Capsule())
+        VStack(spacing: 12) {
+            HStack(spacing: 6) {
+                Button { showsPeriodPicker = true } label: {
+                    HStack(spacing: 4) {
+                        Text(selectedMonthTitle)
+                            .font(HGFont.bold(16, relativeTo: .headline))
+                            .foregroundStyle(HGColor.primaryText)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(HGColor.secondaryText)
+                    }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityAddTraits(periodMode == mode ? .isSelected : [])
+                .accessibilityLabel("\(selectedMonthTitle) 달력 열기")
+
+                Spacer(minLength: 4)
+
+                Button("오늘") {
+                    selectedPeriodEnd = .now
+                }
+                .font(HGFont.medium(12, relativeTo: .caption))
+                .foregroundStyle(HGColor.primary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(HGColor.homeMetricIconBackground, in: Capsule())
+                .accessibilityHint("오늘 날짜를 선택합니다")
+            }
+
+            HStack(spacing: 0) {
+                ForEach(weekDates, id: \.self) { date in
+                    Button {
+                        selectedPeriodEnd = date
+                    } label: {
+                        VStack(spacing: 4) {
+                            Text(HGDateFormatting.string(from: date, format: "E"))
+                                .font(HGFont.regular(11, relativeTo: .caption2))
+                                .foregroundStyle(dateTextColor(for: date, isWeekday: true))
+                            Text(HGDateFormatting.string(from: date, format: "d"))
+                                .font(HGFont.medium(16, relativeTo: .body))
+                                .foregroundStyle(dateTextColor(for: date, isWeekday: false))
+                            Circle()
+                                .fill(isSelected(date) ? .white : HGColor.primary)
+                                .frame(width: 4, height: 4)
+                                .opacity(hasRecord(on: date) ? 1 : 0)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 62)
+                        .background(isSelected(date) ? HGColor.primary : .clear, in: RoundedRectangle(cornerRadius: 12))
+                        .contentShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isFuture(date))
+                    .accessibilityLabel(HGDateFormatting.string(from: date, format: "M월 d일 E"))
+                    .accessibilityValue(isSelected(date) ? "선택됨" : (hasRecord(on: date) ? "기록 있음" : ""))
+                }
             }
         }
-        .padding(4)
-        .background(HGColor.surface, in: Capsule())
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private var filterSelector: some View {
@@ -204,7 +205,7 @@ struct RecordHistoryView: View {
                 Image("RecordPhotoPlaceholder")
                     .resizable().frame(width: 36, height: 36)
                     .frame(width: 72, height: 72).background(HGColor.homeMetricIconBackground, in: Circle())
-                Text(hasMore ? "불러온 기록 중 해당 항목이 없어요" : "해당 기간에 \(selectedFilter.emptyDescription) 기록이 없어요")
+                Text(hasMore ? "불러온 기록 중 해당 항목이 없어요" : emptyMessage)
                     .font(HGFont.bold(16, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
                 Text(hasMore ? "더 보기를 눌러 이전 기록을 확인해 보세요" : "기간이나 유형을 바꾸거나 새 기록을 남겨보세요")
                     .font(HGFont.regular(13, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
@@ -245,12 +246,17 @@ struct RecordHistoryView: View {
             formatter.locale = HGDateFormatting.locale
             formatter.timeZone = HGDateFormatting.timeZone
             formatter.dateFormat = "M월 d일 (E)"
+            let items = grouped[date] ?? []
             return RecordDayGroup(
                 date: date,
-                label: date == .distantPast ? "날짜 정보 없음" : prefix + formatter.string(from: date),
-                items: grouped[date] ?? []
+                label: date == .distantPast ? "날짜 정보 없음" : "\(prefix)\(formatter.string(from: date)) · 기록 \(items.count)건",
+                items: items
             )
         }
+    }
+
+    private var emptyMessage: String {
+        selectedFilter == .all ? "선택한 날짜에 기록이 없어요" : "선택한 날짜에 \(selectedFilter.emptyDescription) 기록이 없어요"
     }
 
     private var filteredRecords: [HGRecordHistoryItem] {
@@ -258,35 +264,49 @@ struct RecordHistoryView: View {
     }
 
     private var periodRecords: [HGRecordHistoryItem] {
-        let calendar = HGDateFormatting.calendar
-        let intervalComponent: Calendar.Component = periodMode == .week ? .weekOfYear : .month
-        guard let interval = calendar.dateInterval(of: intervalComponent, for: selectedPeriodEnd) else {
-            return []
-        }
-
         return records.filter { record in
             guard let measuredAt = record.measuredAt.hgISO8601Date else { return false }
-            return measuredAt >= interval.start && measuredAt < interval.end
+            return historyCalendar.isDate(measuredAt, inSameDayAs: selectedPeriodEnd)
         }
     }
 
-    private var selectedPeriodTitle: String {
-        let calendar = HGDateFormatting.calendar
-        let formatter = DateFormatter()
-        formatter.locale = HGDateFormatting.locale
-        formatter.timeZone = HGDateFormatting.timeZone
-        formatter.dateFormat = "yyyy. MM. dd."
-        if periodMode == .month {
-            formatter.dateFormat = "yyyy년 M월"
-            return formatter.string(from: selectedPeriodEnd)
-        }
+    private var selectedMonthTitle: String {
+        HGDateFormatting.string(from: selectedPeriodEnd, format: "yyyy년 M월")
+    }
 
-        guard let interval = calendar.dateInterval(of: .weekOfYear, for: selectedPeriodEnd),
-              let lastDay = calendar.date(byAdding: .day, value: -1, to: interval.end) else {
-            return formatter.string(from: selectedPeriodEnd)
+    private var historyCalendar: Calendar {
+        var calendar = HGDateFormatting.calendar
+        calendar.firstWeekday = 2
+        return calendar
+    }
+
+    private var weekDates: [Date] {
+        guard let interval = historyCalendar.dateInterval(of: .weekOfYear, for: selectedPeriodEnd) else {
+            return []
         }
-        formatter.dateFormat = "M월 d일"
-        return "\(formatter.string(from: interval.start)) ~ \(formatter.string(from: lastDay))"
+        return (0..<7).compactMap { historyCalendar.date(byAdding: .day, value: $0, to: interval.start) }
+    }
+
+    private func isSelected(_ date: Date) -> Bool {
+        historyCalendar.isDate(date, inSameDayAs: selectedPeriodEnd)
+    }
+
+    private func isFuture(_ date: Date) -> Bool {
+        historyCalendar.startOfDay(for: date) > historyCalendar.startOfDay(for: .now)
+    }
+
+    private func hasRecord(on date: Date) -> Bool {
+        records.contains { record in
+            guard let measuredAt = record.measuredAt.hgISO8601Date else { return false }
+            return historyCalendar.isDate(measuredAt, inSameDayAs: date)
+        }
+    }
+
+    private func dateTextColor(for date: Date, isWeekday: Bool) -> Color {
+        if isSelected(date) { return .white }
+        if isFuture(date) { return HGColor.placeholder }
+        if isWeekday && historyCalendar.component(.weekday, from: date) == 1 { return HGColor.error }
+        return isWeekday ? HGColor.secondaryText : HGColor.primaryText
     }
 
     @MainActor private func loadRecords() async {
@@ -327,20 +347,6 @@ private struct RecordDayGroup {
     let date: Date
     let label: String
     let items: [HGRecordHistoryItem]
-}
-
-private enum RecordHistoryPeriodMode: String, CaseIterable, Identifiable {
-    case week
-    case month
-
-    var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .week: "주간"
-        case .month: "월간"
-        }
-    }
 }
 
 private enum RecordFilter: CaseIterable, Identifiable {
