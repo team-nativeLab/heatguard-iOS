@@ -235,6 +235,7 @@ struct HomeView: View {
 
     private var header: some View {
         HGScreenHeader(
+            title: "폭염가드",
             onMenuTap: showMenuDrawer,
             notificationCount: unreadNotificationCount,
             onNotificationsTap: showNotifications

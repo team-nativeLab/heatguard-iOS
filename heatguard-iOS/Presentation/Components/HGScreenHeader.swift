@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HGScreenHeader: View {
+    var title = "현장가드"
     var onMenuTap: () -> Void = {}
     var leadingSystemImage: String?
     var notificationCount: Int?
@@ -21,7 +22,7 @@ struct HGScreenHeader: View {
                 headerButton("menu", action: onMenuTap)
             }
             Spacer()
-            Text("현장가드")
+            Text(title)
                 .font(HGFont.bold(20, relativeTo: .title2))
                 .foregroundStyle(HGColor.primaryText)
             Spacer()
