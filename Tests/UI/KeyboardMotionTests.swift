@@ -5,22 +5,7 @@ import XCTest
 
 @MainActor
 final class KeyboardMotionTests: XCTestCase {
-    func testLoginDoesNotMoveWhenKeyboardIsHidden() {
-        XCTAssertEqual(HGKeyboardMotion.loginLift(keyboardHeight: 0, bottomSafeArea: 34), 0)
-    }
-
-    func testLoginMovesAboveKeyboardWithBottomPadding() {
-        let lift = HGKeyboardMotion.loginLift(keyboardHeight: 340, bottomSafeArea: 34)
-
-        XCTAssertEqual(lift, 290)
-        XCTAssertGreaterThan(lift, 0)
-    }
-
-    func testLoginDoesNotMovePastKeyboardOverlap() {
-        XCTAssertEqual(HGKeyboardMotion.loginLift(keyboardHeight: 34, bottomSafeArea: 34), 0)
-    }
-
-    func testLoginMovesWithKeyboardAndReturnsWhenItHides() async throws {
+    func testLoginMovesInputFieldsOnlySlightlyAndReturnsWhenKeyboardHides() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let window = UIWindow(windowScene: scene)
         let host = UIHostingController(rootView: NavigationStack { LoginView() })
@@ -42,7 +27,9 @@ final class KeyboardMotionTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(100))
         host.view.layoutIfNeeded()
         let keyboardVisibleY = emailField.convert(emailField.bounds, to: window).minY
-        XCTAssertLessThan(keyboardVisibleY, initialY)
+        let inputShift = initialY - keyboardVisibleY
+        XCTAssertGreaterThan(inputShift, 0)
+        XCTAssertLessThan(inputShift, 40)
 
         postKeyboardFrame(CGRect(x: 0, y: screenBounds.maxY, width: screenBounds.width, height: 0))
         try await Task.sleep(for: .milliseconds(100))

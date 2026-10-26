@@ -51,19 +51,19 @@ struct LoginView: View {
                             .font(HGFont.regular(14))
                             .foregroundStyle(HGColor.secondaryText)
                             .padding(.top, 8)
-                        VStack(spacing: 26) {
+                        VStack(spacing: keyboardHeight > 0 ? 18 : 26) {
                             HGTextField(title: "이메일", placeholder: "example@email.com", text: $email, inputType: .email)
                             HGTextField(
                                 title: "비밀번호", placeholder: "비밀번호를 입력해주세요", text: $password, isSecure: true,
                                 errorMessage: requestError?.message, inputType: .currentPassword)
                         }
-                        .padding(.top, 31)
+                        .padding(.top, keyboardHeight > 0 ? 14 : 31)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, fieldInset)
                     .padding(.top, 34)
 
-                    Spacer(minLength: 32)
+                    Spacer(minLength: keyboardHeight > 0 ? 0 : 32)
                     HGPrimaryButton(
                         title: isSubmitting ? "로그인 중..." : "로그인",
                         isEnabled: !isSubmitting,
@@ -81,15 +81,13 @@ struct LoginView: View {
                             .foregroundStyle(HGColor.primary)
                     }
                     .font(HGFont.regular(12, relativeTo: .caption))
-                    .padding(.top, 14)
-                    .padding(.bottom, 14)
+                    .padding(.top, keyboardHeight > 0 ? 8 : 14)
+                    .padding(.bottom, keyboardHeight > 0 ? 8 : 14)
                 }
                 .frame(maxWidth: .infinity, minHeight: geometry.size.height)
             }
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
-            .offset(y: -HGKeyboardMotion.loginLift(keyboardHeight: keyboardHeight, bottomSafeArea: geometry.safeAreaInsets.bottom))
         }
-        .ignoresSafeArea(.keyboard, edges: .bottom)
         .background {
             HGColor.surface.ignoresSafeArea()
         }
