@@ -81,7 +81,9 @@ struct LoginView: View {
                 .frame(minHeight: geometry.size.height)
             }
         }
-        .background(HGColor.surface)
+        .background {
+            HGColor.surface.ignoresSafeArea()
+        }
         .toolbar(.hidden, for: .navigationBar)
         .dismissKeyboardOnBackgroundTap()
     }

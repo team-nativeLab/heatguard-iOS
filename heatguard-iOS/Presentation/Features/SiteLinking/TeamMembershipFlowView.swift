@@ -176,6 +176,11 @@ struct TeamMembershipFlowView: View {
                 .padding(24)
             }
             .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear
+                    .frame(height: 16)
+                    .allowsHitTesting(false)
+            }
         }
         .dismissKeyboardOnBackgroundTap()
         .background(HGColor.surface.ignoresSafeArea())
