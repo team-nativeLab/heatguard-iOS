@@ -40,12 +40,17 @@ struct HGAuthenticationService {
         )
     }
 
-    func register(email: String, password: String, verificationCode: String) async throws {
+    func register(
+        email: String,
+        password: String,
+        confirmPassword: String,
+        verificationCode: String
+    ) async throws {
         try await client.sendVoid(
             TeamRegisterRequest(
                 email: email,
                 password: password,
-                confirmPassword: password,
+                confirmPassword: confirmPassword,
                 verificationCode: verificationCode
             ),
             method: "POST",
