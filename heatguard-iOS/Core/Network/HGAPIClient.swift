@@ -50,6 +50,20 @@ struct HGAPIClient {
         )
     }
 
+    func send<Response: Decodable>(
+        method: String,
+        path: String,
+        requiresAuthentication: Bool = false,
+        headers: [String: String] = [:]
+    ) async throws -> Response {
+        try await request(
+            method: method,
+            path: path,
+            requiresAuthentication: requiresAuthentication,
+            headers: headers
+        )
+    }
+
     func get<Response: Decodable>(
         path: String,
         requiresAuthentication: Bool = false,

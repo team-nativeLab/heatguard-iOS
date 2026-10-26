@@ -87,7 +87,6 @@ struct HGAppSiteLinkingService {
 
     func select(siteID: String) async throws -> HGAppSiteSelection {
         try await client.send(
-            HGEmptyRequest(),
             method: "POST",
             path: HGAPIPath.appSiteSelect(id: siteID),
             requiresAuthentication: true
@@ -135,4 +134,3 @@ private struct HGAppLoginResponse: Decodable { let accessToken: String }
 private struct HGAppAccountProfile: Decodable { let userId: String; let email: String }
 private struct HGAppLinkClaimRequest: Encodable { let token: String; let managerPhone: String }
 private struct HGAppSitesResponse: Decodable { let items: [HGAppSite] }
-private struct HGEmptyRequest: Encodable {}
