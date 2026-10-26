@@ -44,6 +44,11 @@ struct InquiryView: View {
         }
         .dismissKeyboardOnBackgroundTap()
         .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Color.clear
+                .frame(height: 16)
+                .allowsHitTesting(false)
+        }
     }
 
     private var inquiryForm: some View {
