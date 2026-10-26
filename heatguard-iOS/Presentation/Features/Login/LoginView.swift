@@ -30,60 +30,64 @@ struct LoginView: View {
             let horizontalInset = min(28, max(18, geometry.size.width * 0.06))
             let fieldInset = min(36, max(28, geometry.size.width * 0.08))
 
-            VStack(spacing: 0) {
-                Image("BrandIcon")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 80, height: 80)
-                    .padding(.top, 54)
+            ZStack(alignment: .top) {
+                HGColor.surface
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
 
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("안전한 현장을 위해\n로그인해주세요")
-                        .font(HGFont.bold(25, relativeTo: .title))
-                        .lineSpacing(5)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("팀 계정 이메일과 비밀번호로 로그인할 수 있어요")
-                        .font(HGFont.regular(14))
-                        .foregroundStyle(HGColor.secondaryText)
-                        .padding(.top, 8)
-                    VStack(spacing: 26) {
-                        HGTextField(title: "이메일", placeholder: "example@email.com", text: $email, inputType: .email)
-                        HGTextField(
-                            title: "비밀번호", placeholder: "비밀번호를 입력해주세요", text: $password, isSecure: true,
-                            errorMessage: requestError?.message, inputType: .currentPassword)
+                VStack(spacing: 0) {
+                    Image("BrandIcon")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 80, height: 80)
+                        .padding(.top, 54)
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("안전한 현장을 위해\n로그인해주세요")
+                            .font(HGFont.bold(25, relativeTo: .title))
+                            .lineSpacing(5)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("팀 계정 이메일과 비밀번호로 로그인할 수 있어요")
+                            .font(HGFont.regular(14))
+                            .foregroundStyle(HGColor.secondaryText)
+                            .padding(.top, 8)
+                        VStack(spacing: 26) {
+                            HGTextField(title: "이메일", placeholder: "example@email.com", text: $email, inputType: .email)
+                            HGTextField(
+                                title: "비밀번호", placeholder: "비밀번호를 입력해주세요", text: $password, isSecure: true,
+                                errorMessage: requestError?.message, inputType: .currentPassword)
+                        }
+                        .padding(.top, 31)
                     }
-                    .padding(.top, 31)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, fieldInset)
-                .padding(.top, 34)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, fieldInset)
+                    .padding(.top, 34)
 
-                Spacer(minLength: 32)
-                HGPrimaryButton(
-                    title: isSubmitting ? "로그인 중..." : "로그인",
-                    isEnabled: !isSubmitting,
-                    height: 42,
-                    font: HGFont.bold(15),
-                    cornerRadius: 14,
-                    tint: HGColor.loginPrimary
-                ) { login() }
-                .padding(.horizontal, horizontalInset)
-                HStack(spacing: 6) {
-                    Text("계정이 없으신가요?")
-                        .foregroundStyle(HGColor.secondaryText)
-                    Button("회원가입", action: onSignUpTap)
-                        .font(HGFont.semiBold(13))
-                        .foregroundStyle(HGColor.primary)
+                    Spacer(minLength: 32)
+                    HGPrimaryButton(
+                        title: isSubmitting ? "로그인 중..." : "로그인",
+                        isEnabled: !isSubmitting,
+                        height: 42,
+                        font: HGFont.bold(15),
+                        cornerRadius: 14,
+                        tint: HGColor.loginPrimary
+                    ) { login() }
+                    .padding(.horizontal, horizontalInset)
+                    HStack(spacing: 6) {
+                        Text("계정이 없으신가요?")
+                            .foregroundStyle(HGColor.secondaryText)
+                        Button("회원가입", action: onSignUpTap)
+                            .font(HGFont.semiBold(13))
+                            .foregroundStyle(HGColor.primary)
+                    }
+                    .font(HGFont.regular(12, relativeTo: .caption))
+                    .padding(.top, 14)
+                    .padding(.bottom, 14)
                 }
-                .font(HGFont.regular(12, relativeTo: .caption))
-                .padding(.top, 14)
-                .padding(.bottom, 14)
+                .frame(maxWidth: .infinity, minHeight: geometry.size.height)
             }
-            .frame(maxWidth: .infinity, minHeight: geometry.size.height)
-            .offset(y: -HGKeyboardMotion.loginLift(
-                keyboardHeight: keyboardHeight,
-                bottomSafeArea: geometry.safeAreaInsets.bottom
-            ))
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
+            .offset(y: -HGKeyboardMotion.loginLift(keyboardHeight: keyboardHeight, bottomSafeArea: geometry.safeAreaInsets.bottom))
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .background {
