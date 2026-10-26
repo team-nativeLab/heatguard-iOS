@@ -4,12 +4,14 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct LoginView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var isSubmitting = false
     @State private var requestError: HGErrorPresentation?
+    @State private var keyboardHeight: CGFloat = 0
 
     private let authenticationService = HGAuthenticationService()
     private let onAuthenticated: (TeamSession) -> Void
@@ -28,7 +30,11 @@ struct LoginView: View {
             let horizontalInset = min(28, max(18, geometry.size.width * 0.06))
             let fieldInset = min(36, max(28, geometry.size.width * 0.08))
 
-            HGFixedContent(keyboardAware: true) {
+            ZStack(alignment: .top) {
+                HGColor.surface
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+
                 VStack(spacing: 0) {
                     Image("BrandIcon")
                         .resizable()
@@ -78,11 +84,19 @@ struct LoginView: View {
                     .padding(.top, 14)
                     .padding(.bottom, 14)
                 }
-                .frame(minHeight: geometry.size.height)
+                .frame(maxWidth: .infinity, minHeight: geometry.size.height)
             }
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
+            .offset(y: -HGKeyboardMotion.loginLift(keyboardHeight: keyboardHeight, bottomSafeArea: geometry.safeAreaInsets.bottom))
         }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .background {
             HGColor.surface.ignoresSafeArea()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { notification in
+            withAnimation(HGKeyboardMotion.animation(for: notification)) {
+                keyboardHeight = HGKeyboardMotion.overlapHeight(for: notification)
+            }
         }
         .toolbar(.hidden, for: .navigationBar)
         .dismissKeyboardOnBackgroundTap()
