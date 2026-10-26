@@ -366,6 +366,19 @@ struct TeamMembershipFlowView: View {
             Text("영문, 숫자를 포함해 8자 이상 입력해 주세요")
                 .font(HGFont.regular(11, relativeTo: .caption))
                 .foregroundStyle(HGColor.secondaryText)
+            HGTextField(
+                title: "비밀번호 확인",
+                placeholder: "비밀번호를 한 번 더 입력해주세요",
+                text: $passwordConfirmation,
+                isSecure: true,
+                fieldHeight: 46,
+                inputType: .newPassword
+            )
+            if !passwordConfirmation.isEmpty && password != passwordConfirmation {
+                Text("비밀번호가 일치하지 않아요")
+                    .font(HGFont.regular(11, relativeTo: .caption))
+                    .foregroundStyle(HGColor.error)
+            }
         }
     }
 
@@ -425,7 +438,7 @@ struct TeamMembershipFlowView: View {
         switch registrationStep {
         case .email: isValidEmail(email)
         case .verification: verificationCode.count == 6
-        case .password: isValidPassword
+        case .password: isValidPassword && password == passwordConfirmation
         }
     }
 
@@ -646,6 +659,10 @@ struct TeamMembershipFlowView: View {
                 showInputError("영문과 숫자를 포함해 8자 이상 입력해주세요.")
                 return
             }
+            guard password == passwordConfirmation else {
+                showInputError("비밀번호가 일치하는지 확인해주세요.")
+                return
+            }
             guard normalizedVerificationCode.count == 6 else {
                 registrationStep = .verification
                 showInputError("이메일 인증번호 6자리를 입력해주세요.")
@@ -660,6 +677,7 @@ struct TeamMembershipFlowView: View {
                 try await service.register(
                     email: normalizedEmail,
                     password: password,
+                    confirmPassword: passwordConfirmation,
                     verificationCode: normalizedVerificationCode
                 )
             }
