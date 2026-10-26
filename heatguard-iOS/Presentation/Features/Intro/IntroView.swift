@@ -1,5 +1,42 @@
 import SwiftUI
 
+private struct IntroGlowLayout: Identifiable {
+    let imageName: String
+    let frameSize: CGSize
+    let centerX: CGFloat
+    let centerY: CGFloat
+    let assetOverflow: CGFloat
+
+    var id: String { imageName }
+
+    var imageSize: CGSize {
+        CGSize(
+            width: frameSize.width + (assetOverflow * 2),
+            height: frameSize.height + (assetOverflow * 2)
+        )
+    }
+}
+
+private enum IntroDesign {
+    // Figma nodes 1262:952 and 1262:953 expand each glow asset by 80pt on every edge.
+    static let glows = [
+        IntroGlowLayout(
+            imageName: "IntroGlowBlue",
+            frameSize: CGSize(width: 300, height: 260),
+            centerX: 0.174,
+            centerY: 0.835,
+            assetOverflow: 80
+        ),
+        IntroGlowLayout(
+            imageName: "IntroGlowPeach",
+            frameSize: CGSize(width: 260, height: 220),
+            centerX: 0.821,
+            centerY: 0.858,
+            assetOverflow: 80
+        )
+    ]
+}
+
 struct IntroView: View {
     var body: some View {
         GeometryReader { geometry in
@@ -10,15 +47,15 @@ struct IntroView: View {
                     endPoint: .bottom
                 )
 
-                Image("IntroGlowBlue")
-                    .resizable()
-                    .frame(width: 300, height: 260)
-                    .position(x: geometry.size.width * 0.174, y: geometry.size.height * 0.835)
-
-                Image("IntroGlowPeach")
-                    .resizable()
-                    .frame(width: 260, height: 220)
-                    .position(x: geometry.size.width * 0.821, y: geometry.size.height * 0.858)
+                ForEach(IntroDesign.glows) { glow in
+                    Image(glow.imageName)
+                        .resizable()
+                        .frame(width: glow.imageSize.width, height: glow.imageSize.height)
+                        .position(
+                            x: geometry.size.width * glow.centerX,
+                            y: geometry.size.height * glow.centerY
+                        )
+                }
 
                 brand
                     .position(x: geometry.size.width / 2, y: geometry.size.height * 0.474)
