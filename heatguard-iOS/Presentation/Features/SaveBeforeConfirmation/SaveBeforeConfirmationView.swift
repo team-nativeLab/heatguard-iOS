@@ -80,6 +80,7 @@ struct SaveBeforeConfirmationView: View {
             HGPrimaryButton(
                 title: isSaving ? "저장 중..." : "저장",
                 isEnabled: !photos.isEmpty && !isSaving,
+                isLoading: isSaving,
                 action: saveRecord
             )
             .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)

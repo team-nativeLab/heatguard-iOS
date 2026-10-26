@@ -65,6 +65,7 @@ struct ChecklistView: View {
             HGPrimaryButton(
                 title: buttonTitle,
                 isEnabled: isComplete && updatingItemIDs.isEmpty,
+                isLoading: isLoading,
                 disabledTint: HGColor.checklistDisabledButton
             ) {
                 dismiss()

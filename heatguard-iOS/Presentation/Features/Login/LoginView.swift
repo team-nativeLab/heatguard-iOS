@@ -67,7 +67,8 @@ struct LoginView: View {
                     HGPrimaryButton(
                         title: isSubmitting ? "로그인 중..." : "로그인",
                         isEnabled: !isSubmitting,
-                        height: 42,
+                        isLoading: isSubmitting,
+                        height: HGLayout.primaryButtonHeight,
                         font: HGFont.bold(15),
                         cornerRadius: 14,
                         tint: HGColor.loginPrimary
@@ -79,6 +80,8 @@ struct LoginView: View {
                         Button("회원가입", action: onSignUpTap)
                             .font(HGFont.semiBold(13))
                             .foregroundStyle(HGColor.primary)
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
                     }
                     .font(HGFont.regular(12, relativeTo: .caption))
                     .padding(.top, keyboardHeight > 0 ? 8 : 14)

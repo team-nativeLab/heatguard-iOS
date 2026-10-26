@@ -74,6 +74,7 @@ struct RestPhotoView: View {
             HGPrimaryButton(
                 title: isSaving ? "저장 중..." : "기록 저장",
                 isEnabled: !isSaving,
+                isLoading: isSaving,
                 height: HGLayout.primaryButtonHeight,
                 action: saveRecord
             )

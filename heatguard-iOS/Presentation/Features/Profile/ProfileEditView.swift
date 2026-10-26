@@ -81,7 +81,11 @@ struct ProfileEditView: View {
         .background(HGColor.appBackground)
         .hgNavigationTitle("내 정보 수정")
         .safeAreaInset(edge: .bottom) {
-            HGPrimaryButton(title: isSaving ? "저장 중..." : "저장하기", isEnabled: isValid && !isSaving) {
+            HGPrimaryButton(
+                title: isSaving ? "저장 중..." : "저장하기",
+                isEnabled: isValid && !isSaving,
+                isLoading: isSaving
+            ) {
                 Task { await saveProfile() }
             }
             .padding(.horizontal, 28).padding(.vertical, 10).background(HGColor.appBackground)

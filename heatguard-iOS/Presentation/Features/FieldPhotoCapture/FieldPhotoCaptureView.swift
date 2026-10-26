@@ -74,7 +74,12 @@ struct FieldPhotoCaptureView: View {
         .padding(.top, HGLayout.screenTopPadding)
         .background(HGColor.appBackground)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            HGPrimaryButton(title: isSaving ? "저장 중..." : "저장", isEnabled: !isSaving, action: saveRecord)
+            HGPrimaryButton(
+                title: isSaving ? "저장 중..." : "저장",
+                isEnabled: !isSaving,
+                isLoading: isSaving,
+                action: saveRecord
+            )
                 .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
                 .padding(.vertical, 8)
                 .background(HGColor.appBackground)

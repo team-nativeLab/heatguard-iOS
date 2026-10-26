@@ -49,7 +49,12 @@ struct WithdrawalGuideView: View {
         .background(HGColor.appBackground)
         .hgNavigationTitle("회원탈퇴")
         .safeAreaInset(edge: .bottom) {
-            HGPrimaryButton(title: "탈퇴하기", isEnabled: canRequestWithdrawal, tint: HGColor.error) {
+            HGPrimaryButton(
+                title: "탈퇴하기",
+                isEnabled: canRequestWithdrawal,
+                tint: HGColor.error,
+                pressedTint: HGColor.error.opacity(0.85)
+            ) {
                 showsConfirmation = true
             }
             .padding(.horizontal, HGLayout.screenHorizontalPadding)
