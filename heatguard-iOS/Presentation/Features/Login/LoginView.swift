@@ -28,7 +28,7 @@ struct LoginView: View {
             let horizontalInset = min(28, max(18, geometry.size.width * 0.06))
             let fieldInset = min(36, max(28, geometry.size.width * 0.08))
 
-            HGFixedContent {
+            HGFixedContent(keyboardAware: true) {
                 VStack(spacing: 0) {
                     Image("BrandIcon")
                         .resizable()
