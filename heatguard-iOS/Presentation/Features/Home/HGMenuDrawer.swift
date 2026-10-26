@@ -33,7 +33,8 @@ struct HGMenuDrawer: View {
     private enum Metrics {
         static let width: CGFloat = 300
         static let horizontalInset: CGFloat = 24
-        static let contentSafeAreaSpacing: CGFloat = 4
+        static let topInset: CGFloat = 86
+        static let bottomInset: CGFloat = 48
         static let rowHeight: CGFloat = 52
         static let dismissThreshold: CGFloat = 0.35
     }
@@ -58,8 +59,8 @@ struct HGMenuDrawer: View {
 
             drawerContent
                 .padding(.horizontal, Metrics.horizontalInset)
-                .padding(.top, Metrics.contentSafeAreaSpacing)
-                .padding(.bottom, Metrics.contentSafeAreaSpacing)
+                .padding(.top, Metrics.topInset)
+                .padding(.bottom, Metrics.bottomInset)
                 .frame(width: drawerWidth)
                 .frame(maxHeight: .infinity, alignment: .topLeading)
                 .background {
@@ -70,6 +71,7 @@ struct HGMenuDrawer: View {
                 .animation(.easeInOut(duration: 0.24), value: isPresented)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .ignoresSafeArea()
     }
 
     private var drawerContent: some View {
@@ -77,7 +79,7 @@ struct HGMenuDrawer: View {
             profileSection
             divider
             menuSection
-            Spacer()
+            siteSelectionSection
             divider
             accountActions
         }
@@ -114,11 +116,18 @@ struct HGMenuDrawer: View {
     private var menuSection: some View {
         VStack(spacing: 0) {
             drawerRow(title: "홈", action: onHome)
-            drawerRow(title: "내 현장 목록", action: onTeamSelection)
             drawerRow(title: "내 정보 수정", action: onProfileEdit)
             drawerRow(title: "문의하기", action: onInquiry)
         }
         .padding(.top, 8)
+    }
+
+    private var siteSelectionSection: some View {
+        VStack(spacing: 0) {
+            drawerRow(title: "현장선택", action: onTeamSelection)
+            Spacer(minLength: 0)
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     private var accountActions: some View {
