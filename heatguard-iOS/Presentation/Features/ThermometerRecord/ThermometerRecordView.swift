@@ -101,7 +101,12 @@ struct ThermometerRecordView: View {
     }
 
     private var header: some View {
-        HGScreenHeader(onMenuTap: onMenuTap, notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
+        HGScreenHeader(
+            title: "폭염가드",
+            onMenuTap: onMenuTap,
+            notificationCount: notificationCount,
+            onNotificationsTap: onNotificationsTap
+        )
     }
 
     private var temperatureSummaryCard: some View {
