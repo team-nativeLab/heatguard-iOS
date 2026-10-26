@@ -41,6 +41,8 @@ struct TeamMembershipFlowView: View {
                 ProgressView().tint(HGColor.primary)
             } else if !isAuthenticated {
                 accessForm
+            } else if hasPendingInvitation, !hasAcceptedInvitation {
+                invitationConfirmation
             } else {
                 membershipList
             }
@@ -61,7 +63,60 @@ struct TeamMembershipFlowView: View {
         }
         .onChange(of: linkToken) { _, newToken in
             hasAcceptedInvitation = false
-            if newToken != nil, isAuthenticated { Task { await acceptInvitationIfNeeded() } }
+            if newToken?.isEmpty != false, isAuthenticated { Task { await loadMemberships() } }
+        }
+    }
+
+    private var hasPendingInvitation: Bool {
+        linkToken?.isEmpty == false
+    }
+
+    private var invitationConfirmation: some View {
+        VStack(spacing: 0) {
+            flowHeader(title: "현장 연동", backgroundColor: HGColor.appBackground, height: 54, topInset: 10)
+
+            Spacer(minLength: 24)
+
+            VStack(spacing: 16) {
+                Image(systemName: "building.2.crop.circle")
+                    .font(.system(size: 48, weight: .regular))
+                    .foregroundStyle(HGColor.primary)
+                    .accessibilityHidden(true)
+                Text("초대받은 현장에 참여할까요?")
+                    .font(HGFont.bold(22, relativeTo: .title2))
+                    .foregroundStyle(HGColor.primaryText)
+                    .multilineTextAlignment(.center)
+                Text("참여하기를 누르면 이 계정으로 현장 연동을 진행합니다.")
+                    .font(HGFont.regular(15, relativeTo: .body))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(28)
+            .frame(maxWidth: .infinity)
+            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 20))
+            .padding(.horizontal, 24)
+
+            Spacer(minLength: 24)
+
+            VStack(spacing: 12) {
+                HGPrimaryButton(
+                    title: busy ? "처리 중..." : "현장 참여하기",
+                    isEnabled: !busy
+                ) {
+                    Task { await acceptInvitationIfNeeded() }
+                }
+                Button("취소", action: onClose)
+                    .font(HGFont.semiBold(16, relativeTo: .headline))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .disabled(busy)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 20)
+        }
+        .background(HGColor.appBackground.ignoresSafeArea())
+        .overlay {
+            if busy { ProgressView().tint(HGColor.primary) }
         }
     }
 
@@ -237,8 +292,7 @@ struct TeamMembershipFlowView: View {
         do {
             isAuthenticated = try await service.restoreSession() != nil
             if isAuthenticated {
-                await acceptInvitationIfNeeded()
-                if linkToken == nil { await loadMemberships() }
+                if !hasPendingInvitation { await loadMemberships() }
             }
         } catch {
             isAuthenticated = false
@@ -295,8 +349,8 @@ struct TeamMembershipFlowView: View {
             let session = try await service.login(email: normalizedEmail, password: password)
             isAuthenticated = true
             onAuthenticated(session)
-            if linkToken != nil {
-                await acceptInvitationIfNeeded()
+            if hasPendingInvitation {
+                return
             } else {
                 await loadMemberships()
             }
