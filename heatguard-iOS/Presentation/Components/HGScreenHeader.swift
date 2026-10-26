@@ -3,55 +3,25 @@ import SwiftUI
 struct HGScreenHeader: View {
     var title = "현장가드"
     var onMenuTap: () -> Void = {}
-    var leadingSystemImage: String?
     var notificationCount: Int?
     var onNotificationsTap: (() -> Void)?
 
     var body: some View {
         HStack {
-            if let leadingSystemImage {
-                Button(action: onMenuTap) {
-                    Image(systemName: leadingSystemImage)
-                        .font(.system(size: 19, weight: .medium))
-                        .foregroundStyle(HGColor.primaryText)
-                        .frame(width: 28, height: 28)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("뒤로")
-            } else {
-                headerButton("menu", action: onMenuTap)
-            }
+            headerButton("menu", action: onMenuTap)
+                .accessibilityLabel("메뉴")
             Spacer()
             Text(title)
                 .font(HGFont.bold(20, relativeTo: .title2))
                 .foregroundStyle(HGColor.primaryText)
             Spacer()
             if let onNotificationsTap {
-                Button(action: onNotificationsTap) {
-                    ZStack(alignment: .topTrailing) {
-                        Image(systemName: "bell")
-                            .font(.system(size: 19, weight: .medium))
-                            .foregroundStyle(HGColor.primaryText)
-                            .frame(width: 28, height: 28)
-                        if let notificationCount, notificationCount > 0 {
-                            Text(notificationCount > 99 ? "99+" : String(notificationCount))
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 4)
-                                .frame(minWidth: 15, minHeight: 15)
-                                .background(HGColor.error, in: Capsule())
-                                .overlay(Capsule().stroke(HGColor.appBackground, lineWidth: 1.5))
-                                .offset(x: 7, y: -6)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(notificationCount.map { "알림, 읽지 않은 알림 \($0)개" } ?? "알림")
+                HGNotificationButton(notificationCount: notificationCount, action: onNotificationsTap)
             } else {
-                Color.clear.frame(width: 28, height: 28)
+                Color.clear.frame(width: 44, height: 44)
             }
         }
-        .frame(height: 28)
+        .frame(height: 44)
     }
 
     private func headerButton(_ imageName: String, action: @escaping () -> Void) -> some View {
@@ -60,6 +30,8 @@ struct HGScreenHeader: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 28, height: 28)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
