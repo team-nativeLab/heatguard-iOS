@@ -83,10 +83,12 @@ struct HGTextField: View {
                     SecureField(text: $text, prompt: Text(placeholder).foregroundStyle(HGColor.placeholder)) {
                         EmptyView()
                     }
+                    .focused($isFocused)
                 } else {
                     TextField(text: $text, prompt: Text(placeholder).foregroundStyle(HGColor.placeholder)) {
                         EmptyView()
                     }
+                    .focused($isFocused)
                 }
 
                 if let trailingLabel {
@@ -111,7 +113,6 @@ struct HGTextField: View {
             }
             .font(HGFont.regular(textSize))
             .foregroundStyle(HGColor.primaryText)
-            .focused($isFocused)
             .keyboardType(inputType.keyboardType)
             .textContentType(inputType.textContentType)
             .textInputAutocapitalization(inputType.autocapitalization)
@@ -123,6 +124,14 @@ struct HGTextField: View {
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .stroke(borderColor, lineWidth: 1)
+            }
+            .background {
+                GeometryReader { geometry in
+                    Color.clear.preference(
+                        key: HGKeyboardInputFramesPreferenceKey.self,
+                        value: [geometry.frame(in: .named(HGKeyboardDismissTapConstants.coordinateSpace))]
+                    )
+                }
             }
 
             if let errorMessage {
