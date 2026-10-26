@@ -1,5 +1,11 @@
 import SwiftUI
 
+private enum TeamRegistrationStep: Equatable {
+    case email
+    case verification
+    case password
+}
+
 struct TeamMembershipFlowView: View {
     let linkToken: String?
     let onClose: () -> Void
@@ -14,12 +20,13 @@ struct TeamMembershipFlowView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var verificationCode = ""
+    @State private var registrationStep = TeamRegistrationStep.email
+    @FocusState private var isVerificationCodeFocused: Bool
     @State private var memberships: [HGTeamMembership] = []
     @State private var selectedTeamID: String?
     @State private var selectingTeamID: String?
     @State private var busy = false
     @State private var error: HGErrorPresentation?
-    @State private var notice: String?
 
     init(
         linkToken: String? = nil,
@@ -55,11 +62,6 @@ struct TeamMembershipFlowView: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(error?.alertMessage ?? "")
-        }
-        .alert("안내", isPresented: Binding(get: { notice != nil }, set: { if !$0 { notice = nil } })) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text(notice ?? "")
         }
         .onChange(of: linkToken) { _, newToken in
             hasAcceptedInvitation = false
@@ -122,69 +124,329 @@ struct TeamMembershipFlowView: View {
 
     private var accessForm: some View {
         VStack(spacing: 0) {
-            flowHeader(title: isRegistering ? "회원가입" : "로그인")
+            flowHeader(
+                title: isRegistering ? "회원가입" : "로그인",
+                onBack: handleAccessBack
+            )
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    Text(isRegistering ? "현장 작업자 계정 만들기" : "현장 작업자 계정으로 로그인")
-                        .font(HGFont.bold(25, relativeTo: .title2))
-                        .foregroundStyle(HGColor.primaryText)
-                    Text("이메일 계정으로 로그인하고 초대받은 현장에 참여할 수 있어요.")
-                        .font(HGFont.regular(14, relativeTo: .subheadline))
-                        .foregroundStyle(HGColor.secondaryText)
-                    HGTextField(title: "이메일", placeholder: "example@email.com", text: $email, inputType: .email)
+                Group {
                     if isRegistering {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Button(busy ? "인증 메일 발송 중..." : "인증 코드 받기") {
-                                Task { await requestCode() }
-                            }
-                            .font(HGFont.semiBold(14))
-                            .disabled(busy)
-                            HGTextField(
-                                title: "이메일 인증 코드",
-                                placeholder: "인증 코드",
-                                text: $verificationCode,
-                                inputType: .number
-                            )
-                        }
+                        registrationContent
+                    } else {
+                        loginContent
                     }
-                    HGTextField(
-                        title: "비밀번호",
-                        placeholder: "비밀번호를 입력해주세요",
-                        text: $password,
-                        isSecure: true,
-                        inputType: isRegistering ? .newPassword : .currentPassword
-                    )
-                    if let error {
-                        Text(error.alertMessage)
-                            .font(HGFont.regular(12, relativeTo: .caption))
-                            .foregroundStyle(HGColor.error)
-                    }
-                    HGPrimaryButton(
-                        title: busy ? "처리 중..." : (isRegistering ? "회원가입" : "로그인"),
-                        isEnabled: !busy
-                    ) {
-                        Task { await submitAccess() }
-                    }
-                    Button(isRegistering ? "이미 계정이 있어요 · 로그인" : "계정이 없으신가요? · 회원가입") {
-                        isRegistering.toggle()
-                        error = nil
-                    }
-                    .font(HGFont.medium(14))
-                    .foregroundStyle(HGColor.primary)
-                    .frame(maxWidth: .infinity)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(24)
+                .padding(.bottom, 20)
             }
             .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear
-                    .frame(height: 16)
-                    .allowsHitTesting(false)
+                if isRegistering {
+                    registrationFooter
+                } else {
+                    Color.clear.frame(height: 16).allowsHitTesting(false)
+                }
             }
         }
         .dismissKeyboardOnBackgroundTap()
-        .background(HGColor.surface.ignoresSafeArea())
+        .background(HGColor.appBackground.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+    }
+
+    @ViewBuilder
+    private var loginContent: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("현장 작업자 계정으로 로그인")
+                .font(HGFont.bold(25, relativeTo: .title2))
+                .foregroundStyle(HGColor.primaryText)
+            Text("이메일 계정으로 로그인하고 초대받은 현장에 참여할 수 있어요.")
+                .font(HGFont.regular(14, relativeTo: .subheadline))
+                .foregroundStyle(HGColor.secondaryText)
+            HGTextField(title: "이메일", placeholder: "example@email.com", text: $email, inputType: .email)
+            HGTextField(
+                title: "비밀번호",
+                placeholder: "비밀번호를 입력해주세요",
+                text: $password,
+                isSecure: true,
+                inputType: .currentPassword
+            )
+            if let error {
+                Text(error.alertMessage)
+                    .font(HGFont.regular(12, relativeTo: .caption))
+                    .foregroundStyle(HGColor.error)
+            }
+            HGPrimaryButton(
+                title: busy ? "로그인 중..." : "로그인",
+                isEnabled: !busy
+            ) {
+                Task { await submitAccess() }
+            }
+            Button("계정이 없으신가요? · 회원가입", action: beginRegistration)
+                .font(HGFont.medium(14))
+                .foregroundStyle(HGColor.primary)
+                .frame(maxWidth: .infinity, minHeight: 44)
+        }
+    }
+
+    private var registrationContent: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            registrationProgress
+            switch registrationStep {
+            case .email:
+                emailStepContent
+            case .verification:
+                verificationStepContent
+            case .password:
+                passwordStepContent
+            }
+        }
+    }
+
+    private var registrationProgress: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                ForEach(1...3, id: \.self) { step in
+                    Capsule()
+                        .fill(step <= registrationStepNumber ? HGColor.primary : HGColor.menuDivider)
+                        .frame(height: 4)
+                }
+            }
+            Text("\(registrationStepNumber) / 3 · \(registrationStepTitle)")
+                .font(HGFont.medium(11, relativeTo: .caption))
+                .foregroundStyle(HGColor.primary)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var emailStepContent: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("로그인에 사용할\n이메일을 입력해주세요")
+                .font(HGFont.bold(22, relativeTo: .title2))
+                .foregroundStyle(HGColor.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("입력한 이메일로 6자리 인증번호를 보내드려요")
+                .font(HGFont.regular(13, relativeTo: .subheadline))
+                .foregroundStyle(HGColor.secondaryText)
+            HGTextField(
+                title: "이메일",
+                placeholder: "가입할 이메일을 입력해주세요",
+                text: $email,
+                fieldHeight: 50,
+                inputType: .email
+            )
+            .accessibilityIdentifier("signup.email")
+        }
+    }
+
+    private var verificationStepContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("인증번호를\n입력해주세요")
+                .font(HGFont.bold(22, relativeTo: .title2))
+                .foregroundStyle(HGColor.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("\(email.trimmingCharacters(in: .whitespacesAndNewlines))로 보낸 6자리 숫자를 입력해주세요\n메일이 없다면 스팸함을 확인해주세요")
+                .font(HGFont.regular(12, relativeTo: .caption))
+                .foregroundStyle(HGColor.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            verificationCodeInput
+
+        }
+    }
+
+    private var verificationCodeInput: some View {
+        let digits = Array(verificationCode)
+        return HStack(spacing: 10) {
+            ForEach(0..<6, id: \.self) { index in
+                Text(index < digits.count ? String(digits[index]) : "")
+                    .font(HGFont.semiBold(20, relativeTo: .title3))
+                    .foregroundStyle(HGColor.primaryText)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 11))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 11)
+                            .stroke(
+                                isVerificationCodeFocused && index == min(digits.count, 5) ? HGColor.primary : HGColor.menuDivider,
+                                lineWidth: 1
+                            )
+                    }
+            }
+        }
+        .overlay {
+            TextField("", text: $verificationCode)
+                .keyboardType(.numberPad)
+                .textContentType(.oneTimeCode)
+                .focused($isVerificationCodeFocused)
+                .foregroundStyle(.clear)
+                .tint(.clear)
+                .opacity(0.02)
+                .accessibilityLabel("이메일 인증번호 6자리")
+                .accessibilityIdentifier("signup.verification.code")
+                .background {
+                    GeometryReader { geometry in
+                        Color.clear.preference(
+                            key: HGKeyboardInputFramesPreferenceKey.self,
+                            value: [geometry.frame(in: .named(HGKeyboardDismissTapConstants.coordinateSpace))]
+                        )
+                    }
+                }
+                .onChange(of: verificationCode) { _, value in
+                    let digitsOnly = String(value.filter(\.isNumber).prefix(6))
+                    if digitsOnly != value { verificationCode = digitsOnly }
+                    verificationErrorMessage = nil
+                }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { isVerificationCodeFocused = true }
+    }
+
+    private var passwordStepContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("비밀번호를\n설정해주세요")
+                .font(HGFont.bold(22, relativeTo: .title2))
+                .foregroundStyle(HGColor.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("마지막 단계예요. 로그인할 때 사용할 비밀번호를 정해주세요")
+                .font(HGFont.regular(12, relativeTo: .caption))
+                .foregroundStyle(HGColor.secondaryText)
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark")
+                    .foregroundStyle(HGColor.primary)
+                Text("인증번호 입력됨")
+                    .font(HGFont.semiBold(12, relativeTo: .caption))
+                    .foregroundStyle(HGColor.primary)
+                Text(email.trimmingCharacters(in: .whitespacesAndNewlines))
+                    .font(HGFont.regular(12, relativeTo: .caption))
+                    .foregroundStyle(HGColor.primaryText)
+            }
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+            .background(HGColor.photoSelectionBackground, in: RoundedRectangle(cornerRadius: 10))
+            HGTextField(
+                title: "비밀번호",
+                placeholder: "비밀번호를 입력해주세요",
+                text: $password,
+                isSecure: true,
+                fieldHeight: 46,
+                inputType: .newPassword
+            )
+            Text("영문, 숫자를 포함해 8자 이상 입력해 주세요")
+                .font(HGFont.regular(11, relativeTo: .caption))
+                .foregroundStyle(HGColor.secondaryText)
+        }
+    }
+
+    @ViewBuilder
+    private var registrationFooter: some View {
+        VStack(spacing: 12) {
+            if registrationStep == .email {
+                HStack(spacing: 6) {
+                    Text("이미 계정이 있으신가요?")
+                        .foregroundStyle(HGColor.secondaryText)
+                    Button("로그인") { onClose() }
+                        .font(HGFont.semiBold(13))
+                        .foregroundStyle(HGColor.primary)
+                }
+                .font(HGFont.regular(12, relativeTo: .caption))
+            }
+
+            HGPrimaryButton(
+                title: registrationButtonTitle,
+                isEnabled: canContinueRegistration && !busy
+            ) {
+                Task { await continueRegistration() }
+            }
+            .accessibilityIdentifier("signup.continue")
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
+        .background(HGColor.appBackground)
+    }
+
+    private var registrationStepNumber: Int {
+        switch registrationStep {
+        case .email: 1
+        case .verification: 2
+        case .password: 3
+        }
+    }
+
+    private var registrationStepTitle: String {
+        switch registrationStep {
+        case .email: "이메일 입력"
+        case .verification: "이메일 인증"
+        case .password: "비밀번호 설정"
+        }
+    }
+
+    private var registrationButtonTitle: String {
+        switch registrationStep {
+        case .email: busy ? "인증번호 보내는 중..." : "인증번호 받기"
+        case .verification: "다음"
+        case .password: busy ? "가입 중..." : "가입 완료"
+        }
+    }
+
+    private var canContinueRegistration: Bool {
+        switch registrationStep {
+        case .email: isValidEmail(email)
+        case .verification: verificationCode.count == 6
+        case .password: isValidPassword
+        }
+    }
+
+    private var isValidPassword: Bool {
+        password.count >= 8
+            && password.contains(where: \.isLetter)
+            && password.contains(where: \.isNumber)
+    }
+
+    private func isValidEmail(_ value: String) -> Bool {
+        let normalizedEmail = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return normalizedEmail.contains("@") && normalizedEmail.split(separator: "@").last?.contains(".") == true
+    }
+
+    private func handleAccessBack() {
+        guard isRegistering else {
+            onClose()
+            return
+        }
+        switch registrationStep {
+        case .email:
+            onClose()
+        case .verification:
+            registrationStep = .email
+        case .password:
+            registrationStep = .verification
+        }
+    }
+
+    private func beginRegistration() {
+        registrationStep = .email
+        verificationCode = ""
+        password = ""
+        passwordConfirmation = ""
+        verificationErrorMessage = nil
+        error = nil
+        isRegistering = true
+    }
+
+    @MainActor
+    private func continueRegistration() async {
+        guard canContinueRegistration, !busy else { return }
+        switch registrationStep {
+        case .email:
+            await requestCode()
+        case .verification:
+            // The existing team API validates the code together with account creation.
+            registrationStep = .password
+            isVerificationCodeFocused = false
+        case .password:
+            await submitAccess()
+        }
     }
 
     private var membershipList: some View {
@@ -268,14 +530,15 @@ struct TeamMembershipFlowView: View {
         title: String,
         backgroundColor: Color = HGColor.surface,
         height: CGFloat = 48,
-        topInset: CGFloat = 0
+        topInset: CGFloat = 0,
+        onBack: (() -> Void)? = nil
     ) -> some View {
         ZStack {
             Text(title)
                 .font(HGFont.semiBold(18, relativeTo: .headline))
                 .foregroundStyle(HGColor.primaryText)
             HStack {
-                Button(action: onClose) {
+                Button(action: onBack ?? onClose) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(HGColor.primaryText)
@@ -308,8 +571,8 @@ struct TeamMembershipFlowView: View {
     private func requestCode() async {
         error = nil
         let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalizedEmail.isEmpty else {
-            showInputError("이메일을 입력해주세요.")
+        guard isValidEmail(normalizedEmail) else {
+            showInputError("올바른 이메일 주소를 입력해주세요.")
             return
         }
 
@@ -317,7 +580,10 @@ struct TeamMembershipFlowView: View {
         defer { busy = false }
         do {
             try await service.requestRegistrationCode(email: normalizedEmail)
-            notice = "인증 코드를 이메일로 보냈어요."
+            email = normalizedEmail
+            verificationCode = ""
+            registrationStep = .verification
+            isVerificationCodeFocused = true
         } catch {
             self.error = HGErrorPresentation(error: error)
         }
@@ -336,9 +602,16 @@ struct TeamMembershipFlowView: View {
             showInputError("비밀번호를 입력해주세요.")
             return
         }
-        if isRegistering && normalizedVerificationCode.isEmpty {
-            showInputError("이메일 인증 코드를 입력해주세요.")
-            return
+        if isRegistering {
+            guard isValidPassword else {
+                showInputError("영문과 숫자를 포함해 8자 이상 입력해주세요.")
+                return
+            }
+            guard normalizedVerificationCode.count == 6 else {
+                registrationStep = .verification
+                showInputError("이메일 인증번호 6자리를 입력해주세요.")
+                return
+            }
         }
 
         busy = true
