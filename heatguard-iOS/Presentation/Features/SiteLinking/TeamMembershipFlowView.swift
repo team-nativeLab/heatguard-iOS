@@ -247,10 +247,17 @@ struct TeamMembershipFlowView: View {
 
     @MainActor
     private func requestCode() async {
+        error = nil
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedEmail.isEmpty else {
+            showInputError("이메일을 입력해주세요.")
+            return
+        }
+
         busy = true
         defer { busy = false }
         do {
-            try await service.requestRegistrationCode(email: email.trimmingCharacters(in: .whitespacesAndNewlines))
+            try await service.requestRegistrationCode(email: normalizedEmail)
             notice = "인증 코드를 이메일로 보냈어요."
         } catch {
             self.error = HGErrorPresentation(error: error)
@@ -259,13 +266,31 @@ struct TeamMembershipFlowView: View {
 
     @MainActor
     private func submitAccess() async {
-        busy = true
         error = nil
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedVerificationCode = verificationCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedEmail.isEmpty else {
+            showInputError("이메일을 입력해주세요.")
+            return
+        }
+        guard !password.isEmpty else {
+            showInputError("비밀번호를 입력해주세요.")
+            return
+        }
+        if isRegistering && normalizedVerificationCode.isEmpty {
+            showInputError("이메일 인증 코드를 입력해주세요.")
+            return
+        }
+
+        busy = true
         defer { busy = false }
         do {
-            let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
             if isRegistering {
-                try await service.register(email: normalizedEmail, password: password, verificationCode: verificationCode)
+                try await service.register(
+                    email: normalizedEmail,
+                    password: password,
+                    verificationCode: normalizedVerificationCode
+                )
             }
             let session = try await service.login(email: normalizedEmail, password: password)
             isAuthenticated = true
@@ -278,6 +303,15 @@ struct TeamMembershipFlowView: View {
         } catch {
             self.error = HGErrorPresentation(error: error)
         }
+    }
+
+    @MainActor
+    private func showInputError(_ message: String) {
+        error = HGErrorPresentation(
+            title: "입력 정보를 확인해주세요",
+            message: message,
+            diagnosticCode: "INPUT_REQUIRED"
+        )
     }
 
     @MainActor
