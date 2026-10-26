@@ -57,12 +57,12 @@ final class LayoutEvidenceTests: XCTestCase {
                 let scrollViews = descendants(of: host.view).compactMap { $0 as? UIScrollView }
                 let contentScrollViews = scrollViews.filter { !($0 is UITextView) }
                 let scrollableKeyboardAwareScreens = [
-                    "login", "work", "work-design", "rest", "rest-design", "thermometer", "profile", "withdrawal"
+                    "work", "work-design", "rest", "rest-design", "thermometer", "profile", "withdrawal"
                 ]
                 XCTAssertEqual(
                     contentScrollViews.count,
                     scrollableKeyboardAwareScreens.contains(name) ? 1 : 0,
-                    "\(name): 키보드 대응 스크롤 컨테이너 수가 예상과 다릅니다"
+                    "\(name): 키보드 입력 컨테이너 수가 예상과 다릅니다"
                 )
                 let attachment = XCTAttachment(image: image)
                 attachment.name = "\(name)-\(Int(size.width))x\(Int(size.height))-fixture"
