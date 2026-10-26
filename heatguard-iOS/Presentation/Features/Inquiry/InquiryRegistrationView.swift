@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct InquiryRegistrationView: View {
+    var onRegistered: (() -> Void)? = nil
+
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
     @State private var content = ""
@@ -137,6 +139,7 @@ struct InquiryRegistrationView: View {
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 content: content.trimmingCharacters(in: .whitespacesAndNewlines)
             )
+            onRegistered?()
             dismiss()
         } catch {
             self.error = HGErrorPresentation(error: error)
