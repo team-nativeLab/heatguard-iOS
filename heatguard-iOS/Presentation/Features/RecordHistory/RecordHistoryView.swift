@@ -70,24 +70,9 @@ struct RecordHistoryView: View {
         }
         .task { await loadRecords() }
         .sheet(isPresented: $showsPeriodPicker) {
-            NavigationStack {
-                DatePicker(
-                    "기준일",
-                    selection: $selectedPeriodEnd,
-                    displayedComponents: .date
-                )
-                .datePickerStyle(.graphical)
-                .environment(\.locale, HGDateFormatting.locale)
-                .environment(\.timeZone, HGDateFormatting.timeZone)
-                .padding(24)
-                .hgNavigationTitle("기록 기간 선택")
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("완료") { showsPeriodPicker = false }
-                    }
-                }
+            RecordHistoryCalendarSheet(selectedDate: selectedPeriodEnd, recordDates: recordDates) { date in
+                selectedPeriodEnd = date
             }
-            .presentationDetents([.large])
         }
         .alert(error?.title ?? "기록 조회 오류", isPresented: errorAlert) {
             Button("다시 시도") {
@@ -278,6 +263,12 @@ struct RecordHistoryView: View {
         var calendar = HGDateFormatting.calendar
         calendar.firstWeekday = 2
         return calendar
+    }
+
+    private var recordDates: Set<Date> {
+        Set(records.compactMap { record in
+            record.measuredAt.hgISO8601Date.map(historyCalendar.startOfDay(for:))
+        })
     }
 
     private var weekDates: [Date] {
