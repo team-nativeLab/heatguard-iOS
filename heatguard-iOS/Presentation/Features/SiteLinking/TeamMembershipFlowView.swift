@@ -19,7 +19,9 @@ struct TeamMembershipFlowView: View {
     @State private var isRegistering: Bool
     @State private var email = ""
     @State private var password = ""
+    @State private var passwordConfirmation = ""
     @State private var verificationCode = ""
+    @State private var verificationErrorMessage: String?
     @State private var registrationStep = TeamRegistrationStep.email
     @FocusState private var isVerificationCodeFocused: Bool
     @State private var memberships: [HGTeamMembership] = []
