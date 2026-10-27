@@ -255,6 +255,13 @@ struct TeamMembershipFlowView: View {
 
             verificationCodeInput
 
+            if let verificationErrorMessage {
+                Text(verificationErrorMessage)
+                    .font(HGFont.regular(11, relativeTo: .caption))
+                    .foregroundStyle(HGColor.error)
+                    .accessibilityIdentifier("signup.verification.error")
+            }
+
             HStack {
                 HStack(spacing: 4) {
                     Text("남은 시간")
@@ -291,7 +298,8 @@ struct TeamMembershipFlowView: View {
                     .overlay {
                         RoundedRectangle(cornerRadius: 11)
                             .stroke(
-                                isVerificationCodeFocused && index == min(digits.count, 5) ? HGColor.primary : HGColor.menuDivider,
+                                verificationErrorMessage != nil ? HGColor.error :
+                                    (isVerificationCodeFocused && index == min(digits.count, 5) ? HGColor.primary : HGColor.menuDivider),
                                 lineWidth: 1
                             )
                     }
@@ -447,6 +455,7 @@ struct TeamMembershipFlowView: View {
             onClose()
         case .verification:
             registrationStep = .email
+            verificationErrorMessage = nil
         case .password:
             registrationStep = .verification
         }
@@ -610,6 +619,7 @@ struct TeamMembershipFlowView: View {
             try await service.requestRegistrationCode(email: normalizedEmail)
             email = normalizedEmail
             verificationCode = ""
+            verificationErrorMessage = nil
             codeExpiresAt = .now.addingTimeInterval(300)
             registrationStep = .verification
             isVerificationCodeFocused = true
@@ -662,8 +672,21 @@ struct TeamMembershipFlowView: View {
                 await loadMemberships()
             }
         } catch {
-            self.error = HGErrorPresentation(error: error)
+            let presentation = HGErrorPresentation(error: error)
+            if isRegistrationCodeError(presentation.diagnosticCode) {
+                registrationStep = .verification
+                verificationErrorMessage = "인증번호가 올바르지 않거나 만료됐어요. 다시 확인해주세요."
+                isVerificationCodeFocused = true
+            } else {
+                self.error = presentation
+            }
         }
+    }
+
+    private func isRegistrationCodeError(_ diagnosticCode: String) -> Bool {
+        let normalizedCode = diagnosticCode.uppercased()
+        return ["VERIFICATION_CODE", "INVALID_CODE", "EMAIL_CODE", "CODE_EXPIRED"]
+            .contains { normalizedCode.contains($0) }
     }
 
     @MainActor
