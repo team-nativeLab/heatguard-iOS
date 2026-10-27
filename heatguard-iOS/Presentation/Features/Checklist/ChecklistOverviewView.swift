@@ -13,6 +13,33 @@ struct ChecklistOverviewView: View {
         return CGFloat(checkedCount) / CGFloat(totalCount)
     }
 
+    private var activeTime: String? {
+        let scheduled = times.compactMap { time -> (String, Int)? in
+            let parts = time.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: ":")
+            guard parts.count >= 2,
+                  let hour = Int(parts[0]),
+                  let minute = Int(parts[1]),
+                  (0..<24).contains(hour),
+                  (0..<60).contains(minute) else { return nil }
+            return (displayTime(time), hour * 60 + minute)
+        }
+        .sorted { $0.1 < $1.1 }
+
+        guard !scheduled.isEmpty else { return nil }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        let now = calendar.dateComponents([.hour, .minute], from: Date())
+        let currentMinute = (now.hour ?? 0) * 60 + (now.minute ?? 0)
+        return scheduled.first(where: { $0.1 >= currentMinute })?.0 ?? scheduled.last?.0
+    }
+
+    private var location: String {
+        [siteName, teamName]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
@@ -31,9 +58,9 @@ struct ChecklistOverviewView: View {
                                 .frame(maxWidth: .infinity, minHeight: 88)
                                 .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 14))
                         } else {
-                            VStack(spacing: 0) {
-                                ForEach(Array(times.enumerated()), id: \.offset) { index, time in
-                                    timeRow(time, isFirst: index == 0, isLast: index == times.count - 1)
+                            VStack(spacing: 8) {
+                                ForEach(Array(times.enumerated()), id: \.offset) { _, time in
+                                    timeRow(time, isActive: displayTime(time) == activeTime)
                                 }
                             }
                         }
@@ -55,48 +82,62 @@ struct ChecklistOverviewView: View {
     }
 
     private var summaryCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(Date.now.formatted(.dateTime.month(.abbreviated).day()).replacingOccurrences(of: ".", with: "") + " 오늘")
-                        .font(HGFont.medium(13, relativeTo: .caption))
+                    Text(summaryContext)
+                        .font(HGFont.medium(12, relativeTo: .caption))
                         .foregroundStyle(.white.opacity(0.82))
-                    Text("오늘의 체크리스트")
-                        .font(HGFont.bold(18, relativeTo: .title3))
-                        .foregroundStyle(.white)
-                    let location = [siteName, teamName]
-                        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-                        .filter { !$0.isEmpty }
-                        .joined(separator: " · ")
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                     if !location.isEmpty {
                         Text(location)
-                            .font(HGFont.regular(12, relativeTo: .caption))
+                            .font(HGFont.regular(11, relativeTo: .caption2))
                             .foregroundStyle(.white.opacity(0.82))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(checkedCount.map(String.init) ?? "—")
+                            .font(HGFont.bold(34, relativeTo: .largeTitle))
+                            .foregroundStyle(.white)
+                        Text("/ \(totalCount.map(String.init) ?? "—")개 항목 완료")
+                            .font(HGFont.medium(16, relativeTo: .headline))
+                            .foregroundStyle(.white.opacity(0.85))
                     }
                 }
-                Spacer()
+                Spacer(minLength: 8)
                 progressRing
             }
 
+            Spacer(minLength: 0)
+
             HStack(spacing: 0) {
                 stat(title: "완료", value: checkedCount.map(String.init) ?? "—")
-                Spacer(minLength: 8)
-                stat(title: "전체 항목", value: totalCount.map(String.init) ?? "—")
-                Spacer(minLength: 8)
-                stat(title: "남은 항목", value: remainingCount.map(String.init) ?? "—")
+                statDivider
+                stat(title: "미완료", value: remainingCount.map(String.init) ?? "—")
+                statDivider
+                stat(title: "전체", value: totalCount.map(String.init) ?? "—")
             }
-            .padding(.top, 2)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: 14))
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: 168)
         .background(
             LinearGradient(
-                colors: [HGColor.primary, HGColor.primary.opacity(0.78)],
+                colors: [
+                    Color(red: 0.247, green: 0.576, blue: 0.969),
+                    Color(red: 0.110, green: 0.384, blue: 0.839)
+                ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             ),
-            in: RoundedRectangle(cornerRadius: 18)
+            in: RoundedRectangle(cornerRadius: 22)
         )
+        .shadow(color: HGColor.primary.opacity(0.22), radius: 12, y: 8)
     }
 
     private var progressRing: some View {
@@ -110,8 +151,16 @@ struct ChecklistOverviewView: View {
                 .font(HGFont.bold(12, relativeTo: .caption))
                 .foregroundStyle(.white)
         }
-        .frame(width: 48, height: 48)
+        .frame(width: 64, height: 64)
         .accessibilityLabel("오늘 체크 항목 진행률")
+    }
+
+    private var summaryContext: String {
+        let date = Date.now.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).month(.defaultDigits).day())
+        let weekday = Date.now.formatted(
+            .dateTime.locale(Locale(identifier: "ko_KR")).weekday(.abbreviated)
+        )
+        return "\(date) (\(weekday))"
     }
 
     private var remainingCount: Int? {
@@ -120,53 +169,82 @@ struct ChecklistOverviewView: View {
     }
 
     private func stat(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .center, spacing: 2) {
             Text(title)
                 .font(HGFont.regular(11, relativeTo: .caption2))
                 .foregroundStyle(.white.opacity(0.78))
             Text(value)
-                .font(HGFont.bold(17, relativeTo: .headline))
+                .font(HGFont.bold(16, relativeTo: .headline))
                 .foregroundStyle(.white)
         }
+        .frame(maxWidth: .infinity)
     }
 
-    private func timeRow(_ rawTime: String, isFirst: Bool, isLast: Bool) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            VStack(spacing: 0) {
-                Circle().fill(HGColor.primary).frame(width: 12, height: 12)
-                if !isLast {
-                    Rectangle().fill(HGColor.homeTimelineLine).frame(width: 2, height: 48)
+    private var statDivider: some View {
+        Rectangle()
+            .fill(.white.opacity(0.2))
+            .frame(width: 1, height: 24)
+    }
+
+    private func timeRow(_ rawTime: String, isActive: Bool) -> some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .stroke(isActive ? HGColor.primary : HGColor.homeTimelineBorder, lineWidth: 2)
+                    .frame(width: 20, height: 20)
+                if isActive {
+                    Circle()
+                        .fill(HGColor.primary)
+                        .frame(width: 10, height: 10)
                 }
             }
-            .padding(.top, 4)
+            .frame(width: 24)
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text(String(rawTime.trimmingCharacters(in: .whitespacesAndNewlines).prefix(5)))
-                    .font(HGFont.bold(15, relativeTo: .subheadline))
-                    .foregroundStyle(HGColor.primaryText)
-                Text("오늘 체크 항목")
-                    .font(HGFont.regular(12, relativeTo: .caption))
-                    .foregroundStyle(HGColor.secondaryText)
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(displayTime(rawTime))
+                        .font(HGFont.bold(15, relativeTo: .subheadline))
+                        .foregroundStyle(HGColor.primaryText)
+                    Text(isActive ? "현재 체크 시간" : "설정된 체크 시간")
+                        .font(HGFont.regular(12, relativeTo: .caption))
+                        .foregroundStyle(HGColor.secondaryText)
+                }
+                Spacer(minLength: 4)
+                if isActive {
+                    Text("진행 중")
+                        .font(HGFont.medium(11, relativeTo: .caption))
+                        .foregroundStyle(HGColor.primary)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .background(HGColor.photoSelectionBackground, in: Capsule())
+                }
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(HGColor.homeChevron)
             }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(HGColor.homeChevron)
-                .padding(.top, 6)
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: 58)
+            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 14))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(isActive ? HGColor.primary : .clear, lineWidth: 1.5)
+            }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(HGColor.surface, in: UnevenRoundedRectangle(
-            topLeadingRadius: isFirst ? 14 : 0,
-            bottomLeadingRadius: isLast ? 14 : 0,
-            bottomTrailingRadius: isLast ? 14 : 0,
-            topTrailingRadius: isFirst ? 14 : 0
-        ))
         .contentShape(Rectangle())
         .onTapGesture(perform: onOpenChecklist)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
+    }
+
+    private func displayTime(_ rawTime: String) -> String {
+        let parts = rawTime.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: ":")
+        guard parts.count >= 2,
+              let hour = Int(parts[0]),
+              let minute = Int(parts[1]),
+              (0..<24).contains(hour),
+              (0..<60).contains(minute) else { return rawTime }
+        if minute == 0 { return String(format: "%02d시", hour) }
+        return String(format: "%02d:%02d", hour, minute)
     }
 
 }

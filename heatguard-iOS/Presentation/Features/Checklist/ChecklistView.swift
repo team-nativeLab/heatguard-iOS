@@ -34,29 +34,33 @@ struct ChecklistView: View {
             let compact = geometry.size.height < 700
             let rowHeight = checklistRowHeight(for: geometry.size.height)
 
-            VStack(spacing: 0) {
-                summaryCard(compact: compact)
-                    .padding(.top, compact ? 8 : 14)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    summaryCard(compact: compact)
+                        .padding(.top, compact ? 4 : 6)
 
-                schedule(compact: compact)
-                    .padding(.top, compact ? 9 : 14)
+                    schedule(compact: compact)
+                        .padding(.top, compact ? 10 : 14)
 
-                Text("관리자가 설정한 항목이에요. 확인한 항목을 눌러 체크하세요.")
-                    .font(HGFont.regular(compact ? 10 : 11, relativeTo: .caption2))
-                    .foregroundStyle(HGColor.secondaryText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-                    .padding(.top, compact ? 8 : 12)
+                    Text("관리자가 설정한 항목이에요. 확인한 항목을 눌러 체크하세요.")
+                        .font(HGFont.regular(compact ? 10 : 11, relativeTo: .caption2))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .padding(.top, compact ? 8 : 12)
 
-                checklistItems(rowHeight: rowHeight)
-                    .padding(.top, compact ? 5 : 8)
-
-                Spacer(minLength: 4)
+                    checklistItems(rowHeight: rowHeight)
+                        .padding(.top, compact ? 5 : 8)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, compact ? 8 : 12)
+                .padding(.bottom, 12)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                .padding(.horizontal, 24)
+                .padding(.top, compact ? 4 : 12)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, compact ? 4 : 12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(HGColor.appBackground)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -124,7 +128,7 @@ struct ChecklistView: View {
                   let minute = Int(parts[1]),
                   (0..<24).contains(hour),
                   (0..<60).contains(minute) else { return nil }
-            return (String(displayTime.prefix(5)), hour * 60 + minute)
+            return (formatTime(displayTime), hour * 60 + minute)
         }
         .sorted { $0.1 < $1.1 }
 
@@ -134,6 +138,17 @@ struct ChecklistView: View {
         let now = calendar.dateComponents([.hour, .minute], from: Date())
         let currentMinute = (now.hour ?? 0) * 60 + (now.minute ?? 0)
         return scheduled.first(where: { $0.1 >= currentMinute })?.0 ?? scheduled.last?.0
+    }
+
+    private func formatTime(_ rawTime: String) -> String {
+        let parts = rawTime.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: ":")
+        guard parts.count >= 2,
+              let hour = Int(parts[0]),
+              let minute = Int(parts[1]),
+              (0..<24).contains(hour),
+              (0..<60).contains(minute) else { return rawTime }
+        if minute == 0 { return String(format: "%02d시", hour) }
+        return String(format: "%02d:%02d", hour, minute)
     }
 
     private func summaryCard(compact: Bool) -> some View {
@@ -181,12 +196,8 @@ struct ChecklistView: View {
             .font(HGFont.regular(11, relativeTo: .caption2))
             .foregroundStyle(HGColor.secondaryText)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, compact ? 11 : 13)
-        .frame(maxWidth: .infinity)
-        .frame(height: compact ? 98 : 112)
-        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
-        .shadow(color: HGColor.cardShadow.opacity(0.25), radius: 8, y: 3)
+        .padding(.horizontal, 0)
+        .padding(.vertical, compact ? 4 : 6)
     }
 
     private var progress: CGFloat {
@@ -209,7 +220,7 @@ struct ChecklistView: View {
             ) {
                 ForEach(Array(times.enumerated()), id: \.offset) { _, rawTime in
                     let time = rawTime.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let displayTime = String(time.prefix(5))
+                    let displayTime = formatTime(time)
                     let isActive = displayTime == activeTime
 
                     HStack(spacing: 4) {
@@ -224,7 +235,7 @@ struct ChecklistView: View {
                             .minimumScaleFactor(0.75)
                     }
                     .foregroundStyle(isActive ? Color.white : HGColor.secondaryText)
-                    .frame(maxWidth: .infinity, minHeight: compact ? 22 : 25)
+                    .frame(maxWidth: .infinity, minHeight: compact ? 25 : 28)
                     .background(
                         isActive ? HGColor.primary : HGColor.surface,
                         in: Capsule()
@@ -352,9 +363,9 @@ private struct HGChecklistItemRow: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 5)
+                    Circle()
                         .fill(item.checked ? HGColor.primary : .clear)
-                    RoundedRectangle(cornerRadius: 5)
+                    Circle()
                         .stroke(item.checked ? HGColor.primary : HGColor.homeTimelineBorder, lineWidth: 1.2)
                     if item.checked {
                         Image(systemName: "checkmark")
@@ -362,7 +373,7 @@ private struct HGChecklistItemRow: View {
                             .foregroundStyle(.white)
                     }
                 }
-                .frame(width: 22, height: 22)
+                .frame(width: 24, height: 24)
 
                 Text(item.text)
                     .font(HGFont.medium(14, relativeTo: .subheadline))
