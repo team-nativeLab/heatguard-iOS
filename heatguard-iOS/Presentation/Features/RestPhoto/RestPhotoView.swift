@@ -10,6 +10,7 @@ struct RestPhotoView: View {
     @State private var restStartedAt: Date
     @State private var restEndedAt: Date
     @State private var validationMessage: String?
+    @State private var keyboardHeight: CGFloat = 0
     let onSave: (HGRecordSaveResult) -> Void
     let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
     let onPhotoRequired: (HGRecordDraft) -> Void
@@ -56,6 +57,20 @@ struct RestPhotoView: View {
     }
 
     var body: some View {
+        GeometryReader { geometry in
+            content(bottomSafeArea: geometry.safeAreaInsets.bottom)
+        }
+        .ignoresSafeArea(.keyboard)
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)
+        ) { notification in
+            withAnimation(HGKeyboardMotion.animation(for: notification)) {
+                keyboardHeight = HGKeyboardMotion.overlapHeight(for: notification)
+            }
+        }
+    }
+
+    private func content(bottomSafeArea: CGFloat) -> some View {
         HGFixedContent(keyboardAware: true) {
             formContent
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -74,6 +89,7 @@ struct RestPhotoView: View {
             )
             .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
             .padding(.vertical, 8)
+            .padding(.bottom, max(0, keyboardHeight - bottomSafeArea))
             .background(HGColor.appBackground)
         }
         .hgRouteNavigationHeader(notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
