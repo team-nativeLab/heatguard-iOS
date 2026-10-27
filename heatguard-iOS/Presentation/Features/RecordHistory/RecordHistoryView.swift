@@ -5,7 +5,9 @@ struct RecordHistoryView: View {
     let onCreateRecord: () -> Void
 
     @State private var records: [HGRecordHistoryItem] = []
+    @State private var knownRecordDates: Set<Date> = []
     @State private var isLoading = true
+    @State private var isRefreshingDate = false
     @State private var isLoadingMore = false
     @State private var nextCursor: String?
     @State private var hasMore = false
@@ -14,6 +16,7 @@ struct RecordHistoryView: View {
     @State private var selectedFilter: RecordFilter = .all
     @State private var selectedPeriodEnd = Date.now
     @State private var showsPeriodPicker = false
+    @State private var recordsRequestID = UUID()
 
     init(onRecordSelected: @escaping (HGRecordHistoryItem) -> Void = { _ in }, onCreateRecord: @escaping () -> Void = {}) {
         self.onRecordSelected = onRecordSelected
@@ -62,13 +65,16 @@ struct RecordHistoryView: View {
         .background(HGColor.appBackground)
         .hgNavigationTitle("기록 내역")
         .safeAreaInset(edge: .bottom) {
-            if !isLoading && filteredRecords.isEmpty {
+            if !isLoading && !isRefreshingDate && filteredRecords.isEmpty {
                 HGPrimaryButton(title: "기록하기", action: onCreateRecord)
                     .padding(.horizontal, 28).padding(.vertical, 10)
                     .background(HGColor.appBackground)
             }
         }
-        .task { await loadRecords() }
+        .task { await loadRecords(for: selectedPeriodEnd) }
+        .onChange(of: selectedPeriodEnd) { _, date in
+            Task { await loadRecords(for: date) }
+        }
         .sheet(isPresented: $showsPeriodPicker) {
             RecordHistoryCalendarSheet(selectedDate: selectedPeriodEnd, recordDates: recordDates) { date in
                 selectedPeriodEnd = date
@@ -77,7 +83,7 @@ struct RecordHistoryView: View {
         .alert(error?.title ?? "기록 조회 오류", isPresented: errorAlert) {
             Button("다시 시도") {
                 Task {
-                    if failedToLoadMore { await loadMoreRecords() } else { await loadRecords() }
+                    if failedToLoadMore { await loadMoreRecords() } else { await loadRecords(for: selectedPeriodEnd) }
                 }
             }
             Button("확인", role: .cancel) {}
@@ -185,7 +191,10 @@ struct RecordHistoryView: View {
     }
 
     @ViewBuilder private var historyContent: some View {
-        if filteredRecords.isEmpty {
+        if isRefreshingDate {
+            ProgressView("선택한 날짜 기록을 불러오는 중")
+                .frame(maxWidth: .infinity, minHeight: 247)
+        } else if filteredRecords.isEmpty {
             VStack(spacing: 10) {
                 Image("RecordPhotoPlaceholder")
                     .resizable().frame(width: 36, height: 36)
@@ -266,9 +275,7 @@ struct RecordHistoryView: View {
     }
 
     private var recordDates: Set<Date> {
-        Set(records.compactMap { record in
-            record.measuredAt.hgISO8601Date.map(historyCalendar.startOfDay(for:))
-        })
+        knownRecordDates
     }
 
     private var weekDates: [Date] {
@@ -287,10 +294,7 @@ struct RecordHistoryView: View {
     }
 
     private func hasRecord(on date: Date) -> Bool {
-        records.contains { record in
-            guard let measuredAt = record.measuredAt.hgISO8601Date else { return false }
-            return historyCalendar.isDate(measuredAt, inSameDayAs: date)
-        }
+        knownRecordDates.contains(historyCalendar.startOfDay(for: date))
     }
 
     private func dateTextColor(for date: Date, isWeekday: Bool) -> Color {
@@ -300,35 +304,63 @@ struct RecordHistoryView: View {
         return isWeekday ? HGColor.secondaryText : HGColor.primaryText
     }
 
-    @MainActor private func loadRecords() async {
+    @MainActor private func loadRecords(for date: Date) async {
+        let requestID = UUID()
+        recordsRequestID = requestID
+        let isInitialLoad = isLoading
         failedToLoadMore = false
-        isLoading = true
-        defer { isLoading = false }
+        isLoadingMore = false
+        if isInitialLoad { isLoading = true } else { isRefreshingDate = true }
+        defer {
+            if recordsRequestID == requestID {
+                isLoading = false
+                isRefreshingDate = false
+            }
+        }
         do {
-            let page = try await HGRecordHistoryService().fetchRecords()
+            let page = try await HGRecordHistoryService().fetchRecords(date: date)
+            guard recordsRequestID == requestID else { return }
             records = page.items
+            rememberRecordDates(page.items)
             nextCursor = page.page.nextCursor
             hasMore = page.page.hasMore && page.page.nextCursor != nil
             error = nil
-        } catch { self.error = HGErrorPresentation(error: error) }
+        } catch {
+            guard recordsRequestID == requestID else { return }
+            self.error = HGErrorPresentation(error: error)
+        }
     }
 
     @MainActor private func loadMoreRecords() async {
         guard !isLoadingMore, hasMore, let nextCursor else { return }
+        let requestID = recordsRequestID
+        let selectedDate = selectedPeriodEnd
         isLoadingMore = true
-        defer { isLoadingMore = false }
+        defer {
+            if recordsRequestID == requestID { isLoadingMore = false }
+        }
         do {
-            let page = try await HGRecordHistoryService().fetchRecords(cursor: nextCursor)
+            let page = try await HGRecordHistoryService().fetchRecords(cursor: nextCursor, date: selectedDate)
+            guard recordsRequestID == requestID else { return }
             let existingIDs = Set(records.map(\.recordID))
-            records.append(contentsOf: page.items.filter { !existingIDs.contains($0.recordID) })
+            let newItems = page.items.filter { !existingIDs.contains($0.recordID) }
+            records.append(contentsOf: newItems)
+            rememberRecordDates(newItems)
             self.nextCursor = page.page.nextCursor
             hasMore = page.page.hasMore && page.page.nextCursor != nil
             failedToLoadMore = false
             error = nil
         } catch {
+            guard recordsRequestID == requestID else { return }
             failedToLoadMore = true
             self.error = HGErrorPresentation(error: error)
         }
+    }
+
+    private func rememberRecordDates(_ items: [HGRecordHistoryItem]) {
+        knownRecordDates.formUnion(items.compactMap { record in
+            record.measuredAt.hgISO8601Date.map(historyCalendar.startOfDay(for:))
+        })
     }
 
     private var errorAlert: Binding<Bool> { Binding(get: { error != nil }, set: { if !$0 { error = nil } }) }

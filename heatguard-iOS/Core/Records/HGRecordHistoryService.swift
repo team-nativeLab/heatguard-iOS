@@ -7,10 +7,21 @@ struct HGRecordHistoryService {
         self.client = client
     }
 
-    func fetchRecords(limit: Int = 20, cursor: String? = nil) async throws -> HGRecordPage {
+    func fetchRecords(
+        limit: Int = 20,
+        cursor: String? = nil,
+        date: Date? = nil
+    ) async throws -> HGRecordPage {
         var queryItems = [URLQueryItem(name: "limit", value: String(limit))]
         if let cursor {
             queryItems.append(URLQueryItem(name: "cursor", value: cursor))
+        }
+        if let date {
+            var formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = TimeZone(identifier: "Asia/Seoul")
+            formatter.dateFormat = "yyyy-MM-dd"
+            queryItems.append(URLQueryItem(name: "date", value: formatter.string(from: date)))
         }
         return try await client.get(
             path: HGAPIPath.teamRecords,
