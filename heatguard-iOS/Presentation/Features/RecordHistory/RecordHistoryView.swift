@@ -100,21 +100,67 @@ struct RecordHistoryView: View {
     }
 
     private var periodSelector: some View {
-        Button { showsPeriodPicker = true } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "calendar").foregroundStyle(HGColor.secondaryText)
-                Text(currentWeekRange).font(HGFont.regular(14, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .layoutPriority(1)
-                Spacer()
-                Image(systemName: "chevron.down").font(.caption.weight(.semibold)).foregroundStyle(HGColor.secondaryText)
+        VStack(spacing: 12) {
+            HStack(spacing: 6) {
+                Button { showsPeriodPicker = true } label: {
+                    HStack(spacing: 4) {
+                        Text(selectedMonthTitle)
+                            .font(HGFont.bold(16, relativeTo: .headline))
+                            .foregroundStyle(HGColor.primaryText)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(HGColor.secondaryText)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(selectedMonthTitle) 달력 열기")
+
+                Spacer(minLength: 4)
+
+                Button("오늘") {
+                    selectedPeriodEnd = .now
+                }
+                .font(HGFont.medium(12, relativeTo: .caption))
+                .foregroundStyle(HGColor.primary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(HGColor.homeMetricIconBackground, in: Capsule())
+                .accessibilityHint("오늘 날짜를 선택합니다")
             }
-            .padding(.horizontal, 20).frame(height: 52)
-            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+
+            HStack(spacing: 0) {
+                ForEach(weekDates, id: \.self) { date in
+                    Button {
+                        selectedPeriodEnd = date
+                    } label: {
+                        VStack(spacing: 4) {
+                            Text(HGDateFormatting.string(from: date, format: "E"))
+                                .font(HGFont.regular(11, relativeTo: .caption2))
+                                .foregroundStyle(dateTextColor(for: date, isWeekday: true))
+                            Text(HGDateFormatting.string(from: date, format: "d"))
+                                .font(HGFont.medium(16, relativeTo: .body))
+                                .foregroundStyle(dateTextColor(for: date, isWeekday: false))
+                            Circle()
+                                .fill(isSelected(date) ? .white : HGColor.primary)
+                                .frame(width: 4, height: 4)
+                                .opacity(hasRecord(on: date) ? 1 : 0)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 62)
+                        .background(isSelected(date) ? HGColor.primary : .clear, in: RoundedRectangle(cornerRadius: 12))
+                        .contentShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isFuture(date))
+                    .accessibilityLabel(HGDateFormatting.string(from: date, format: "M월 d일 E"))
+                    .accessibilityValue(isSelected(date) ? "선택됨" : (hasRecord(on: date) ? "기록 있음" : ""))
+                }
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityHint("기준일을 선택해 최근 7일 기록을 조회합니다")
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private var filterSelector: some View {
@@ -159,7 +205,7 @@ struct RecordHistoryView: View {
                 Image("RecordPhotoPlaceholder")
                     .resizable().frame(width: 36, height: 36)
                     .frame(width: 72, height: 72).background(HGColor.homeMetricIconBackground, in: Circle())
-                Text(hasMore ? "불러온 기록 중 해당 항목이 없어요" : "해당 기간에 \(selectedFilter.emptyDescription) 기록이 없어요")
+                Text(hasMore ? "불러온 기록 중 해당 항목이 없어요" : emptyMessage)
                     .font(HGFont.bold(16, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
                 Text(hasMore ? "더 보기를 눌러 이전 기록을 확인해 보세요" : "기간이나 유형을 바꾸거나 새 기록을 남겨보세요")
                     .font(HGFont.regular(13, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
@@ -200,12 +246,17 @@ struct RecordHistoryView: View {
             formatter.locale = HGDateFormatting.locale
             formatter.timeZone = HGDateFormatting.timeZone
             formatter.dateFormat = "M월 d일 (E)"
+            let items = grouped[date] ?? []
             return RecordDayGroup(
                 date: date,
-                label: date == .distantPast ? "날짜 정보 없음" : prefix + formatter.string(from: date),
-                items: grouped[date] ?? []
+                label: date == .distantPast ? "날짜 정보 없음" : "\(prefix)\(formatter.string(from: date)) · 기록 \(items.count)건",
+                items: items
             )
         }
+    }
+
+    private var emptyMessage: String {
+        selectedFilter == .all ? "선택한 날짜에 기록이 없어요" : "선택한 날짜에 \(selectedFilter.emptyDescription) 기록이 없어요"
     }
 
     private var filteredRecords: [HGRecordHistoryItem] {
@@ -213,24 +264,49 @@ struct RecordHistoryView: View {
     }
 
     private var periodRecords: [HGRecordHistoryItem] {
-        let calendar = HGDateFormatting.calendar
-        let end = calendar.startOfDay(for: selectedPeriodEnd)
-        let start = calendar.date(byAdding: .day, value: -6, to: end) ?? end
-        let endExclusive = calendar.date(byAdding: .day, value: 1, to: end) ?? end
-
         return records.filter { record in
             guard let measuredAt = record.measuredAt.hgISO8601Date else { return false }
-            return measuredAt >= start && measuredAt < endExclusive
+            return historyCalendar.isDate(measuredAt, inSameDayAs: selectedPeriodEnd)
         }
     }
 
-    private var currentWeekRange: String {
-        let start = HGDateFormatting.calendar.date(byAdding: .day, value: -6, to: selectedPeriodEnd) ?? selectedPeriodEnd
-        let formatter = DateFormatter()
-        formatter.locale = HGDateFormatting.locale
-        formatter.timeZone = HGDateFormatting.timeZone
-        formatter.dateFormat = "yyyy. MM. dd."
-        return "\(formatter.string(from: start)) ~ \(formatter.string(from: selectedPeriodEnd))"
+    private var selectedMonthTitle: String {
+        HGDateFormatting.string(from: selectedPeriodEnd, format: "yyyy년 M월")
+    }
+
+    private var historyCalendar: Calendar {
+        var calendar = HGDateFormatting.calendar
+        calendar.firstWeekday = 2
+        return calendar
+    }
+
+    private var weekDates: [Date] {
+        guard let interval = historyCalendar.dateInterval(of: .weekOfYear, for: selectedPeriodEnd) else {
+            return []
+        }
+        return (0..<7).compactMap { historyCalendar.date(byAdding: .day, value: $0, to: interval.start) }
+    }
+
+    private func isSelected(_ date: Date) -> Bool {
+        historyCalendar.isDate(date, inSameDayAs: selectedPeriodEnd)
+    }
+
+    private func isFuture(_ date: Date) -> Bool {
+        historyCalendar.startOfDay(for: date) > historyCalendar.startOfDay(for: .now)
+    }
+
+    private func hasRecord(on date: Date) -> Bool {
+        records.contains { record in
+            guard let measuredAt = record.measuredAt.hgISO8601Date else { return false }
+            return historyCalendar.isDate(measuredAt, inSameDayAs: date)
+        }
+    }
+
+    private func dateTextColor(for date: Date, isWeekday: Bool) -> Color {
+        if isSelected(date) { return .white }
+        if isFuture(date) { return HGColor.placeholder }
+        if isWeekday && historyCalendar.component(.weekday, from: date) == 1 { return HGColor.error }
+        return isWeekday ? HGColor.secondaryText : HGColor.primaryText
     }
 
     @MainActor private func loadRecords() async {
