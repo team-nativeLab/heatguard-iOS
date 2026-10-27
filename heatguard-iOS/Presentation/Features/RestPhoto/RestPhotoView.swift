@@ -13,7 +13,6 @@ struct RestPhotoView: View {
     let onSave: (HGRecordSaveResult) -> Void
     let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
     let onPhotoRequired: (HGRecordDraft) -> Void
-    let onBack: () -> Void
     let onNotificationsTap: () -> Void
     let notificationCount: Int
     private let teamName: String?
@@ -32,7 +31,6 @@ struct RestPhotoView: View {
         weather: HomeWeather? = nil,
         initialRestStartedAt: Date? = nil,
         initialRestEndedAt: Date? = nil,
-        onBack: @escaping () -> Void = {},
         teamName: String? = nil,
         workplace: String? = nil,
         siteName: String? = nil,
@@ -42,7 +40,6 @@ struct RestPhotoView: View {
         self.onSave = onSave
         self.onFailure = onFailure
         self.onPhotoRequired = onPhotoRequired
-        self.onBack = onBack
         self.onNotificationsTap = onNotificationsTap
         self.notificationCount = notificationCount
         self.teamName = teamName
@@ -59,21 +56,19 @@ struct RestPhotoView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            HGFixedContent(keyboardAware: true) {
-                formContent
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.bottom, 16)
-            }
+        HGFixedContent(keyboardAware: true) {
+            formContent
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 16)
         }
         .padding(.horizontal, HGLayout.screenHorizontalPadding)
-        .padding(.top, HGLayout.screenTopPadding)
+        .padding(.top, 8)
         .background(HGColor.appBackground)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HGPrimaryButton(
                 title: isSaving ? "저장 중..." : "기록 저장",
                 isEnabled: !isSaving,
+                isLoading: isSaving,
                 height: HGLayout.primaryButtonHeight,
                 action: saveRecord
             )
@@ -81,7 +76,7 @@ struct RestPhotoView: View {
             .padding(.vertical, 8)
             .background(HGColor.appBackground)
         }
-        .toolbar(.hidden, for: .navigationBar)
+        .hgRouteNavigationHeader(notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
         .dismissKeyboardOnBackgroundTap()
         .alert("입력값을 확인해주세요", isPresented: validationAlert) {
             Button("확인", role: .cancel) {}
@@ -113,15 +108,6 @@ struct RestPhotoView: View {
             }
         }
         .padding(.top, HGLayout.screenContentTopPadding)
-    }
-
-    private var header: some View {
-        HGScreenHeader(
-            onMenuTap: onBack,
-            leadingSystemImage: "chevron.left",
-            notificationCount: notificationCount,
-            onNotificationsTap: onNotificationsTap
-        )
     }
 
     private var restForm: some View {

@@ -8,8 +8,6 @@ struct ChecklistOverviewView: View {
     let teamName: String?
     let onOpenChecklist: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
-
     private var progress: CGFloat {
         guard let checkedCount, let totalCount, totalCount > 0 else { return 0 }
         return CGFloat(checkedCount) / CGFloat(totalCount)
@@ -17,8 +15,6 @@ struct ChecklistOverviewView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     summaryCard
@@ -55,30 +51,7 @@ struct ChecklistOverviewView: View {
                 .background(HGColor.appBackground)
         }
         .background(HGColor.appBackground.ignoresSafeArea())
-        .toolbar(.hidden, for: .navigationBar)
-        .navigationBarBackButtonHidden()
-    }
-
-    private var header: some View {
-        ZStack {
-            Text("체크리스트")
-                .font(HGFont.semiBold(18, relativeTo: .headline))
-                .foregroundStyle(HGColor.primaryText)
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(HGColor.primaryText)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("뒤로")
-                Spacer()
-            }
-        }
-        .frame(height: 48)
-        .padding(.horizontal, 12)
-        .background(HGColor.surface)
+        .hgRouteNavigationHeader(title: "체크리스트")
     }
 
     private var summaryCard: some View {

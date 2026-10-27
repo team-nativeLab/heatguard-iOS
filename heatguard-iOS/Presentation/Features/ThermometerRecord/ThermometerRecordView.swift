@@ -17,7 +17,6 @@ struct ThermometerRecordView: View {
     @State private var validationMessage: String?
 
     let onContinue: (HGRecordDraft) -> Void
-    let onMenuTap: () -> Void
     let onNotificationsTap: () -> Void
     let notificationCount: Int
 
@@ -27,7 +26,6 @@ struct ThermometerRecordView: View {
         workplace: String? = nil,
         siteName: String? = nil,
         onContinue: @escaping (HGRecordDraft) -> Void = { _ in },
-        onMenuTap: @escaping () -> Void = {},
         onNotificationsTap: @escaping () -> Void = {},
         notificationCount: Int = 0
     ) {
@@ -41,40 +39,35 @@ struct ThermometerRecordView: View {
         self.workplace = workplace
         self.siteName = siteName
         self.onContinue = onContinue
-        self.onMenuTap = onMenuTap
         self.onNotificationsTap = onNotificationsTap
         self.notificationCount = notificationCount
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
+        HGFixedContent(keyboardAware: true) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("온도계 기록")
+                    .font(HGFont.bold(20, relativeTo: .title2))
+                    .foregroundStyle(HGColor.primaryText)
 
-            HGFixedContent(keyboardAware: true) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("온도계 기록")
-                        .font(HGFont.bold(20, relativeTo: .title2))
-                        .foregroundStyle(HGColor.primaryText)
+                Text("온도계 데이터를 입력하고 현장 사진을\n촬영해 주세요.")
+                    .font(HGFont.regular(14, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.primaryText)
+                    .padding(.top, 10)
 
-                    Text("온도계 데이터를 입력하고 현장 사진을\n촬영해 주세요.")
-                        .font(HGFont.regular(14, relativeTo: .subheadline))
-                        .foregroundStyle(HGColor.primaryText)
-                        .padding(.top, 10)
+                temperatureSummaryCard
+                    .padding(.top, 25)
 
-                    temperatureSummaryCard
-                        .padding(.top, 25)
+                manualEntryCard
+                    .padding(.top, 30)
 
-                    manualEntryCard
-                        .padding(.top, 30)
-
-                    photoSection
-                        .padding(.top, 26)
-                }
-                .padding(.top, HGLayout.screenContentTopPadding)
+                photoSection
+                    .padding(.top, 26)
             }
+            .padding(.top, HGLayout.screenContentTopPadding)
         }
         .padding(.horizontal, HGLayout.screenHorizontalPadding)
-        .padding(.top, HGLayout.screenTopPadding)
+        .padding(.top, 8)
         .background(HGColor.appBackground)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !isKeyboardVisible {
@@ -91,22 +84,13 @@ struct ThermometerRecordView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             withAnimation(.easeOut(duration: 0.2)) { isKeyboardVisible = false }
         }
-        .toolbar(.hidden, for: .navigationBar)
+        .hgRouteNavigationHeader(notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
         .dismissKeyboardOnBackgroundTap()
         .alert("입력값을 확인해주세요", isPresented: validationAlert) {
             Button("확인", role: .cancel) {}
         } message: {
             Text(validationMessage ?? "")
         }
-    }
-
-    private var header: some View {
-        HGScreenHeader(
-            title: "폭염가드",
-            onMenuTap: onMenuTap,
-            notificationCount: notificationCount,
-            onNotificationsTap: onNotificationsTap
-        )
     }
 
     private var temperatureSummaryCard: some View {

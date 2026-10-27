@@ -35,8 +35,6 @@ struct ChecklistView: View {
             let rowHeight = checklistRowHeight(for: geometry.size.height)
 
             VStack(spacing: 0) {
-                header(compact: compact)
-
                 summaryCard(compact: compact)
                     .padding(.top, compact ? 8 : 14)
 
@@ -65,6 +63,7 @@ struct ChecklistView: View {
             HGPrimaryButton(
                 title: buttonTitle,
                 isEnabled: isComplete && updatingItemIDs.isEmpty,
+                isLoading: isLoading,
                 disabledTint: HGColor.checklistDisabledButton
             ) {
                 dismiss()
@@ -75,8 +74,7 @@ struct ChecklistView: View {
             .background(HGColor.appBackground)
         }
         .background(HGColor.appBackground)
-        .toolbar(.hidden, for: .navigationBar)
-        .navigationBarBackButtonHidden()
+        .hgRouteNavigationHeader(title: "체크리스트")
         .task { await loadItems() }
         .alert(
             error?.title ?? "체크리스트 오류",
@@ -136,29 +134,6 @@ struct ChecklistView: View {
         let now = calendar.dateComponents([.hour, .minute], from: Date())
         let currentMinute = (now.hour ?? 0) * 60 + (now.minute ?? 0)
         return scheduled.first(where: { $0.1 >= currentMinute })?.0 ?? scheduled.last?.0
-    }
-
-    private func header(compact: Bool) -> some View {
-        ZStack {
-            Text("체크리스트")
-                .font(HGFont.semiBold(18, relativeTo: .headline))
-                .foregroundStyle(HGColor.primaryText)
-
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(HGColor.primaryText)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("뒤로")
-
-                Spacer(minLength: 0)
-            }
-        }
-        .frame(height: compact ? 40 : 44)
     }
 
     private func summaryCard(compact: Bool) -> some View {

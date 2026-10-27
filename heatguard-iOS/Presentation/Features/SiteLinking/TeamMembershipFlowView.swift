@@ -106,7 +106,8 @@ struct TeamMembershipFlowView: View {
             VStack(spacing: 12) {
                 HGPrimaryButton(
                     title: busy ? "처리 중..." : "현장 참여하기",
-                    isEnabled: !busy
+                    isEnabled: !busy,
+                    isLoading: busy
                 ) {
                     Task { await acceptInvitationIfNeeded() }
                 }
@@ -181,7 +182,8 @@ struct TeamMembershipFlowView: View {
             }
             HGPrimaryButton(
                 title: busy ? "로그인 중..." : "로그인",
-                isEnabled: !busy
+                isEnabled: !busy,
+                isLoading: busy
             ) {
                 Task { await submitAccess() }
             }
@@ -386,7 +388,8 @@ struct TeamMembershipFlowView: View {
 
             HGPrimaryButton(
                 title: registrationButtonTitle,
-                isEnabled: canContinueRegistration && !busy
+                isEnabled: canContinueRegistration && !busy,
+                isLoading: busy
             ) {
                 Task { await continueRegistration() }
             }
