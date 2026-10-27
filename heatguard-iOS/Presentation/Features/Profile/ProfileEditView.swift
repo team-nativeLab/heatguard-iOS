@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ProfileEditView: View {
     let profile: HGTeamProfile?
@@ -9,6 +10,12 @@ struct ProfileEditView: View {
     @State private var isSaving = false
     @State private var error: HGErrorPresentation?
     @State private var isComplete = false
+    @FocusState private var focusedField: ProfileField?
+
+    private enum ProfileField: Hashable {
+        case name
+        case phone
+    }
 
     init(profile: HGTeamProfile? = nil, onProfileUpdated: @escaping (HGTeamProfile) -> Void = { _ in }) {
         self.profile = profile
@@ -20,7 +27,7 @@ struct ProfileEditView: View {
 
     var body: some View {
         HGFixedContent(keyboardAware: true) {
-            VStack(spacing: 28) {
+            VStack(spacing: 20) {
                 VStack(spacing: 8) {
                     Text(name.prefix(1))
                         .font(HGFont.bold(26, relativeTo: .title))
@@ -36,21 +43,20 @@ struct ProfileEditView: View {
                     if let companyName = profile?.companyName, !companyName.isEmpty {
                         profileValue(title: "회사명", value: companyName)
                     }
-                    profileValue(title: "이름", value: name)
-                    HGTextField(
-                        title: "이메일", placeholder: "example@email.com", text: $email, isReadOnly: true,
-                        trailingLabel: "변경 불가", fieldHeight: 48, inputType: .email)
-                    Text("로그인에 쓰는 이메일은 변경할 수 없어요")
-                        .font(HGFont.regular(12, relativeTo: .caption))
-                        .foregroundStyle(HGColor.secondaryText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    HGTextField(
-                        title: "전화번호",
-                        placeholder: "전화번호를 입력해주세요",
-                        text: $phone,
-                        fieldHeight: 48,
-                        inputType: .phone
+                    editableProfileField(
+                        title: "이름",
+                        text: $name,
+                        placeholder: "이름을 입력해주세요",
+                        field: .name
                     )
+                    editableProfileField(
+                        title: "전화번호",
+                        text: $phone,
+                        placeholder: "전화번호를 입력해주세요",
+                        field: .phone,
+                        keyboardType: .phonePad
+                    )
+                    emailValue
                     NavigationLink {
                         PasswordChangeView()
                     } label: {
@@ -75,7 +81,8 @@ struct ProfileEditView: View {
             }
             .padding(24)
         }
-        .background(HGColor.appBackground).hgNavigationTitle("내 정보 수정")
+        .background(HGColor.appBackground)
+        .hgNavigationTitle("내 정보 수정")
         .safeAreaInset(edge: .bottom) {
             HGPrimaryButton(title: isSaving ? "저장 중..." : "저장하기", isEnabled: isValid && !isSaving) {
                 Task { await saveProfile() }
@@ -104,9 +111,102 @@ struct ProfileEditView: View {
             Text(value)
                 .font(HGFont.regular(15, relativeTo: .body))
                 .foregroundStyle(HGColor.primaryText)
-                .padding(.horizontal, 24)
-                .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
-                .background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(HGColor.inputBorder, lineWidth: 1)
+                }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func editableProfileField(
+        title: String,
+        text: Binding<String>,
+        placeholder: String,
+        field: ProfileField,
+        keyboardType: UIKeyboardType = .default
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(HGFont.bold(13, relativeTo: .caption))
+                .foregroundStyle(HGColor.primaryText)
+
+            HStack(spacing: 8) {
+                TextField(placeholder, text: text)
+                    .font(HGFont.regular(14, relativeTo: .body))
+                    .foregroundStyle(HGColor.primaryText)
+                    .keyboardType(keyboardType)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .focused($focusedField, equals: field)
+                    .background {
+                        GeometryReader { geometry in
+                            Color.clear.preference(
+                                key: HGKeyboardInputFramesPreferenceKey.self,
+                                value: [geometry.frame(in: .named(HGKeyboardDismissTapConstants.coordinateSpace))]
+                            )
+                        }
+                    }
+
+                if field == .name && !text.wrappedValue.isEmpty {
+                    Button {
+                        text.wrappedValue = ""
+                        focusedField = .name
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 17))
+                            .foregroundStyle(HGColor.secondaryText)
+                            .frame(width: 32, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("이름 지우기")
+                }
+            }
+            .padding(.leading, 16)
+            .padding(.trailing, 8)
+            .frame(height: 48)
+            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(focusedField == field ? HGColor.primary : HGColor.inputBorder, lineWidth: focusedField == field ? 1.5 : 1)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var emailValue: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("로그인 이메일")
+                .font(HGFont.bold(13, relativeTo: .caption))
+                .foregroundStyle(HGColor.primaryText)
+
+            HStack(spacing: 8) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(HGColor.secondaryText)
+                Text(email)
+                    .font(HGFont.regular(14, relativeTo: .body))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Text("변경 불가")
+                    .font(HGFont.medium(11, relativeTo: .caption2))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(HGColor.readOnlyField, in: Capsule())
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 48)
+            .background(HGColor.readOnlyField, in: RoundedRectangle(cornerRadius: 12))
+
+            Text("로그인에 쓰는 이메일은 변경할 수 없어요")
+                .font(HGFont.regular(12, relativeTo: .caption))
+                .foregroundStyle(HGColor.secondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
