@@ -929,7 +929,8 @@ private struct HomeActionRow: View {
                     .foregroundStyle(HGColor.homeChevron)
             }
             .padding(.horizontal, 16)
-            .frame(height: rowHeight)
+            .frame(maxWidth: .infinity, minHeight: rowHeight, alignment: .leading)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
