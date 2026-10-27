@@ -85,10 +85,7 @@ private struct RecordTypeCard: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 33) {
-                Image(type.imageName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: type == .thermometer ? 80 : 47, height: 80)
+                illustration
 
                 VStack(alignment: .leading, spacing: 13) {
                     Text(type.title)
@@ -102,7 +99,8 @@ private struct RecordTypeCard: View {
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 29)
+            .padding(.leading, 35)
+            .padding(.trailing, 20)
             .frame(maxWidth: .infinity, minHeight: 143, alignment: .leading)
             .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 25))
             .overlay {
@@ -113,6 +111,21 @@ private struct RecordTypeCard: View {
         .buttonStyle(.plain)
         .accessibilityLabel(type.title)
         .accessibilityValue(isSelected ? "선택됨" : "선택 안 됨")
+    }
+
+    private var illustration: some View {
+        // Figma uses a 109pt thermometer canvas centered on the same 47pt icon column.
+        // Keep the canvas outside the layout width so all three text columns align.
+        Color.clear
+            .frame(width: 47, height: 47)
+            .overlay {
+                Image(type.imageName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: type == .thermometer ? 109 : 47,
+                           height: type == .thermometer ? 109 : 47)
+            }
+            .accessibilityHidden(true)
     }
 }
 
