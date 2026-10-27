@@ -24,7 +24,6 @@ struct TeamMembershipFlowView: View {
     @State private var verificationErrorMessage: String?
     @State private var registrationStep = TeamRegistrationStep.email
     @State private var codeExpiresAt: Date?
-    @State private var verificationErrorMessage: String?
     @FocusState private var isVerificationCodeFocused: Bool
     @State private var memberships: [HGTeamMembership] = []
     @State private var selectedTeamID: String?
