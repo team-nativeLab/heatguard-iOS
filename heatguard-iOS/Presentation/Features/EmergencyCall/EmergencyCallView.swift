@@ -60,8 +60,8 @@ struct EmergencyCallView: View {
             ZStack {
                 Circle().fill(HGColor.emergencyCallBackground).frame(width: 138, height: 138)
                 if !reduceMotion {
-                    HGEmergencyPulse(delay: 0)
-                    HGEmergencyPulse(delay: 0.9)
+                    HGEmergencyPulse(delay: 0, color: HGColor.emergencyCallBackground)
+                    HGEmergencyPulse(delay: 0.9, color: HGColor.emergencyCallBackground)
                 }
                 Circle().fill(HGColor.emergencyCallForeground).frame(width: 110, height: 110)
                 Image(systemName: "exclamationmark.triangle.fill")
@@ -102,27 +102,5 @@ struct EmergencyCallView: View {
 
     private var errorAlert: Binding<Bool> {
         Binding(get: { error != nil }, set: { if !$0 { error = nil } })
-    }
-}
-
-private struct HGEmergencyPulse: View {
-    @State private var isExpanded = false
-
-    let delay: Double
-
-    var body: some View {
-        Circle()
-            .fill(HGColor.emergencyCallBackground)
-            .frame(width: 138, height: 138)
-            .scaleEffect(isExpanded ? 1.65 : 1)
-            .opacity(isExpanded ? 0 : 0.8)
-            .animation(
-                .easeOut(duration: 1.8)
-                    .delay(delay)
-                    .repeatForever(autoreverses: false),
-                value: isExpanded
-            )
-            .onAppear { isExpanded = true }
-            .accessibilityHidden(true)
     }
 }
