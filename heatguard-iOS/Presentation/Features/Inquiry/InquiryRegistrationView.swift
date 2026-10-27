@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct InquiryRegistrationView: View {
-    var onRegistered: (() -> Void)? = nil
+    var onRegistered: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
@@ -85,7 +85,7 @@ struct InquiryRegistrationView: View {
         .background(HGColor.appBackground)
         .hgNavigationTitle("문의 등록")
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            Button(action: { Task { await submitInquiry() } }) {
+            Button(action: { Task { await submitInquiry() } }, label: {
                 HStack(spacing: 8) {
                     if isSubmitting {
                         ProgressView()
@@ -101,7 +101,7 @@ struct InquiryRegistrationView: View {
                     isFormValid && !isSubmitting ? HGColor.primary : HGColor.disabled,
                     in: RoundedRectangle(cornerRadius: HGLayout.primaryButtonCornerRadius)
                 )
-            }
+            })
             .buttonStyle(.plain)
             .disabled(!isFormValid || isSubmitting)
             .accessibilityIdentifier("inquiry.registration.submit")
