@@ -1,36 +1,117 @@
 import SwiftUI
 
 struct InquiryView: View {
-    @State private var title = ""
-    @State private var content = ""
     @State private var inquiries: [HGInquirySummary] = []
-    @State private var selectedStatus: HGInquiryStatus?
     @State private var isLoading = true
     @State private var isLoadingMore = false
     @State private var nextCursor: String?
     @State private var hasMore = false
     @State private var listRequestID = UUID()
     @State private var failedToLoadMore = false
-    @State private var isSubmitting = false
     @State private var error: HGErrorPresentation?
-    @State private var isComplete = false
 
     var body: some View {
-        List {
-            VStack(alignment: .leading, spacing: 20) {
-                inquiryForm
-                inquiryList
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                Text("등록한 문의와 답변을 여기서 확인할 수 있어요")
+                    .font(HGFont.regular(14))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack {
+                        Text("내 문의 목록")
+                            .font(HGFont.bold(16, relativeTo: .headline))
+                            .foregroundStyle(HGColor.primaryText)
+                        Spacer()
+                        Text("\(inquiries.count)건")
+                            .font(HGFont.regular(12, relativeTo: .caption))
+                            .foregroundStyle(HGColor.secondaryText)
+                    }
+
+                    if isLoading {
+                        VStack(spacing: 0) {
+                            ForEach(0..<3, id: \.self) { index in
+                                InquiryLoadingRow()
+                                if index < 2 { Divider().padding(.leading, 16) }
+                            }
+                        }
+                        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                        .accessibilityLabel("문의 목록을 불러오는 중")
+                    } else if inquiries.isEmpty {
+                        VStack(spacing: 10) {
+                            Image(systemName: "bubble.left")
+                                .font(.system(size: 24, weight: .regular))
+                                .foregroundStyle(HGColor.secondaryText)
+                            Text("등록한 문의가 없어요")
+                                .font(HGFont.medium(14))
+                                .foregroundStyle(HGColor.secondaryText)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 32)
+                        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(Array(inquiries.enumerated()), id: \.element.id) { index, inquiry in
+                                NavigationLink {
+                                    InquiryDetailView(inquiryID: inquiry.id)
+                                } label: {
+                                    InquiryRow(inquiry: inquiry)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("inquiry.list.row.\(inquiry.id)")
+
+                                if index < inquiries.count - 1 {
+                                    Divider().padding(.leading, 16)
+                                }
+                            }
+                        }
+                        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                    }
+
+                    if !isLoading && hasMore {
+                        Button {
+                            Task { await loadMoreInquiries() }
+                        } label: {
+                            HStack(spacing: 8) {
+                                if isLoadingMore { ProgressView() }
+                                Text(isLoadingMore ? "불러오는 중..." : "더 보기")
+                            }
+                            .font(HGFont.medium(13, relativeTo: .subheadline))
+                            .foregroundStyle(HGColor.primary)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .disabled(isLoadingMore)
+                    }
+                }
             }
-            .padding(24)
-            .listRowInsets(EdgeInsets())
-            .listRowSeparator(.hidden)
-            .listRowBackground(HGColor.appBackground)
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+            .padding(.bottom, 24)
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
         .background(HGColor.appBackground)
+        .scrollContentBackground(.hidden)
         .hgNavigationTitle("문의하기")
         .task { await loadInquiries() }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            NavigationLink {
+                InquiryRegistrationView(onRegistered: { Task { await loadInquiries() } })
+            } label: {
+                Text("문의 등록하기")
+                    .font(HGFont.medium(16))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: HGLayout.primaryButtonHeight)
+                    .background(HGColor.primary, in: RoundedRectangle(cornerRadius: HGLayout.primaryButtonCornerRadius))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("inquiry.list.register")
+            .padding(.horizontal, 24)
+            .padding(.top, 12)
+            .padding(.bottom, 12)
+            .background(HGColor.appBackground)
+        }
         .alert(error?.title ?? "문의 오류", isPresented: errorAlert) {
             Button("다시 시도") {
                 Task {
@@ -38,131 +119,9 @@ struct InquiryView: View {
                 }
             }
             Button("확인", role: .cancel) {}
-        } message: { Text(error?.alertMessage ?? "") }
-        .alert("문의가 등록되었습니다.", isPresented: $isComplete) {
-            Button("확인", role: .cancel) {}
+        } message: {
+            Text(error?.alertMessage ?? "")
         }
-        .dismissKeyboardOnBackgroundTap()
-        .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            Color.clear
-                .frame(height: 16)
-                .allowsHitTesting(false)
-        }
-    }
-
-    private var inquiryForm: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HGTextField(title: "제목", placeholder: "제목을 입력해주세요", text: $title, fieldHeight: 48)
-            VStack(alignment: .leading, spacing: 8) {
-                Text("내용")
-                    .font(HGFont.bold(13, relativeTo: .caption))
-                ZStack(alignment: .topLeading) {
-                    TextEditor(text: $content)
-                        .font(HGFont.regular(14))
-                        .scrollContentBackground(.hidden)
-                    if content.isEmpty {
-                        Text("궁금한 점이나 불편한 점을 자세히 적어주세요")
-                            .font(HGFont.regular(14))
-                            .foregroundStyle(HGColor.secondaryText)
-                            .padding(.top, 8)
-                            .padding(.leading, 5)
-                            .allowsHitTesting(false)
-                    }
-                }
-                .padding(12)
-                .frame(height: 140)
-                .background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: 12))
-                Text("답변은 아래 문의 목록에서 확인할 수 있어요")
-                    .font(HGFont.regular(11, relativeTo: .caption2))
-                    .foregroundStyle(HGColor.secondaryText)
-            }
-            HGPrimaryButton(
-                title: isSubmitting ? "등록 중..." : "문의 등록",
-                isEnabled: isFormValid && !isSubmitting
-            ) {
-                Task { await submitInquiry() }
-            }
-        }
-    }
-
-    private var inquiryList: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("내 문의 목록")
-                    .font(HGFont.bold(16, relativeTo: .headline))
-                Spacer()
-                Text(hasMore ? "\(inquiries.count)건 이상" : "\(inquiries.count)건")
-                    .font(HGFont.regular(12, relativeTo: .caption))
-                    .foregroundStyle(HGColor.secondaryText)
-            }
-
-            statusSelector
-
-            if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, minHeight: 120)
-            } else if inquiries.isEmpty {
-                Text("등록한 문의가 없어요.")
-                    .font(HGFont.regular(12, relativeTo: .caption))
-                    .foregroundStyle(HGColor.secondaryText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(inquiries) { inquiry in
-                        NavigationLink {
-                            InquiryDetailView(inquiryID: inquiry.id)
-                        } label: {
-                            InquiryRow(inquiry: inquiry)
-                        }
-                        .buttonStyle(.plain)
-
-                        if inquiry.id != inquiries.last?.id {
-                            Divider().padding(.leading, 16)
-                        }
-                    }
-                }
-                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
-            }
-
-            if !isLoading && hasMore {
-                Button {
-                    Task { await loadMoreInquiries() }
-                } label: {
-                    HStack(spacing: 8) {
-                        if isLoadingMore { ProgressView() }
-                        Text(isLoadingMore ? "불러오는 중..." : "더 보기")
-                    }
-                    .font(HGFont.medium(13, relativeTo: .subheadline))
-                    .foregroundStyle(HGColor.primary)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                }
-                .disabled(isLoadingMore)
-            }
-        }
-    }
-
-    private var statusSelector: some View {
-        HStack(spacing: 8) {
-            InquiryStatusChip(title: "전체", isSelected: selectedStatus == nil) {
-                selectedStatus = nil
-                Task { await loadInquiries() }
-            }
-            ForEach(HGInquiryStatus.allCases) { status in
-                InquiryStatusChip(title: status.title, isSelected: selectedStatus == status) {
-                    selectedStatus = status
-                    Task { await loadInquiries() }
-                }
-            }
-            Spacer()
-        }
-    }
-
-    private var isFormValid: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var errorAlert: Binding<Bool> {
@@ -179,16 +138,14 @@ struct InquiryView: View {
             if listRequestID == requestID { isLoading = false }
         }
         do {
-            let page = try await HGInquiryService().fetchInquiries(status: selectedStatus)
+            let page = try await HGInquiryService().fetchInquiries()
             guard listRequestID == requestID else { return }
             inquiries = page.items
             nextCursor = page.page.nextCursor
             hasMore = page.page.hasMore && page.page.nextCursor != nil
-            failedToLoadMore = false
             error = nil
         } catch {
             guard listRequestID == requestID else { return }
-            failedToLoadMore = false
             self.error = HGErrorPresentation(error: error)
         }
     }
@@ -197,11 +154,10 @@ struct InquiryView: View {
     private func loadMoreInquiries() async {
         guard !isLoadingMore, hasMore, let nextCursor else { return }
         let requestID = listRequestID
-        let status = selectedStatus
         isLoadingMore = true
         defer { isLoadingMore = false }
         do {
-            let page = try await HGInquiryService().fetchInquiries(status: status, cursor: nextCursor)
+            let page = try await HGInquiryService().fetchInquiries(cursor: nextCursor)
             guard listRequestID == requestID else { return }
             let existingIDs = Set(inquiries.map(\.inquiryID))
             inquiries.append(contentsOf: page.items.filter { !existingIDs.contains($0.inquiryID) })
@@ -215,42 +171,21 @@ struct InquiryView: View {
             self.error = HGErrorPresentation(error: error)
         }
     }
-
-    @MainActor
-    private func submitInquiry() async {
-        isSubmitting = true
-        defer { isSubmitting = false }
-        do {
-            _ = try await HGInquiryService().createInquiry(
-                title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-                content: content.trimmingCharacters(in: .whitespacesAndNewlines)
-            )
-            title = ""
-            content = ""
-            isComplete = true
-            await loadInquiries()
-        } catch {
-            failedToLoadMore = false
-            self.error = HGErrorPresentation(error: error)
-        }
-    }
 }
 
-private struct InquiryStatusChip: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
+private struct InquiryLoadingRow: View {
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(HGFont.medium(11, relativeTo: .caption))
-                .foregroundStyle(isSelected ? .white : HGColor.secondaryText)
-                .padding(.horizontal, 12)
-                .frame(height: 30)
-                .background(isSelected ? HGColor.primary : HGColor.surface, in: Capsule())
+        HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 8) {
+                Capsule().fill(HGColor.metricBackground).frame(width: 64, height: 16)
+                RoundedRectangle(cornerRadius: 4).fill(HGColor.metricBackground).frame(width: 190, height: 14)
+                RoundedRectangle(cornerRadius: 4).fill(HGColor.metricBackground).frame(width: 70, height: 12)
+            }
+            Spacer()
+            Circle().fill(HGColor.metricBackground).frame(width: 10, height: 10)
         }
-        .buttonStyle(.plain)
+        .padding(16)
+        .accessibilityHidden(true)
     }
 }
 
@@ -258,29 +193,35 @@ private struct InquiryRow: View {
     let inquiry: HGInquirySummary
 
     var body: some View {
-        HStack {
+        HStack(alignment: .center, spacing: 8) {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 8) {
-                Text(inquiry.status.title)
-                    .font(HGFont.medium(10, relativeTo: .caption2))
-                    .foregroundStyle(inquiry.status == .answered ? HGColor.answered : HGColor.secondaryText)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(HGColor.homeMetricIconBackground, in: Capsule())
-                Text(inquiry.title)
-                    .font(HGFont.bold(14, relativeTo: .subheadline))
-                    .foregroundStyle(HGColor.primaryText)
+                    Text(inquiry.status.title)
+                        .font(HGFont.medium(10, relativeTo: .caption2))
+                        .foregroundStyle(inquiry.status == .answered ? HGColor.answered : HGColor.homeHeatLevelText)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            inquiry.status == .answered ? HGColor.answered.opacity(0.12) : HGColor.homeHeatLevelText.opacity(0.12),
+                            in: Capsule()
+                        )
+                    Text(inquiry.title)
+                        .font(HGFont.bold(13, relativeTo: .subheadline))
+                        .foregroundStyle(HGColor.primaryText)
+                        .lineLimit(1)
                 }
                 Text(inquiry.createdAt.formattedInquiryDate)
-                    .font(HGFont.regular(12, relativeTo: .caption))
+                    .font(HGFont.regular(11, relativeTo: .caption))
                     .foregroundStyle(HGColor.secondaryText)
             }
-            Spacer()
+            Spacer(minLength: 4)
             Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(HGColor.homeChevron)
         }
-        .padding(16)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(minHeight: 62)
     }
 }
 
