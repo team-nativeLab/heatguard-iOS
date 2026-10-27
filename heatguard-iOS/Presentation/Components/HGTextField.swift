@@ -64,6 +64,7 @@ struct HGTextField: View {
     var fieldHeight: CGFloat = 45
     var cornerRadius: CGFloat = 12
     var textSize: CGFloat = 14
+    var showsBorderWhenIdle = false
     var titleLeadingPadding: CGFloat = 0
     var inputType: HGTextFieldInputType = .standard
     var style: HGTextFieldStyle = .standard
@@ -147,7 +148,8 @@ struct HGTextField: View {
         if errorMessage != nil {
             return HGColor.error
         }
-        return isFocused ? HGColor.primary : .clear
+        if isFocused { return HGColor.primary }
+        return showsBorderWhenIdle ? HGColor.inputBorder : .clear
     }
 
     private var titleFont: Font {
