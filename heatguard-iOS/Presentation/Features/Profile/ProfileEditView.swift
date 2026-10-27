@@ -305,7 +305,7 @@ struct ProfileEditView: View {
                         }
                     }
 
-                if field == .name && !text.wrappedValue.isEmpty {
+                if field == .name && focusedField == field && !text.wrappedValue.isEmpty {
                     Button {
                         text.wrappedValue = ""
                         focusedField = .name
