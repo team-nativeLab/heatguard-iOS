@@ -1,5 +1,28 @@
 import SwiftUI
 
+struct HGEmergencyPulse: View {
+    @State private var isExpanded = false
+
+    let delay: Double
+    let color: Color
+
+    var body: some View {
+        Circle()
+            .fill(color)
+            .frame(width: 138, height: 138)
+            .scaleEffect(isExpanded ? 1.65 : 1)
+            .opacity(isExpanded ? 0 : 0.8)
+            .animation(
+                .easeOut(duration: 1.8)
+                    .delay(delay)
+                    .repeatForever(autoreverses: false),
+                value: isExpanded
+            )
+            .onAppear { isExpanded = true }
+            .accessibilityHidden(true)
+    }
+}
+
 struct HGEmergencyNotice: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

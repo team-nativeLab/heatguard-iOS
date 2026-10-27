@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct EmergencyAlertView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let isCalling: Bool
     let contact: HGEmergencyContact
     @Binding var error: HGErrorPresentation?
@@ -50,6 +52,11 @@ struct EmergencyAlertView: View {
     private var callPrompt: some View {
         VStack(spacing: 12) {
             ZStack {
+                if !reduceMotion {
+                    HGEmergencyPulse(delay: 0, color: HGColor.emergencyAlertPulse)
+                    HGEmergencyPulse(delay: 0.9, color: HGColor.emergencyAlertPulse)
+                }
+
                 Image("EmergencyOuterCircle")
                     .resizable()
                     .frame(width: 138, height: 138)

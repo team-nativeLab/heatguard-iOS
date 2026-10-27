@@ -44,6 +44,7 @@ enum HGColor {
     static let homeHeatLevelText = Color(red: 1, green: 107 / 255, blue: 0)
     static let emergencyNoticeText = Color.red
     static let emergencyNoticeBackground = Color.red.opacity(0.08)
+    static let emergencyAlertPulse = Color(red: 249 / 255, green: 215 / 255, blue: 215 / 255)
     static let emergencyCallBackground = Color(red: 249 / 255, green: 235 / 255, blue: 215 / 255)
     static let emergencyCallForeground = Color(red: 250 / 255, green: 163 / 255, blue: 63 / 255)
     static let emergencyCallText = Color(red: 250 / 255, green: 163 / 255, blue: 63 / 255)
