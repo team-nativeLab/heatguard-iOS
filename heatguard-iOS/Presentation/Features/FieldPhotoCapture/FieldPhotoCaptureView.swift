@@ -4,6 +4,9 @@ struct FieldPhotoCaptureView: View {
     @State private var photos: [UIImage]
     @State private var isPhotoSelectorPresented = false
     @State private var isSaving = false
+    @State private var temperature: String
+    @State private var humidity: String
+    @State private var showInvalidMeasurement = false
     let draft: HGRecordDraft
     let onSave: (HGRecordSaveResult) -> Void
     let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
@@ -27,10 +30,12 @@ struct FieldPhotoCaptureView: View {
         self.onNotificationsTap = onNotificationsTap
         self.notificationCount = notificationCount
         _photos = State(initialValue: initialPhotos)
+        _temperature = State(initialValue: draft.temperature.map { String($0) } ?? "")
+        _humidity = State(initialValue: draft.humidity.map { String($0) } ?? "")
     }
 
     var body: some View {
-        HGFixedContent {
+        HGFixedContent(keyboardAware: true) {
             VStack(alignment: .leading, spacing: 0) {
                 Text("현장 사진")
                     .font(HGFont.bold(20, relativeTo: .title2))
@@ -83,6 +88,11 @@ struct FieldPhotoCaptureView: View {
                 .allowsHitTesting(!isPhotoSelectorPresented)
         }
         .hgRouteNavigationHeader(notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
+        .alert("입력값을 확인해주세요", isPresented: $showInvalidMeasurement) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text("온도는 -50~60°C, 습도는 0~100% 범위의 숫자로 입력해주세요.")
+        }
     }
 
     private func photoPreview(height: CGFloat) -> some View {
@@ -111,18 +121,15 @@ struct FieldPhotoCaptureView: View {
 
     private var measurementCard: some View {
         VStack(spacing: 0) {
-            ForEach(Array(measurements.enumerated()), id: \.element.id) { index, measurement in
-                FieldMeasurementRow(measurement: measurement)
-
-                if index < measurements.count - 1 {
-                    Rectangle()
-                        .fill(HGColor.homeTimelineBorder)
-                        .frame(height: 1)
-                        .padding(.leading, 91)
-                }
-            }
+            measurementInput(title: "온도 ( ℃ )", text: $temperature, color: HGColor.primaryText)
+            measurementInput(title: "습도 ( % )", text: $humidity, color: HGColor.secondaryText)
+            FieldMeasurementRow(measurement: FieldMeasurement(
+                title: "체감온도 ( ℃ )",
+                value: apparentTemperature.map { formattedMeasurement($0) } ?? "자동 계산"
+            ), showDivider: false)
         }
-        .padding(.vertical, 9)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
         .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
         .overlay {
             RoundedRectangle(cornerRadius: 12)
@@ -137,17 +144,30 @@ struct FieldPhotoCaptureView: View {
         .disabled(isSaving)
     }
 
-    private var measurements: [FieldMeasurement] {
-        [
-            FieldMeasurement(title: "온도 ( ℃ )", value: formattedMeasurement(draft.temperature)),
-            FieldMeasurement(title: "습도 ( % )", value: formattedMeasurement(draft.humidity)),
-            FieldMeasurement(title: "체감온도 ( ℃ )", value: formattedMeasurement(apparentTemperature))
-        ]
+    private func measurementInput(title: String, text: Binding<String>, color: Color) -> some View {
+        HStack(spacing: 0) {
+            Text(title)
+                .font(HGFont.semiBold(13, relativeTo: .caption))
+                .foregroundStyle(HGColor.secondaryText)
+                .frame(width: 91, alignment: .leading)
+            TextField("입력", text: text)
+                .keyboardType(.decimalPad)
+                .font(HGFont.semiBold(13, relativeTo: .caption))
+                .foregroundStyle(color)
+                .padding(.leading, 9)
+                .frame(maxHeight: .infinity)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(HGColor.inputBorder).frame(height: 1)
+                }
+        }
+        .frame(height: 32)
     }
 
     private var apparentTemperature: Double? {
-        guard let temperature = draft.temperature, let humidity = draft.humidity else { return nil }
-        return HGWeatherMeasurement(temperature: temperature, humidity: humidity)?.apparentTemperature
+        guard let values = HGPhotoWeatherInput.validatedValues(temperature: temperature, humidity: humidity) else {
+            return nil
+        }
+        return HGWeatherMeasurement(temperature: values.temperature, humidity: values.humidity)?.apparentTemperature
     }
 
     private func formattedMeasurement(_ value: Double?) -> String {
@@ -156,16 +176,26 @@ struct FieldPhotoCaptureView: View {
     }
 
     private func saveRecord() {
+        guard let values = HGPhotoWeatherInput.validatedValues(temperature: temperature, humidity: humidity) else {
+            showInvalidMeasurement = true
+            return
+        }
+        let updatedDraft = HGRecordDraft(
+            type: draft.type, memo: draft.memo, measuredAt: draft.measuredAt,
+            temperature: values.temperature, humidity: values.humidity,
+            restStartedAt: draft.restStartedAt, restEndedAt: draft.restEndedAt, restMinutes: draft.restMinutes,
+            teamName: draft.teamName, workplace: draft.workplace, siteName: draft.siteName
+        )
         isSaving = true
         Task {
             defer { isSaving = false }
-            switch await HGPhotoRecordSaveAction.perform(draft: draft, images: photos) {
+            switch await HGPhotoRecordSaveAction.perform(draft: updatedDraft, images: photos) {
             case .photoRequired:
-                onPhotoRequired(draft)
+                onPhotoRequired(updatedDraft)
             case let .success(result):
                 onSave(result)
             case let .failure(failure):
-                onFailure(failure, draft, photos)
+                onFailure(failure, updatedDraft, photos)
             }
         }
     }
@@ -180,20 +210,29 @@ private struct FieldMeasurement: Identifiable {
 
 private struct FieldMeasurementRow: View {
     let measurement: FieldMeasurement
+    let showDivider: Bool
 
     var body: some View {
         HStack(spacing: 0) {
             Text(measurement.title)
                 .font(HGFont.semiBold(13, relativeTo: .caption))
                 .foregroundStyle(HGColor.secondaryText)
-                .frame(width: 101, alignment: .leading)
+                .frame(width: 91, alignment: .leading)
 
             Text(measurement.value)
                 .font(HGFont.semiBold(13, relativeTo: .caption))
-                .foregroundStyle(measurement.value == "자동 계산" ? HGColor.secondaryText : HGColor.primaryText)
+                .foregroundStyle(measurement.title.hasPrefix("온도") ? HGColor.primaryText : HGColor.secondaryText)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .padding(.leading, showDivider ? 9 : 44)
+                .overlay(alignment: .bottom) {
+                    if showDivider {
+                        Rectangle()
+                            .fill(HGColor.inputBorder)
+                            .frame(height: 1)
+                    }
+                }
         }
-        .padding(.horizontal, HGLayout.cardPadding)
-        .frame(height: 36)
+        .frame(height: 32)
     }
 }
 
