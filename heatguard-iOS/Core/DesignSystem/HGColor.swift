@@ -37,6 +37,7 @@ enum HGColor {
     static let primaryText = Color(red: 31 / 255, green: 38 / 255, blue: 51 / 255)
     static let secondaryText = Color(red: 120 / 255, green: 130 / 255, blue: 148 / 255)
     static let error = Color(red: 255 / 255, green: 97 / 255, blue: 114 / 255)
+    static let textInputBorder = Color(red: 190 / 255, green: 201 / 255, blue: 215 / 255)
     static let inputBorder = Color(red: 234 / 255, green: 234 / 255, blue: 234 / 255)
     static let popupBackground = Color(red: 249 / 255, green: 251 / 255, blue: 252 / 255)
     static let homeHeatLevelBackground = Color(red: 1, green: 226 / 255, blue: 214 / 255)

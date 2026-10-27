@@ -70,7 +70,7 @@ struct InquiryRegistrationView: View {
                     .overlay {
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(
-                                isContentFocused ? HGColor.primary : HGColor.inputBorder,
+                                isContentFocused ? HGColor.primary : HGColor.textInputBorder,
                                 lineWidth: isContentFocused ? 1.5 : 1
                             )
                     }

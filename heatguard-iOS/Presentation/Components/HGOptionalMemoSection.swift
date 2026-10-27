@@ -51,7 +51,7 @@ struct HGOptionalMemoSection: View {
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(HGColor.inputBorder, lineWidth: 1)
+                        .stroke(HGColor.textInputBorder, lineWidth: 1)
                 }
         }
     }
