@@ -57,7 +57,8 @@ final class LayoutEvidenceTests: XCTestCase {
                 let scrollViews = descendants(of: host.view).compactMap { $0 as? UIScrollView }
                 let contentScrollViews = scrollViews.filter { !($0 is UITextView) }
                 let scrollableKeyboardAwareScreens = [
-                    "work", "work-design", "rest", "rest-design", "thermometer", "profile", "withdrawal"
+                    "work", "work-design", "rest", "rest-design", "thermometer",
+                    "field-photo", "profile", "withdrawal"
                 ]
                 XCTAssertEqual(
                     contentScrollViews.count,
