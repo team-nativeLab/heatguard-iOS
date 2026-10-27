@@ -207,19 +207,7 @@ struct TeamMembershipFlowView: View {
     }
 
     private var registrationProgress: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                ForEach(1...3, id: \.self) { step in
-                    Capsule()
-                        .fill(step <= registrationStepNumber ? HGColor.primary : HGColor.menuDivider)
-                        .frame(height: 4)
-                }
-            }
-            Text("\(registrationStepNumber) / 3 · \(registrationStepTitle)")
-                .font(HGFont.medium(11, relativeTo: .caption))
-                .foregroundStyle(HGColor.primary)
-        }
-        .accessibilityElement(children: .combine)
+        HGRegistrationProgress(step: registrationStepNumber, title: registrationStepTitle)
     }
 
     private var emailStepContent: some View {
