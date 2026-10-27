@@ -12,19 +12,27 @@ struct HGPhotoCaptureSection: View {
     @State private var showsCameraUnavailable = false
     @State private var photoImportMessage: String?
     @Binding private var images: [UIImage]
+    private let isSourceSheet: Bool
 
-    init(images: Binding<[UIImage]> = .constant([])) {
+    init(images: Binding<[UIImage]> = .constant([]), isSourceSheet: Bool = false) {
         _images = images
+        self.isSourceSheet = isSourceSheet
     }
 
     var body: some View {
-        Button {
-            UIApplication.shared.dismissKeyboard()
-            showsSourceDialog = true
-        } label: {
-            content
+        Group {
+            if isSourceSheet {
+                sourceSheet
+            } else {
+                Button {
+                    UIApplication.shared.dismissKeyboard()
+                    showsSourceDialog = true
+                } label: {
+                    content
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .buttonStyle(.plain)
         .accessibilityLabel("사진 선택")
         .accessibilityValue(selectionDescription)
         .alert("사진 추가", isPresented: $showsSourceDialog) {
@@ -53,6 +61,39 @@ struct HGPhotoCaptureSection: View {
         } message: {
             Text("실제 기기에서 카메라 촬영을 사용할 수 있습니다.")
         }
+    }
+
+    private var sourceSheet: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("사진 추가")
+                .font(HGFont.bold(20, relativeTo: .title2))
+                .foregroundStyle(HGColor.primaryText)
+            Text(selectionDescription)
+                .font(HGFont.regular(14))
+                .foregroundStyle(HGColor.secondaryText)
+            sourceButton("사진 촬영", icon: "camera") { presentCamera() }
+            sourceButton("앨범에서 선택", icon: "photo.on.rectangle") { showsPhotoPicker = true }
+            if let photoImportMessage {
+                Text(photoImportMessage).foregroundStyle(HGColor.error)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(HGColor.appBackground.ignoresSafeArea())
+    }
+
+    private func sourceButton(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: icon)
+                .font(HGFont.semiBold(16))
+                .foregroundStyle(HGColor.primary)
+                .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
+                .padding(.horizontal, 18)
+                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .disabled(selectedPhotoCount >= maximumPhotoCount)
     }
 
     private var content: some View {

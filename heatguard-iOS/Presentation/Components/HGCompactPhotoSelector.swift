@@ -45,7 +45,8 @@ struct HGCompactPhotoSelector: View {
         .buttonStyle(.plain)
         .accessibilityLabel("현장 사진 선택")
         .sheet(isPresented: $showsPhotoSelection) {
-            HGPhotoCaptureSection(images: $images)
+            HGPhotoCaptureSection(images: $images, isSourceSheet: true)
+                .presentationDragIndicator(.visible)
                 .presentationDetents(verticalSizeClass == .compact ? [.large] : [.medium])
         }
         .onChange(of: showsPhotoSelection) { _, isPresented in
