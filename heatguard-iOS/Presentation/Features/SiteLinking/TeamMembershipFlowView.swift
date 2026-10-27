@@ -289,7 +289,8 @@ struct TeamMembershipFlowView: View {
                         RoundedRectangle(cornerRadius: 11)
                             .stroke(
                                 verificationErrorMessage != nil ? HGColor.error :
-                                    (isVerificationCodeFocused && index == min(digits.count, 5) ? HGColor.primary : HGColor.textInputBorder),
+                                    (isVerificationCodeFocused && index == min(digits.count, 5)
+                                        ? HGColor.primary : HGColor.textInputBorder),
                                 lineWidth: 1
                             )
                     }
