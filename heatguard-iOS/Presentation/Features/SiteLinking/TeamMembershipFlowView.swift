@@ -713,7 +713,7 @@ struct TeamMembershipFlowView: View {
                 isRegistering = false
                 registrationStep = .email
                 verificationCode = ""
-                verificationToken = nil
+                self.verificationToken = nil
                 password = ""
                 passwordConfirmation = ""
                 verificationErrorMessage = nil

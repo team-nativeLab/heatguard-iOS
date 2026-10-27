@@ -41,15 +41,17 @@ struct HGProfilePhotoService {
         guard let url = URL(string: upload.uploadURL), url.scheme?.lowercased() == "https" else {
             throw HGProfilePhotoError.invalidURL
         }
-        if let contentLength = upload.requiredHeaders.first(where: {
+        guard upload.requiredHeaders.contains(where: {
+            $0.key.caseInsensitiveCompare("Content-Type") == .orderedSame
+        }), let contentLength = upload.requiredHeaders.first(where: {
             $0.key.caseInsensitiveCompare("Content-Length") == .orderedSame
-        })?.value, Int(contentLength) != data.count {
+        })?.value, Int(contentLength) == data.count else {
             throw HGProfilePhotoError.invalidUploadContract
         }
 
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
-        for (name, value) in upload.requiredHeaders where name.caseInsensitiveCompare("Content-Length") != .orderedSame {
+        for (name, value) in upload.requiredHeaders {
             request.setValue(value, forHTTPHeaderField: name)
         }
 
