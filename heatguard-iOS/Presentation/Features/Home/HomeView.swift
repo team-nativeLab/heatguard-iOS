@@ -81,7 +81,15 @@ struct HomeView: View {
                         subtitle: "사진 촬영 또는 앨범에서 선택",
                         rowHeight: isCompactFixedLayout ? 58 : 69
                     ) {
-                        showsRecordTypes = true
+                        flowPath.append(HomeFlowRoute.fieldPhoto(HGRecordDraft(
+                            type: .thermometer,
+                            memo: "",
+                            temperature: dashboard.weather.temperature,
+                            humidity: dashboard.weather.humidity,
+                            teamName: dashboard.teamName,
+                            workplace: dashboard.workplace,
+                            siteName: dashboard.siteName
+                        )))
                     }
                     .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
                     HomeActionRow(
