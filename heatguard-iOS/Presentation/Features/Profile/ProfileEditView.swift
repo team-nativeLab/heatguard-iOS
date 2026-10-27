@@ -325,7 +325,7 @@ struct ProfileEditView: View {
             .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
             .overlay {
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(focusedField == field ? HGColor.primary : HGColor.inputBorder, lineWidth: focusedField == field ? 1.5 : 1)
+                    .stroke(focusedField == field ? HGColor.primary : HGColor.textInputBorder, lineWidth: focusedField == field ? 1.5 : 1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
