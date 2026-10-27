@@ -137,7 +137,7 @@ struct ChecklistView: View {
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
         let now = calendar.dateComponents([.hour, .minute], from: Date())
         let currentMinute = (now.hour ?? 0) * 60 + (now.minute ?? 0)
-        return scheduled.first(where: { $0.1 >= currentMinute })?.0 ?? scheduled.last?.0
+        return scheduled.first(where: { $0.1 >= currentMinute })?.0
     }
 
     private func formatTime(_ rawTime: String) -> String {

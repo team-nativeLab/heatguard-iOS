@@ -30,7 +30,7 @@ struct ChecklistOverviewView: View {
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
         let now = calendar.dateComponents([.hour, .minute], from: Date())
         let currentMinute = (now.hour ?? 0) * 60 + (now.minute ?? 0)
-        return scheduled.first(where: { $0.1 >= currentMinute })?.0 ?? scheduled.last?.0
+        return scheduled.first(where: { $0.1 >= currentMinute })?.0
     }
 
     private var location: String {
@@ -205,13 +205,13 @@ struct ChecklistOverviewView: View {
                     Text(displayTime(rawTime))
                         .font(HGFont.bold(15, relativeTo: .subheadline))
                         .foregroundStyle(HGColor.primaryText)
-                    Text(isActive ? "현재 체크 시간" : "설정된 체크 시간")
+                    Text(isActive ? "다음 체크 시간" : "설정된 체크 시간")
                         .font(HGFont.regular(12, relativeTo: .caption))
                         .foregroundStyle(HGColor.secondaryText)
                 }
                 Spacer(minLength: 4)
                 if isActive {
-                    Text("진행 중")
+                    Text("다음")
                         .font(HGFont.medium(11, relativeTo: .caption))
                         .foregroundStyle(HGColor.primary)
                         .padding(.horizontal, 9)
