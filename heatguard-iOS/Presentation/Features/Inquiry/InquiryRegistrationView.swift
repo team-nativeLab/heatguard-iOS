@@ -24,7 +24,8 @@ struct InquiryRegistrationView: View {
                     title: "제목",
                     placeholder: "문의 제목을 입력해 주세요",
                     text: $title,
-                    fieldHeight: 52
+                    fieldHeight: 48,
+                    showsBorderWhenIdle: true
                 )
                 .accessibilityIdentifier("inquiry.registration.title")
 
@@ -64,11 +65,14 @@ struct InquiryRegistrationView: View {
                         }
                     }
                     .padding(12)
-                    .frame(height: 200)
-                    .background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: 12))
+                    .frame(height: 225)
+                    .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
                     .overlay {
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(isContentFocused ? HGColor.primary : .clear, lineWidth: 1)
+                            .stroke(
+                                isContentFocused ? HGColor.primary : HGColor.inputBorder,
+                                lineWidth: isContentFocused ? 1.5 : 1
+                            )
                     }
 
                     Text("\(content.count)/\(characterLimit)")
