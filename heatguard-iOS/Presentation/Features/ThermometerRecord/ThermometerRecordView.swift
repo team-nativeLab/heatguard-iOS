@@ -94,39 +94,46 @@ struct ThermometerRecordView: View {
     }
 
     private var temperatureSummaryCard: some View {
-        HStack(spacing: 15) {
+        ZStack(alignment: .topLeading) {
+            HStack(spacing: 0) {
+                Color.clear.frame(width: 82)
+
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("현재 온도")
+                        .font(HGFont.semiBold(13, relativeTo: .caption))
+                        .foregroundStyle(summaryText)
+
+                    Text(displayedTemperature)
+                        .font(HGFont.bold(32, relativeTo: .largeTitle))
+                        .foregroundStyle(HGColor.primaryText)
+                        .padding(.top, 9)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+
+                    Text(
+                        "습도 \(displayedHumidity) · 체감 " +
+                            (displayedApparentTemperature.map {
+                                $0.formatted(.number.precision(.fractionLength(1))) + " °C"
+                            } ?? "—")
+                    )
+                        .font(HGFont.semiBold(13, relativeTo: .caption))
+                        .foregroundStyle(summaryText)
+                        .padding(.top, 14)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+
             Image("ThermometerIllustration")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 55, height: 76)
-
-            VStack(alignment: .leading, spacing: 0) {
-                Text("현재 온도")
-                    .font(HGFont.semiBold(13, relativeTo: .caption))
-                    .foregroundStyle(summaryText)
-
-                Text(displayedTemperature)
-                    .font(HGFont.bold(32, relativeTo: .largeTitle))
-                    .foregroundStyle(HGColor.primaryText)
-                    .padding(.top, 9)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-
-                Text(
-                    "습도 \(displayedHumidity) · 체감 " +
-                        (displayedApparentTemperature.map {
-                            $0.formatted(.number.precision(.fractionLength(1))) + " °C"
-                        } ?? "—")
-                )
-                    .font(HGFont.semiBold(13, relativeTo: .caption))
-                    .foregroundStyle(summaryText)
-                    .padding(.top, 14)
-            }
-
-            Spacer(minLength: 0)
+                .frame(width: 140, height: 140)
+                .offset(x: -16, y: -10)
+                .accessibilityHidden(true)
         }
-        .padding(.horizontal, 20)
-        .frame(maxWidth: .infinity, minHeight: 138, maxHeight: 138)
+        .frame(maxWidth: .infinity, minHeight: 124, maxHeight: 124)
         .background(HGColor.surface, in: RoundedRectangle(cornerRadius: HGLayout.inputCardCornerRadius))
         .shadow(color: HGColor.cardShadow.opacity(0.25), radius: 7.3, x: 4, y: 4)
     }
