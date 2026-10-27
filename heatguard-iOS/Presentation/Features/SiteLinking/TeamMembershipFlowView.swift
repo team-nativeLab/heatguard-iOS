@@ -23,6 +23,7 @@ struct TeamMembershipFlowView: View {
     @State private var verificationCode = ""
     @State private var verificationErrorMessage: String?
     @State private var registrationStep = TeamRegistrationStep.email
+    @State private var codeExpiresAt: Date?
     @FocusState private var isVerificationCodeFocused: Bool
     @State private var memberships: [HGTeamMembership] = []
     @State private var selectedTeamID: String?
@@ -254,6 +255,26 @@ struct TeamMembershipFlowView: View {
 
             verificationCodeInput
 
+            HStack {
+                HStack(spacing: 4) {
+                    Text("남은 시간")
+                        .foregroundStyle(HGColor.secondaryText)
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        Text(formattedCodeTime(at: context.date))
+                            .font(HGFont.semiBold(12, relativeTo: .caption))
+                            .foregroundStyle(HGColor.primary)
+                    }
+                }
+                .font(HGFont.regular(11, relativeTo: .caption))
+                Spacer()
+                Button(busy ? "전송 중..." : "인증번호 다시 받기") {
+                    Task { await requestCode() }
+                }
+                .font(HGFont.medium(12, relativeTo: .caption))
+                .foregroundStyle(HGColor.primaryText)
+                .disabled(busy)
+                .accessibilityIdentifier("signup.verification.resend")
+            }
         }
     }
 
@@ -409,6 +430,11 @@ struct TeamMembershipFlowView: View {
     private func isValidEmail(_ value: String) -> Bool {
         let normalizedEmail = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return normalizedEmail.contains("@") && normalizedEmail.split(separator: "@").last?.contains(".") == true
+    }
+
+    private func formattedCodeTime(at date: Date) -> String {
+        let remaining = max(0, Int((codeExpiresAt ?? date.addingTimeInterval(300)).timeIntervalSince(date)))
+        return String(format: "%02d:%02d", remaining / 60, remaining % 60)
     }
 
     private func handleAccessBack() {
@@ -584,6 +610,7 @@ struct TeamMembershipFlowView: View {
             try await service.requestRegistrationCode(email: normalizedEmail)
             email = normalizedEmail
             verificationCode = ""
+            codeExpiresAt = .now.addingTimeInterval(300)
             registrationStep = .verification
             isVerificationCodeFocused = true
         } catch {
