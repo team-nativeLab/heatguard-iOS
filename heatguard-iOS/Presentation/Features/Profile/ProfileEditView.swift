@@ -12,6 +12,8 @@ struct ProfileEditView: View {
     @State private var error: HGErrorPresentation?
     @State private var isComplete = false
     @State private var profileImage: UIImage?
+    @State private var isLoadingPhoto = false
+    @State private var isUpdatingPhoto = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var showsPhotoOptions = false
     @State private var showsCameraPicker = false
@@ -76,8 +78,8 @@ struct ProfileEditView: View {
         .safeAreaInset(edge: .bottom) {
             HGPrimaryButton(
                 title: isSaving ? "저장 중..." : "저장하기",
-                isEnabled: isValid && !isSaving,
-                isLoading: isSaving
+                isEnabled: isValid && !isSaving && !isUpdatingPhoto && !isLoadingPhoto,
+                isLoading: isSaving || isUpdatingPhoto || isLoadingPhoto
             ) {
                 Task { await saveProfile() }
             }
@@ -99,13 +101,14 @@ struct ProfileEditView: View {
         }
         .sheet(isPresented: $showsCameraPicker) {
             HGCameraPicker { image in
-                profileImage = image
+                Task { await updateProfilePhoto(image) }
             }
             .ignoresSafeArea()
         }
         .onChange(of: selectedPhoto) { _, photo in
             Task { await loadProfilePhoto(photo) }
         }
+        .task { await loadCurrentProfilePhoto() }
     }
 
     private var profileAvatar: some View {
@@ -137,10 +140,18 @@ struct ProfileEditView: View {
                         .frame(width: 26, height: 26)
                         .background(HGColor.primary, in: Circle())
                         .overlay(Circle().stroke(HGColor.appBackground, lineWidth: 2))
+
+                    if isLoadingPhoto || isUpdatingPhoto {
+                        ProgressView()
+                            .tint(HGColor.primary)
+                            .frame(width: 72, height: 72)
+                            .background(HGColor.surface.opacity(0.82), in: Circle())
+                    }
                 }
                 .frame(width: 72, height: 72)
             }
             .buttonStyle(.plain)
+            .disabled(isLoadingPhoto || isUpdatingPhoto)
             .accessibilityLabel("프로필 사진 변경")
 
             Text("사진을 눌러 프로필 사진을 바꿀 수 있어요")
@@ -171,12 +182,14 @@ struct ProfileEditView: View {
                     photoOptionRow(title: "사진 찍기", symbol: "camera")
                 }
                 .buttonStyle(.plain)
+                .disabled(isUpdatingPhoto)
 
                 Divider().overlay(HGColor.inputBorder).padding(.leading, 24)
 
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     photoOptionRow(title: "앨범에서 선택", symbol: "photo.on.rectangle")
                 }
+                .disabled(isUpdatingPhoto)
                 .onChange(of: selectedPhoto) { _, photo in
                     if photo != nil { showsPhotoOptions = false }
                 }
@@ -184,8 +197,8 @@ struct ProfileEditView: View {
                 Divider().overlay(HGColor.inputBorder).padding(.leading, 24)
 
                 Button {
-                    profileImage = nil
                     showsPhotoOptions = false
+                    Task { await removeProfilePhoto() }
                 } label: {
                     photoOptionRow(
                         title: "기본 이미지로 변경",
@@ -194,6 +207,7 @@ struct ProfileEditView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .disabled(isUpdatingPhoto)
             }
             .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
             .padding(.horizontal, 24)
@@ -245,11 +259,58 @@ struct ProfileEditView: View {
             guard let data = try await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
                 return
             }
-            profileImage = image
+            await updateProfilePhoto(image)
         } catch {
             self.error = HGErrorPresentation(error: error)
         }
         selectedPhoto = nil
+    }
+
+    @MainActor
+    private func loadCurrentProfilePhoto() async {
+        isLoadingPhoto = true
+        defer { isLoadingPhoto = false }
+        do {
+            profileImage = try await HGProfilePhotoService().loadPhoto()
+        } catch is CancellationError {
+            return
+        } catch {
+            self.error = HGErrorPresentation(error: error)
+        }
+    }
+
+    @MainActor
+    private func updateProfilePhoto(_ image: UIImage) async {
+        guard !isUpdatingPhoto else { return }
+        let previousImage = profileImage
+        profileImage = image
+        isUpdatingPhoto = true
+        defer { isUpdatingPhoto = false }
+        do {
+            try await HGProfilePhotoService().uploadPhoto(image)
+        } catch is CancellationError {
+            profileImage = previousImage
+        } catch {
+            profileImage = previousImage
+            self.error = HGErrorPresentation(error: error)
+        }
+    }
+
+    @MainActor
+    private func removeProfilePhoto() async {
+        guard !isUpdatingPhoto else { return }
+        let previousImage = profileImage
+        profileImage = nil
+        isUpdatingPhoto = true
+        defer { isUpdatingPhoto = false }
+        do {
+            try await HGProfilePhotoService().removePhoto()
+        } catch is CancellationError {
+            profileImage = previousImage
+        } catch {
+            profileImage = previousImage
+            self.error = HGErrorPresentation(error: error)
+        }
     }
 
     private var isValid: Bool {

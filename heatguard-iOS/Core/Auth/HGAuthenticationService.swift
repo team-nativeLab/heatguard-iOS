@@ -32,26 +32,42 @@ struct HGAuthenticationService {
         return TeamSession()
     }
 
-    func requestRegistrationCode(email: String) async throws {
-        try await client.sendVoid(
+    func requestRegistrationCode(email: String) async throws -> Date {
+        let response: TeamEmailCodeResponse = try await client.send(
             TeamEmailCodeRequest(email: email),
             method: "POST",
             path: HGAPIPath.teamEmailCodes
         )
+        guard let expiresAt = response.expiresAt.hgISO8601Date else {
+            throw HGAPIError.responseDecoding
+        }
+        return expiresAt
+    }
+
+    func verifyRegistrationCode(email: String, verificationCode: String) async throws -> String {
+        let response: TeamEmailCodeVerificationResponse = try await client.send(
+            TeamEmailCodeVerificationRequest(email: email, verificationCode: verificationCode),
+            method: "POST",
+            path: HGAPIPath.teamEmailCodeVerify
+        )
+        guard response.verified, !response.verificationToken.isEmpty else {
+            throw HGAPIError.responseDecoding
+        }
+        return response.verificationToken
     }
 
     func register(
         email: String,
         password: String,
         confirmPassword: String,
-        verificationCode: String
+        verificationToken: String
     ) async throws {
         try await client.sendVoid(
             TeamRegisterRequest(
                 email: email,
                 password: password,
                 confirmPassword: confirmPassword,
-                verificationCode: verificationCode
+                verificationToken: verificationToken
             ),
             method: "POST",
             path: HGAPIPath.teamRegister
@@ -167,11 +183,26 @@ private struct TeamLoginRequest: Encodable {
 
 private struct TeamEmailCodeRequest: Encodable { let email: String }
 
+private struct TeamEmailCodeResponse: Decodable {
+    let expiresAt: String
+}
+
+private struct TeamEmailCodeVerificationRequest: Encodable {
+    let email: String
+    let verificationCode: String
+}
+
+private struct TeamEmailCodeVerificationResponse: Decodable {
+    let verified: Bool
+    let verificationToken: String
+    let expiresAt: String
+}
+
 private struct TeamRegisterRequest: Encodable {
     let email: String
     let password: String
     let confirmPassword: String
-    let verificationCode: String
+    let verificationToken: String
 }
 
 private struct TeamInvitationAcceptRequest: Encodable { let token: String }

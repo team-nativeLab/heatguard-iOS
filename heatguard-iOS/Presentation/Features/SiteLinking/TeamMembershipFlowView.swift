@@ -21,7 +21,9 @@ struct TeamMembershipFlowView: View {
     @State private var password = ""
     @State private var passwordConfirmation = ""
     @State private var verificationCode = ""
+    @State private var verificationToken: String?
     @State private var verificationErrorMessage: String?
+    @State private var registrationNotice: String?
     @State private var registrationStep = TeamRegistrationStep.email
     @State private var codeExpiresAt: Date?
     @FocusState private var isVerificationCodeFocused: Bool
@@ -167,6 +169,12 @@ struct TeamMembershipFlowView: View {
             Text("이메일 계정으로 로그인하고 초대받은 현장에 참여할 수 있어요.")
                 .font(HGFont.regular(14, relativeTo: .subheadline))
                 .foregroundStyle(HGColor.secondaryText)
+            if let registrationNotice {
+                Text(registrationNotice)
+                    .font(HGFont.medium(13, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.primary)
+                    .accessibilityIdentifier("signup.completed.notice")
+            }
             HGTextField(title: "이메일", placeholder: "example@email.com", text: $email, inputType: .email)
             HGTextField(
                 title: "비밀번호",
@@ -317,6 +325,7 @@ struct TeamMembershipFlowView: View {
                 .onChange(of: verificationCode) { _, value in
                     let digitsOnly = String(value.filter(\.isNumber).prefix(6))
                     if digitsOnly != value { verificationCode = digitsOnly }
+                    verificationToken = nil
                     verificationErrorMessage = nil
                 }
         }
@@ -463,15 +472,20 @@ struct TeamMembershipFlowView: View {
             verificationErrorMessage = nil
         case .password:
             registrationStep = .verification
+            verificationToken = nil
+            verificationErrorMessage = nil
+            isVerificationCodeFocused = true
         }
     }
 
     private func beginRegistration() {
         registrationStep = .email
         verificationCode = ""
+        verificationToken = nil
         password = ""
         passwordConfirmation = ""
         verificationErrorMessage = nil
+        registrationNotice = nil
         error = nil
         isRegistering = true
     }
@@ -483,9 +497,7 @@ struct TeamMembershipFlowView: View {
         case .email:
             await requestCode()
         case .verification:
-            // The existing team API validates the code together with account creation.
-            registrationStep = .password
-            isVerificationCodeFocused = false
+            await verifyRegistrationCode()
         case .password:
             await submitAccess()
         }
@@ -621,15 +633,37 @@ struct TeamMembershipFlowView: View {
         busy = true
         defer { busy = false }
         do {
-            try await service.requestRegistrationCode(email: normalizedEmail)
+            let expiresAt = try await service.requestRegistrationCode(email: normalizedEmail)
             email = normalizedEmail
             verificationCode = ""
+            verificationToken = nil
             verificationErrorMessage = nil
-            codeExpiresAt = .now.addingTimeInterval(300)
+            codeExpiresAt = expiresAt
             registrationStep = .verification
             isVerificationCodeFocused = true
         } catch {
             self.error = HGErrorPresentation(error: error)
+        }
+    }
+
+    @MainActor
+    private func verifyRegistrationCode() async {
+        guard !busy else { return }
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        busy = true
+        defer { busy = false }
+        do {
+            verificationToken = try await service.verifyRegistrationCode(
+                email: normalizedEmail,
+                verificationCode: verificationCode
+            )
+            verificationErrorMessage = nil
+            registrationStep = .password
+            isVerificationCodeFocused = false
+        } catch {
+            let presentation = HGErrorPresentation(error: error)
+            verificationErrorMessage = presentation.alertMessage
+            isVerificationCodeFocused = true
         }
     }
 
@@ -655,9 +689,9 @@ struct TeamMembershipFlowView: View {
                 showInputError("비밀번호가 일치하는지 확인해주세요.")
                 return
             }
-            guard normalizedVerificationCode.count == 6 else {
+            guard normalizedVerificationCode.count == 6, verificationToken != nil else {
                 registrationStep = .verification
-                showInputError("이메일 인증번호 6자리를 입력해주세요.")
+                showInputError("이메일 인증번호 확인을 완료해주세요.")
                 return
             }
         }
@@ -666,12 +700,26 @@ struct TeamMembershipFlowView: View {
         defer { busy = false }
         do {
             if isRegistering {
+                guard let verificationToken else {
+                    registrationStep = .verification
+                    showInputError("이메일 인증번호 확인을 완료해주세요.")
+                    return
+                }
                 try await service.register(
                     email: normalizedEmail,
                     password: password,
                     confirmPassword: passwordConfirmation,
-                    verificationCode: normalizedVerificationCode
+                    verificationToken: verificationToken
                 )
+                isRegistering = false
+                registrationStep = .email
+                verificationCode = ""
+                self.verificationToken = nil
+                password = ""
+                passwordConfirmation = ""
+                verificationErrorMessage = nil
+                registrationNotice = "회원가입이 완료됐어요. 로그인해주세요."
+                return
             }
             let session = try await service.login(email: normalizedEmail, password: password)
             isAuthenticated = true
@@ -695,7 +743,7 @@ struct TeamMembershipFlowView: View {
 
     private func isRegistrationCodeError(_ diagnosticCode: String) -> Bool {
         let normalizedCode = diagnosticCode.uppercased()
-        return ["VERIFICATION_CODE", "INVALID_CODE", "EMAIL_CODE", "CODE_EXPIRED"]
+        return ["VERIFICATION_CODE", "VERIFICATION_TOKEN", "INVALID_CODE", "EMAIL_CODE", "CODE_EXPIRED"]
             .contains { normalizedCode.contains($0) }
     }
 
