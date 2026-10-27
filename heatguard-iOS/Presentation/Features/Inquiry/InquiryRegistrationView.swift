@@ -85,25 +85,13 @@ struct InquiryRegistrationView: View {
         .background(HGColor.appBackground)
         .hgNavigationTitle("문의 등록")
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            Button(action: { Task { await submitInquiry() } }, label: {
-                HStack(spacing: 8) {
-                    if isSubmitting {
-                        ProgressView()
-                            .tint(.white)
-                    }
-                    Text(isSubmitting ? "등록 중..." : "문의 등록")
-                        .font(HGFont.medium(16))
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: HGLayout.primaryButtonHeight)
-                .foregroundStyle(.white)
-                .background(
-                    isFormValid && !isSubmitting ? HGColor.primary : HGColor.disabled,
-                    in: RoundedRectangle(cornerRadius: HGLayout.primaryButtonCornerRadius)
-                )
-            })
-            .buttonStyle(.plain)
-            .disabled(!isFormValid || isSubmitting)
+            HGPrimaryButton(
+                title: isSubmitting ? "등록 중..." : "문의 등록",
+                isEnabled: isFormValid && !isSubmitting,
+                isLoading: isSubmitting
+            ) {
+                Task { await submitInquiry() }
+            }
             .accessibilityIdentifier("inquiry.registration.submit")
             .padding(.horizontal, 24)
             .padding(.top, 12)
