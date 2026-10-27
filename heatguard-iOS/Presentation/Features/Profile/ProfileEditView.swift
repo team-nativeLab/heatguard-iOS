@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import PhotosUI
 
 struct ProfileEditView: View {
     let profile: HGTeamProfile?
@@ -10,6 +11,11 @@ struct ProfileEditView: View {
     @State private var isSaving = false
     @State private var error: HGErrorPresentation?
     @State private var isComplete = false
+    @State private var profileImage: UIImage?
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var showsPhotoOptions = false
+    @State private var showsCameraPicker = false
+    @State private var shouldPresentCamera = false
     @FocusState private var focusedField: ProfileField?
 
     private enum ProfileField: Hashable {
@@ -28,16 +34,7 @@ struct ProfileEditView: View {
     var body: some View {
         HGFixedContent(keyboardAware: true) {
             VStack(spacing: 20) {
-                VStack(spacing: 8) {
-                    Text(name.prefix(1))
-                        .font(HGFont.bold(26, relativeTo: .title))
-                        .foregroundStyle(HGColor.primary)
-                        .frame(width: 72, height: 72)
-                        .background(HGColor.homeMetricIconBackground, in: Circle())
-                    Text("현장작업자")
-                        .font(HGFont.regular(12, relativeTo: .caption))
-                        .foregroundStyle(HGColor.secondaryText)
-                }
+                profileAvatar
 
                 VStack(spacing: 20) {
                     if let companyName = profile?.companyName, !companyName.isEmpty {
@@ -96,6 +93,152 @@ struct ProfileEditView: View {
         }
         .alert("내 정보가 수정되었습니다.", isPresented: $isComplete) { Button("확인", role: .cancel) {} }
         .dismissKeyboardOnBackgroundTap()
+        .sheet(isPresented: $showsPhotoOptions, onDismiss: presentCameraIfNeeded) {
+            profilePhotoOptions
+                .presentationDetents([.height(300)])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(24)
+        }
+        .sheet(isPresented: $showsCameraPicker) {
+            HGCameraPicker { image in
+                profileImage = image
+            }
+            .ignoresSafeArea()
+        }
+        .onChange(of: selectedPhoto) { _, photo in
+            Task { await loadProfilePhoto(photo) }
+        }
+    }
+
+    private var profileAvatar: some View {
+        VStack(spacing: 8) {
+            Button {
+                UIApplication.shared.dismissKeyboard()
+                showsPhotoOptions = true
+            } label: {
+                ZStack(alignment: .bottomTrailing) {
+                    Group {
+                        if let profileImage {
+                            Image(uiImage: profileImage)
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            Text(name.prefix(1))
+                                .font(HGFont.bold(26, relativeTo: .title))
+                                .foregroundStyle(HGColor.primary)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .background(HGColor.homeMetricIconBackground)
+                        }
+                    }
+                    .frame(width: 72, height: 72)
+                    .clipShape(Circle())
+
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 26, height: 26)
+                        .background(HGColor.primary, in: Circle())
+                        .overlay(Circle().stroke(HGColor.appBackground, lineWidth: 2))
+                }
+                .frame(width: 72, height: 72)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("프로필 사진 변경")
+
+            Text("사진을 눌러 프로필 사진을 바꿀 수 있어요")
+                .font(HGFont.regular(12, relativeTo: .caption))
+                .foregroundStyle(HGColor.secondaryText)
+        }
+    }
+
+    private var profilePhotoOptions: some View {
+        VStack(spacing: 0) {
+            Capsule()
+                .fill(HGColor.homeTimelineBorder)
+                .frame(width: 36, height: 5)
+                .padding(.top, 10)
+                .padding(.bottom, 18)
+
+            Text("프로필 사진 변경")
+                .font(HGFont.bold(17, relativeTo: .headline))
+                .foregroundStyle(HGColor.primaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 10)
+
+            Button {
+                shouldPresentCamera = true
+                showsPhotoOptions = false
+            } label: {
+                photoOptionRow(title: "사진 찍기", symbol: "camera")
+            }
+            .buttonStyle(.plain)
+
+            PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                photoOptionRow(title: "앨범에서 선택", symbol: "photo.on.rectangle")
+            }
+            .onChange(of: selectedPhoto) { _, photo in
+                if photo != nil { showsPhotoOptions = false }
+            }
+
+            Button {
+                profileImage = nil
+                showsPhotoOptions = false
+            } label: {
+                photoOptionRow(title: "기본 이미지로 변경", symbol: "person.crop.circle")
+            }
+            .buttonStyle(.plain)
+
+            Button("취소") { showsPhotoOptions = false }
+                .font(HGFont.semiBold(15, relativeTo: .body))
+                .foregroundStyle(HGColor.secondaryText)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .padding(.top, 4)
+                .padding(.bottom, 12)
+        }
+        .background(HGColor.surface)
+    }
+
+    private func photoOptionRow(title: String, symbol: String) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: symbol)
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(HGColor.primary)
+                .frame(width: 24, height: 24)
+            Text(title)
+                .font(HGFont.medium(15, relativeTo: .body))
+                .foregroundStyle(HGColor.primaryText)
+            Spacer()
+        }
+        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity, minHeight: 44)
+    }
+
+    private func presentCameraIfNeeded() {
+        guard shouldPresentCamera else { return }
+        shouldPresentCamera = false
+        showsCameraPicker = UIImagePickerController.isSourceTypeAvailable(.camera)
+        if !showsCameraPicker {
+            error = HGErrorPresentation(
+                title: "카메라를 사용할 수 없습니다",
+                message: "실제 기기에서 카메라 촬영을 사용할 수 있어요.",
+                diagnosticCode: "CAMERA_UNAVAILABLE"
+            )
+        }
+    }
+
+    @MainActor
+    private func loadProfilePhoto(_ item: PhotosPickerItem?) async {
+        guard let item else { return }
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
+                return
+            }
+            profileImage = image
+        } catch {
+            self.error = HGErrorPresentation(error: error)
+        }
+        selectedPhoto = nil
     }
 
     private var isValid: Bool {
