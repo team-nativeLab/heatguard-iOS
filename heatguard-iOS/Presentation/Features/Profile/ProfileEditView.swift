@@ -214,7 +214,7 @@ struct ProfileEditView: View {
         HStack(spacing: 14) {
             Image(systemName: symbol)
                 .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(isDestructive ? HGColor.error : HGColor.primaryText)
+                .foregroundStyle(isDestructive ? HGColor.error : HGColor.primary)
                 .frame(width: 24, height: 24)
             Text(title)
                 .font(HGFont.medium(15, relativeTo: .body))
