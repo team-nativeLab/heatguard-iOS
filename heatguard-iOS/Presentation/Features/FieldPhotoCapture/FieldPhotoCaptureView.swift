@@ -34,11 +34,13 @@ struct FieldPhotoCaptureView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text("현장 사진")
                     .font(HGFont.bold(20, relativeTo: .title2))
+                    .padding(.leading, 8)
                     .foregroundStyle(HGColor.primaryText)
 
                 Text("온도계 데이터를 입력하고 현장 사진을\n촬영해 주세요.")
                     .font(HGFont.regular(14, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
+                    .padding(.leading, 8)
                     .padding(.top, 10)
 
                 photoPreview(height: 290)
@@ -46,6 +48,7 @@ struct FieldPhotoCaptureView: View {
 
                 Text("온도계 데이터 입력")
                     .font(HGFont.bold(20, relativeTo: .title2))
+                    .padding(.leading, 8)
                     .foregroundStyle(HGColor.primaryText)
                     .padding(.top, 28)
 
@@ -54,6 +57,7 @@ struct FieldPhotoCaptureView: View {
 
                 Text("다시하기")
                     .font(HGFont.bold(20, relativeTo: .title2))
+                    .padding(.leading, 8)
                     .foregroundStyle(HGColor.primaryText)
                     .padding(.top, 17)
 
@@ -62,7 +66,7 @@ struct FieldPhotoCaptureView: View {
             }
             .padding(.top, HGLayout.screenContentTopPadding)
         }
-        .padding(.horizontal, HGLayout.screenHorizontalPadding)
+        .padding(.horizontal, 38)
         .padding(.top, 8)
         .background(HGColor.appBackground)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -85,7 +89,7 @@ struct FieldPhotoCaptureView: View {
         Group {
             if photos.isEmpty {
                 RoundedRectangle(cornerRadius: 25)
-                    .fill(HGColor.fieldBackground)
+                    .fill(HGColor.photoSelectionBackground)
                     .accessibilityLabel("현장 사진 미리보기")
             } else {
                 TabView {
