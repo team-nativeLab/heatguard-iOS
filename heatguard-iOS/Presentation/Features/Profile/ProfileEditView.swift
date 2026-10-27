@@ -20,7 +20,6 @@ struct ProfileEditView: View {
 
     private enum ProfileField: Hashable {
         case name
-        case phone
     }
 
     init(profile: HGTeamProfile? = nil, onProfileUpdated: @escaping (HGTeamProfile) -> Void = { _ in }) {
@@ -46,13 +45,7 @@ struct ProfileEditView: View {
                         placeholder: "이름을 입력해주세요",
                         field: .name
                     )
-                    editableProfileField(
-                        title: "전화번호",
-                        text: $phone,
-                        placeholder: "전화번호를 입력해주세요",
-                        field: .phone,
-                        keyboardType: .phonePad
-                    )
+                    profileValue(title: "전화번호", value: phone)
                     emailValue
                     NavigationLink {
                         PasswordChangeView()
@@ -99,9 +92,10 @@ struct ProfileEditView: View {
         .dismissKeyboardOnBackgroundTap()
         .sheet(isPresented: $showsPhotoOptions, onDismiss: presentCameraIfNeeded) {
             profilePhotoOptions
-                .presentationDetents([.height(300)])
+                .presentationDetents([.height(341)])
                 .presentationDragIndicator(.hidden)
-                .presentationCornerRadius(24)
+                .presentationCornerRadius(32)
+                .presentationBackground(HGColor.surface)
         }
         .sheet(isPresented: $showsCameraPicker) {
             HGCameraPicker { image in
@@ -160,62 +154,75 @@ struct ProfileEditView: View {
             Capsule()
                 .fill(HGColor.homeTimelineBorder)
                 .frame(width: 36, height: 5)
-                .padding(.top, 10)
-                .padding(.bottom, 18)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
 
             Text("프로필 사진 변경")
                 .font(HGFont.bold(17, relativeTo: .headline))
                 .foregroundStyle(HGColor.primaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 10)
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 16)
 
-            Button {
-                shouldPresentCamera = true
-                showsPhotoOptions = false
-            } label: {
-                photoOptionRow(title: "사진 찍기", symbol: "camera")
-            }
-            .buttonStyle(.plain)
+            VStack(spacing: 0) {
+                Button {
+                    shouldPresentCamera = true
+                    showsPhotoOptions = false
+                } label: {
+                    photoOptionRow(title: "사진 찍기", symbol: "camera")
+                }
+                .buttonStyle(.plain)
 
-            PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                photoOptionRow(title: "앨범에서 선택", symbol: "photo.on.rectangle")
-            }
-            .onChange(of: selectedPhoto) { _, photo in
-                if photo != nil { showsPhotoOptions = false }
-            }
+                Divider().overlay(HGColor.inputBorder).padding(.leading, 24)
 
-            Button {
-                profileImage = nil
-                showsPhotoOptions = false
-            } label: {
-                photoOptionRow(title: "기본 이미지로 변경", symbol: "person.crop.circle")
+                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                    photoOptionRow(title: "앨범에서 선택", symbol: "photo.on.rectangle")
+                }
+                .onChange(of: selectedPhoto) { _, photo in
+                    if photo != nil { showsPhotoOptions = false }
+                }
+
+                Divider().overlay(HGColor.inputBorder).padding(.leading, 24)
+
+                Button {
+                    profileImage = nil
+                    showsPhotoOptions = false
+                } label: {
+                    photoOptionRow(
+                        title: "기본 이미지로 변경",
+                        symbol: "person.crop.circle",
+                        isDestructive: true
+                    )
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+            .padding(.horizontal, 24)
 
             Button("취소") { showsPhotoOptions = false }
                 .font(HGFont.semiBold(15, relativeTo: .body))
-                .foregroundStyle(HGColor.secondaryText)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .padding(.top, 4)
-                .padding(.bottom, 12)
+                .foregroundStyle(HGColor.primaryText)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .background(HGColor.readOnlyField, in: RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+                .padding(.bottom, 24)
         }
         .background(HGColor.surface)
     }
 
-    private func photoOptionRow(title: String, symbol: String) -> some View {
+    private func photoOptionRow(title: String, symbol: String, isDestructive: Bool = false) -> some View {
         HStack(spacing: 14) {
             Image(systemName: symbol)
                 .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(HGColor.primary)
+                .foregroundStyle(isDestructive ? HGColor.error : HGColor.primaryText)
                 .frame(width: 24, height: 24)
             Text(title)
                 .font(HGFont.medium(15, relativeTo: .body))
-                .foregroundStyle(HGColor.primaryText)
+                .foregroundStyle(isDestructive ? HGColor.error : HGColor.primaryText)
             Spacer()
         }
         .padding(.horizontal, 24)
-        .frame(maxWidth: .infinity, minHeight: 44)
+        .frame(maxWidth: .infinity, minHeight: 56)
     }
 
     private func presentCameraIfNeeded() {
