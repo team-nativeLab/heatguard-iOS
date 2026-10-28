@@ -146,12 +146,22 @@ struct HeatGuardApp: App {
     }
 
     private func handleIncomingURL(_ url: URL) {
-        guard url.scheme == "heatguard",
+        guard ["heatguard", "heartguard"].contains(url.scheme?.lowercased() ?? ""),
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
-        let token = components.queryItems?.first(where: { $0.name == "token" })?.value
-            ?? url.pathComponents.dropFirst().first
+
+        let token: String?
+        if url.host == "team" {
+            let path = url.pathComponents.dropFirst()
+            guard path.count == 2, path.first == "invitations" else { return }
+            token = path.last
+        } else if ["link", "team-invite"].contains(url.host ?? "") {
+            token = components.queryItems?.first(where: { $0.name == "token" })?.value
+                ?? url.pathComponents.dropFirst().first
+        } else {
+            return
+        }
+
         guard let token, !token.isEmpty else { return }
-        guard ["link", "team-invite"].contains(url.host ?? "") else { return }
         pendingInvitationToken = token
         startsAccountRegistration = false
         showsTeamFlow = true
