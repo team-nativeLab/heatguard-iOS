@@ -90,10 +90,10 @@ struct LoginView: View {
                 .frame(maxWidth: .infinity, minHeight: geometry.size.height)
             }
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
-                .offset(y: -HGKeyboardMotion.loginLift(
-                    keyboardHeight: keyboardHeight,
-                    bottomSafeArea: geometry.safeAreaInsets.bottom
-                ))
+            .offset(y: -HGKeyboardMotion.loginLift(
+                keyboardHeight: keyboardHeight,
+                bottomSafeArea: geometry.safeAreaInsets.bottom
+            ))
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .background {
