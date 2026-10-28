@@ -59,7 +59,7 @@ struct NotificationsView: View {
                                     if notification.id != group.items.last?.id { Divider() }
                                 }
                             }
-                            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                            .background(HGColor.appBackground, in: RoundedRectangle(cornerRadius: 16))
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
                         if hasMore && nextCursor != nil {
@@ -257,7 +257,7 @@ private struct NotificationRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .background(notification.read ? HGColor.surface : Color(red: 244 / 255, green: 247 / 255, blue: 254 / 255))
+        .background(notification.read ? HGColor.readOnlyField : HGColor.surface)
         .contentShape(Rectangle())
     }
 
