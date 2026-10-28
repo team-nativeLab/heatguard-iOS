@@ -5,7 +5,13 @@ import XCTest
 
 @MainActor
 final class KeyboardMotionTests: XCTestCase {
-    func testLoginMovesInputFieldsOnlySlightlyAndReturnsWhenKeyboardHides() async throws {
+    func testLoginLiftTracksKeyboardAndLeavesBottomGap() {
+        XCTAssertEqual(HGKeyboardMotion.loginLift(keyboardHeight: 0, bottomSafeArea: 34), 0)
+        XCTAssertEqual(HGKeyboardMotion.loginLift(keyboardHeight: 300, bottomSafeArea: 34), 250)
+        XCTAssertEqual(HGKeyboardMotion.loginLift(keyboardHeight: 34, bottomSafeArea: 34), 0)
+    }
+
+    func testLoginScreenMovesWithKeyboardAndReturnsWhenKeyboardHides() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let window = UIWindow(windowScene: scene)
         let host = UIHostingController(rootView: NavigationStack { LoginView() })
@@ -27,9 +33,8 @@ final class KeyboardMotionTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(100))
         host.view.layoutIfNeeded()
         let keyboardVisibleY = emailField.convert(emailField.bounds, to: window).minY
-        let inputShift = initialY - keyboardVisibleY
-        XCTAssertGreaterThan(inputShift, 0)
-        XCTAssertLessThan(inputShift, 40)
+        let screenShift = initialY - keyboardVisibleY
+        XCTAssertGreaterThan(screenShift, 100, "로그인 화면이 키보드와 함께 충분히 올라가야 합니다")
 
         postKeyboardFrame(CGRect(x: 0, y: screenBounds.maxY, width: screenBounds.width, height: 0))
         try await Task.sleep(for: .milliseconds(100))

@@ -12,6 +12,11 @@ enum HGKeyboardMotion {
         return max(0, screenMaxY - frame.minY)
     }
 
+    static func loginLift(keyboardHeight: CGFloat, bottomSafeArea: CGFloat) -> CGFloat {
+        guard keyboardHeight > 0 else { return 0 }
+        return max(0, keyboardHeight - bottomSafeArea - 16)
+    }
+
     static func animation(for notification: Notification) -> Animation {
         let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
         let curve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? Int
