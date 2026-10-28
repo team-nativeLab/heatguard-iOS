@@ -323,9 +323,9 @@ struct HomeView: View {
 
             HStack(spacing: 0) {
                 HomeMetric(icon: "HomeHumidity", title: "습도", value: dashboard.weather.humidityText)
-                Divider().frame(height: 24)
+                Divider().frame(height: 24).padding(.horizontal, 8)
                 HomeMetric(icon: "HomeFeelsLike", title: "체감온도", value: dashboard.weather.apparentTemperatureText)
-                Divider().frame(height: 24)
+                Divider().frame(height: 24).padding(.horizontal, 8)
                 HomeMetric(icon: "HomeWeather", title: "날씨", value: dashboard.weather.weatherStatusText)
             }
             .padding(.horizontal, 18)
