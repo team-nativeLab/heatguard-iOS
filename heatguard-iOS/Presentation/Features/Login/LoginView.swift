@@ -29,6 +29,15 @@ struct LoginView: View {
         GeometryReader { geometry in
             let horizontalInset = min(28, max(18, geometry.size.width * 0.06))
             let fieldInset = min(36, max(28, geometry.size.width * 0.08))
+            let isKeyboardVisible = keyboardHeight > 0
+            let keyboardLift = HGKeyboardMotion.loginLift(
+                keyboardHeight: keyboardHeight,
+                bottomSafeArea: geometry.safeAreaInsets.bottom
+            )
+            let contentHeight = max(
+                0,
+                geometry.size.height - keyboardLift - (isKeyboardVisible ? 16 : 0)
+            )
 
             ZStack(alignment: .top) {
                 HGColor.surface
@@ -40,7 +49,7 @@ struct LoginView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 80, height: 80)
-                        .padding(.top, 54)
+                        .padding(.top, isKeyboardVisible ? 8 : 54)
 
                     VStack(alignment: .leading, spacing: 0) {
                         Text("안전한 현장을 위해\n로그인해주세요")
@@ -61,9 +70,9 @@ struct LoginView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, fieldInset)
-                    .padding(.top, 34)
+                    .padding(.top, isKeyboardVisible ? 16 : 34)
 
-                    Spacer(minLength: keyboardHeight > 0 ? 0 : 32)
+                    Spacer(minLength: isKeyboardVisible ? 8 : 32)
                     HGPrimaryButton(
                         title: isSubmitting ? "로그인 중..." : "로그인",
                         isEnabled: !isSubmitting,
@@ -84,16 +93,12 @@ struct LoginView: View {
                             .contentShape(Rectangle())
                     }
                     .font(HGFont.regular(12, relativeTo: .caption))
-                    .padding(.top, keyboardHeight > 0 ? 8 : 14)
-                    .padding(.bottom, keyboardHeight > 0 ? 8 : 14)
+                    .padding(.top, isKeyboardVisible ? 4 : 14)
+                    .padding(.bottom, isKeyboardVisible ? 4 : 14)
                 }
-                .frame(maxWidth: .infinity, minHeight: geometry.size.height)
+                .frame(maxWidth: .infinity, minHeight: contentHeight, maxHeight: contentHeight, alignment: .top)
             }
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
-            .offset(y: -HGKeyboardMotion.loginLift(
-                keyboardHeight: keyboardHeight,
-                bottomSafeArea: geometry.safeAreaInsets.bottom
-            ))
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .background {
