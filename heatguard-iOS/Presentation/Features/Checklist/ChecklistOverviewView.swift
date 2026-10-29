@@ -6,7 +6,7 @@ struct ChecklistOverviewView: View {
     let totalCount: Int?
     let siteName: String?
     let teamName: String?
-    let onOpenChecklist: () -> Void
+    let onOpenChecklist: (String?) -> Void
 
     private var progress: CGFloat {
         guard let checkedCount, let totalCount, totalCount > 0 else { return 0 }
@@ -71,7 +71,7 @@ struct ChecklistOverviewView: View {
                 .padding(.bottom, 24)
             }
 
-            HGPrimaryButton(title: "체크리스트 확인", action: onOpenChecklist)
+            HGPrimaryButton(title: "체크리스트 확인", action: { onOpenChecklist(activeTime) })
                 .padding(.horizontal, 24)
                 .padding(.top, 10)
                 .padding(.bottom, 12)
@@ -187,6 +187,9 @@ struct ChecklistOverviewView: View {
     }
 
     private func timeRow(_ rawTime: String, isActive: Bool) -> some View {
+        Button {
+            onOpenChecklist(displayTime(rawTime))
+        } label: {
         HStack(spacing: 10) {
             ZStack {
                 Circle()
@@ -205,7 +208,7 @@ struct ChecklistOverviewView: View {
                     Text(displayTime(rawTime))
                         .font(HGFont.bold(15, relativeTo: .subheadline))
                         .foregroundStyle(HGColor.primaryText)
-                    Text(isActive ? "다음 체크 시간" : "설정된 체크 시간")
+                    Text(isActive ? "다음 체크 시간 · 오늘 항목 확인" : "오늘 항목 확인")
                         .font(HGFont.regular(12, relativeTo: .caption))
                         .foregroundStyle(HGColor.secondaryText)
                 }
@@ -231,7 +234,8 @@ struct ChecklistOverviewView: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture(perform: onOpenChecklist)
+        }
+        .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
     }
@@ -257,7 +261,7 @@ struct ChecklistOverviewView: View {
             totalCount: 8,
             siteName: "A 건설현장",
             teamName: "작업팀",
-            onOpenChecklist: {}
+            onOpenChecklist: { _ in }
         )
     }
 }

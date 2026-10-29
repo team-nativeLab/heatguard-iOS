@@ -6,6 +6,7 @@ struct ChecklistView: View {
     let times: [String]
     let siteName: String?
     let teamName: String?
+    @State private var selectedTime: String?
     private let service: HGChecklistService
     private let onProgressChanged: (Int, Int) -> Void
 
@@ -19,12 +20,14 @@ struct ChecklistView: View {
         times: [String],
         siteName: String?,
         teamName: String?,
+        selectedTime: String? = nil,
         service: HGChecklistService = HGChecklistService(),
         onProgressChanged: @escaping (Int, Int) -> Void = { _, _ in }
     ) {
         self.times = times
         self.siteName = siteName
         self.teamName = teamName
+        _selectedTime = State(initialValue: selectedTime)
         self.service = service
         self.onProgressChanged = onProgressChanged
     }
@@ -125,6 +128,13 @@ struct ChecklistView: View {
         return String(format: "%02d:%02d", activeMinute / 60, activeMinute % 60)
     }
 
+    private var currentSelection: String? {
+        guard let selectedTime, times.contains(where: { formatTime($0) == selectedTime }) else {
+            return activeTime.map(formatTime)
+        }
+        return selectedTime
+    }
+
     private func formatTime(_ rawTime: String) -> String {
         let parts = rawTime.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: ":")
         guard parts.count >= 2,
@@ -149,7 +159,7 @@ struct ChecklistView: View {
     private func summaryCard() -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center) {
-                Text(activeTime.map { "\($0) 체크" } ?? "오늘 체크")
+                Text(currentSelection.map { "\($0) 체크" } ?? "오늘 체크")
                     .font(HGFont.bold(18, relativeTo: .headline))
                     .foregroundStyle(HGColor.primaryText)
 
@@ -211,32 +221,36 @@ struct ChecklistView: View {
                 ForEach(Array(times.enumerated()), id: \.offset) { _, rawTime in
                     let time = rawTime.trimmingCharacters(in: .whitespacesAndNewlines)
                     let displayTime = formatTime(time)
-                    let isActive = minuteValue(for: time) == activeMinute
-                    let isUpcoming = activeMinute.map { active in
-                        minuteValue(for: time).map { $0 > active } ?? false
-                    } ?? false
+                    let isActive = formatTime(time) == currentSelection
 
-                    HStack(spacing: 4) {
-                        if isActive {
-                            Text("●")
-                                .font(HGFont.bold(8, relativeTo: .caption2))
+                    Button {
+                        selectedTime = displayTime
+                    } label: {
+                        HStack(spacing: 4) {
+                            if isActive {
+                                Text("●")
+                                    .font(HGFont.bold(8, relativeTo: .caption2))
+                            }
+                            Text(displayTime)
+                                .font(HGFont.medium(12, relativeTo: .caption))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
                         }
-                        Text(displayTime)
-                            .font(HGFont.medium(12, relativeTo: .caption))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
+                        .foregroundStyle(isActive ? Color.white : HGColor.primaryText)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            isActive ? HGColor.primary : HGColor.surface,
+                            in: RoundedRectangle(cornerRadius: 14)
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(isActive ? Color.clear : HGColor.homeTimelineLine, lineWidth: 1)
+                        }
                     }
-                    .foregroundStyle(isActive ? Color.white : (isUpcoming ? HGColor.placeholder : HGColor.primaryText))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        isActive ? HGColor.primary : HGColor.surface,
-                        in: RoundedRectangle(cornerRadius: 14)
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(isActive ? Color.clear : HGColor.homeTimelineLine, lineWidth: 1)
-                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(displayTime) 시간 선택")
+                    .accessibilityAddTraits(isActive ? .isSelected : [])
                 }
             }
         }
