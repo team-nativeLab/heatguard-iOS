@@ -129,12 +129,13 @@ struct HGRecordUploadService {
                 request.setValue(value, forHTTPHeaderField: name)
             }
 
-            let (_, response) = try await session.upload(for: request, from: photo.data)
+            let (responseData, response) = try await session.upload(for: request, from: photo.data)
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw HGRecordUploadError.uploadFailed(statusCode: nil)
             }
             guard (200 ... 299).contains(httpResponse.statusCode) else {
-                if httpResponse.statusCode == 403, expiresAt <= .now {
+                if httpResponse.statusCode == 403,
+                   expiresAt <= .now || HGS3UploadErrorResponse.isExpired(responseData) {
                     throw HGRecordUploadError.uploadExpired
                 }
                 throw HGRecordUploadError.uploadFailed(statusCode: httpResponse.statusCode)

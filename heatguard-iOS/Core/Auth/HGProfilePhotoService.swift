@@ -74,9 +74,17 @@ struct HGProfilePhotoService {
 
         let response: URLResponse
         do {
-            (_, response) = try await session.upload(for: request, from: data)
+            let (responseData, urlResponse) = try await session.upload(for: request, from: data)
+            response = urlResponse
+            if let httpResponse = response as? HTTPURLResponse,
+               httpResponse.statusCode == 403,
+               expiresAt <= .now || HGS3UploadErrorResponse.isExpired(responseData) {
+                throw HGProfilePhotoError.uploadExpired
+            }
         } catch is CancellationError {
             throw CancellationError()
+        } catch HGProfilePhotoError.uploadExpired {
+            throw HGProfilePhotoError.uploadExpired
         } catch {
             throw HGProfilePhotoError.uploadFailed(statusCode: nil)
         }

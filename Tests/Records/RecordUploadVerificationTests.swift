@@ -55,6 +55,15 @@ final class RecordUploadVerificationTests: XCTestCase {
         XCTAssertEqual(json["photoKeys"] as? [String], ["fixture-2.jpg"])
     }
 
+    func testExpiredS3XMLRenewsReservationAndOnlyNewObjectKeyIsSaved() async throws {
+        let (_, requests) = try await saveFixture(.s3ExpiredXML)
+        XCTAssertEqual(requests.filter { $0.url?.path == HGAPIPath.teamUploads }.count, 2)
+        XCTAssertEqual(requests.filter { $0.httpMethod == "PUT" }.count, 2)
+        let save = try XCTUnwrap(requests.first { $0.url?.path == HGAPIPath.teamRecords })
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(save.httpBody)) as? [String: Any])
+        XCTAssertEqual(json["photoKeys"] as? [String], ["fixture-2.jpg"])
+    }
+
     func testRepeatedExpirationStopsAfterOneRenewal() async throws {
         do {
             _ = try await saveFixture(.alwaysExpired)
@@ -79,6 +88,17 @@ final class RecordUploadVerificationTests: XCTestCase {
         XCTAssertThrowsError(try HGRecordUploadService.validatePhotoSize(0))
     }
 
+    func testS3ExpirationXMLDetectionDoesNotRetryOrdinaryAccessDenied() {
+        XCTAssertTrue(HGS3UploadErrorResponse.isExpired(Data("<Error><Code>RequestExpired</Code></Error>".utf8)))
+        XCTAssertTrue(HGS3UploadErrorResponse.isExpired(Data("<Error><Code>ExpiredToken</Code></Error>".utf8)))
+        XCTAssertTrue(HGS3UploadErrorResponse.isExpired(Data(
+            "<Error><Code>AccessDenied</Code><Message>Request has expired</Message></Error>".utf8
+        )))
+        XCTAssertFalse(HGS3UploadErrorResponse.isExpired(Data(
+            "<Error><Code>AccessDenied</Code><Message>Access denied</Message></Error>".utf8
+        )))
+    }
+
     func testProfileRenewalFinalizesOnlyNewUploadID() async throws {
         let requests = try await uploadProfileFixture(expired: true)
         XCTAssertEqual(requests.filter { $0.httpMethod == "POST" }.count, 2)
@@ -90,7 +110,16 @@ final class RecordUploadVerificationTests: XCTestCase {
         XCTAssertNotNil(put.value(forHTTPHeaderField: "Content-Length"))
     }
 
-    private func uploadProfileFixture(expired: Bool) async throws -> [URLRequest] {
+    func testProfileExpiredS3XMLRenewsAndFinalizesOnlyNewUploadID() async throws {
+        let requests = try await uploadProfileFixture(expired: false, s3ExpiredXML: true)
+        XCTAssertEqual(requests.filter { $0.httpMethod == "POST" }.count, 2)
+        XCTAssertEqual(requests.filter { $0.url?.host == "upload.example.invalid" }.count, 2)
+        let finalize = try XCTUnwrap(requests.first { $0.url?.path == HGAPIPath.teamProfilePhoto })
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(finalize.httpBody)) as? [String: String])
+        XCTAssertEqual(json, ["uploadId": "avatar-2"])
+    }
+
+    private func uploadProfileFixture(expired: Bool, s3ExpiredXML: Bool = false) async throws -> [URLRequest] {
         let store = HGAuthTokenStore(account: "profile-upload-fixture-\(UUID().uuidString)")
         try store.save("fixture-token")
         defer { try? store.clear() }
@@ -111,6 +140,15 @@ final class RecordUploadVerificationTests: XCTestCase {
                     "expiresAt": ISO8601DateFormatter().string(from: Date().addingTimeInterval(expired && attempt == 1 ? -60 : 300)),
                     "requiredHeaders": ["Content-Type": "image/jpeg", "Content-Length": String(size)]
                 ]])
+            } else if url.host == "upload.example.invalid" {
+                let attempt = log.requests.filter { $0.url?.host == "upload.example.invalid" }.count
+                XCTAssertLessThanOrEqual(attempt, 2)
+                let isExpired = s3ExpiredXML && attempt == 1
+                let status = isExpired ? 403 : 200
+                let body = isExpired
+                    ? "<Error><Code>AccessDenied</Code><Message>Request has expired</Message></Error>"
+                    : ""
+                return (try XCTUnwrap(HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: nil)), Data(body.utf8))
             } else if url.path == HGAPIPath.teamProfilePhoto {
                 data = try JSONSerialization.data(withJSONObject: ["success": true, "data": ["photoUrl": NSNull(), "expiresAt": NSNull()]])
             } else {
@@ -134,7 +172,7 @@ final class RecordUploadVerificationTests: XCTestCase {
     }
 
     private enum Scenario {
-        case complete, detailUnavailable, noConnectedPhotos, headersMissing, expiredOnce, alwaysExpired, forbidden
+        case complete, detailUnavailable, noConnectedPhotos, headersMissing, expiredOnce, alwaysExpired, forbidden, s3ExpiredXML
     }
 
     private func saveFixture(_ scenario: Scenario) async throws -> (HGRecordSaveResult, [URLRequest]) {
@@ -149,11 +187,15 @@ final class RecordUploadVerificationTests: XCTestCase {
             var status = 200
             let data: Data
             if request.httpMethod == "PUT" {
-                if scenario == .forbidden {
+                let attempt = log.requests.filter { $0.httpMethod == "PUT" }.count
+                let isExpiredXML = scenario == .s3ExpiredXML && attempt == 1
+                let isForbidden = scenario == .forbidden
+                if isForbidden {
                     XCTAssertEqual(log.requests.filter { $0.url?.path == HGAPIPath.teamUploads }.count, 1)
                 }
-                status = scenario == .forbidden ? 403 : 200
-                data = Data("<Error><Code>AccessDenied</Code></Error>".utf8)
+                status = isForbidden || isExpiredXML ? 403 : 200
+                let message = isExpiredXML ? "Request has expired" : "Access denied"
+                data = Data("<Error><Code>AccessDenied</Code><Message>\(message)</Message></Error>".utf8)
             } else if url.path == HGAPIPath.teamUploads {
                 let attempt = log.requests.filter { $0.url?.path == HGAPIPath.teamUploads }.count
                 let expired = scenario == .alwaysExpired || (scenario == .expiredOnce && attempt == 1)
