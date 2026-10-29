@@ -33,6 +33,28 @@ struct ChecklistOverviewView: View {
         return scheduled.first(where: { $0.1 >= currentMinute })?.0
     }
 
+    private func hasPassed(_ rawTime: String) -> Bool {
+        let parts = rawTime.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: ":")
+        guard parts.count >= 2, let hour = Int(parts[0]), let minute = Int(parts[1]) else { return false }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        let now = calendar.dateComponents([.hour, .minute], from: Date())
+        return hour * 60 + minute < (now.hour ?? 0) * 60 + (now.minute ?? 0)
+    }
+
+    private var scheduleCaption: String {
+        let minutes = times.compactMap { rawTime -> Int? in
+            let parts = rawTime.split(separator: ":")
+            guard parts.count >= 2, let hour = Int(parts[0]), let minute = Int(parts[1]) else { return nil }
+            return hour * 60 + minute
+        }.sorted()
+        let intervals = Set(zip(minutes, minutes.dropFirst()).map { $1 - $0 })
+        guard intervals.count == 1, let interval = intervals.first, interval > 0, interval % 60 == 0 else {
+            return "설정된 시간에 체크"
+        }
+        return "\(interval / 60)시간마다 체크"
+    }
+
     private var location: String {
         [siteName, teamName]
             .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -43,13 +65,19 @@ struct ChecklistOverviewView: View {
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 14) {
                     summaryCard
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("오늘 체크 시간")
-                            .font(HGFont.bold(17, relativeTo: .headline))
-                            .foregroundStyle(HGColor.primaryText)
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("오늘 회차")
+                                .font(HGFont.bold(17, relativeTo: .headline))
+                                .foregroundStyle(HGColor.primaryText)
+                            Spacer()
+                            Text(scheduleCaption)
+                                .font(HGFont.regular(10, relativeTo: .caption))
+                                .foregroundStyle(HGColor.secondaryText)
+                        }
 
                         if times.isEmpty {
                             Text("체크 시간이 설정되지 않았어요.")
@@ -60,49 +88,37 @@ struct ChecklistOverviewView: View {
                         } else {
                             VStack(spacing: 8) {
                                 ForEach(Array(times.enumerated()), id: \.offset) { _, time in
-                                    timeRow(time, isActive: displayTime(time) == activeTime)
+                                    timeRow(time, isActive: displayTime(time) == activeTime, isPast: hasPassed(time))
                                 }
                             }
                         }
                     }
                 }
-                .padding(.horizontal, 22)
-                .padding(.top, 22)
+                .padding(.horizontal, 16)
+                .padding(.top, 14)
                 .padding(.bottom, 24)
             }
 
-            HGPrimaryButton(title: "체크리스트 확인", action: { onOpenChecklist(activeTime) })
-                .padding(.horizontal, 24)
-                .padding(.top, 10)
-                .padding(.bottom, 12)
-                .background(HGColor.appBackground)
         }
         .background(HGColor.appBackground.ignoresSafeArea())
         .hgRouteNavigationHeader(title: "체크리스트")
     }
 
     private var summaryCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(summaryContext)
-                        .font(HGFont.medium(12, relativeTo: .caption))
+                    Text(location.isEmpty ? summaryContext : "\(summaryContext) · \(location)")
+                        .font(HGFont.medium(10, relativeTo: .caption))
                         .foregroundStyle(.white.opacity(0.82))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                    if !location.isEmpty {
-                        Text(location)
-                            .font(HGFont.regular(11, relativeTo: .caption2))
-                            .foregroundStyle(.white.opacity(0.82))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
-                    }
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(checkedCount.map(String.init) ?? "—")
-                            .font(HGFont.bold(34, relativeTo: .largeTitle))
+                            .font(HGFont.bold(28, relativeTo: .largeTitle))
                             .foregroundStyle(.white)
                         Text("/ \(totalCount.map(String.init) ?? "—")개 항목 완료")
-                            .font(HGFont.medium(16, relativeTo: .headline))
+                            .font(HGFont.medium(12, relativeTo: .headline))
                             .foregroundStyle(.white.opacity(0.85))
                     }
                 }
@@ -113,19 +129,19 @@ struct ChecklistOverviewView: View {
             Spacer(minLength: 0)
 
             HStack(spacing: 0) {
-                stat(title: "완료", value: checkedCount.map(String.init) ?? "—")
+                stat(title: "완료 항목", value: checkedCount.map(String.init) ?? "—")
                 statDivider
-                stat(title: "미완료", value: remainingCount.map(String.init) ?? "—")
+                stat(title: "남은 항목", value: remainingCount.map(String.init) ?? "—")
                 statDivider
-                stat(title: "전체", value: totalCount.map(String.init) ?? "—")
+                stat(title: "전체 항목", value: totalCount.map(String.init) ?? "—")
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: 14))
         }
-        .padding(18)
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: 168)
+        .frame(height: 112)
         .background(
             LinearGradient(
                 colors: [
@@ -135,7 +151,7 @@ struct ChecklistOverviewView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             ),
-            in: RoundedRectangle(cornerRadius: 22)
+            in: RoundedRectangle(cornerRadius: 18)
         )
         .shadow(color: HGColor.primary.opacity(0.22), radius: 12, y: 8)
     }
@@ -151,7 +167,7 @@ struct ChecklistOverviewView: View {
                 .font(HGFont.bold(12, relativeTo: .caption))
                 .foregroundStyle(.white)
         }
-        .frame(width: 64, height: 64)
+        .frame(width: 46, height: 46)
         .accessibilityLabel("오늘 체크 항목 진행률")
     }
 
@@ -186,51 +202,51 @@ struct ChecklistOverviewView: View {
             .frame(width: 1, height: 24)
     }
 
-    private func timeRow(_ rawTime: String, isActive: Bool) -> some View {
+    private func timeRow(_ rawTime: String, isActive: Bool, isPast: Bool) -> some View {
         Button {
             onOpenChecklist(displayTime(rawTime))
         } label: {
-        HStack(spacing: 10) {
+        HStack(spacing: 6) {
             ZStack {
                 Circle()
-                    .stroke(isActive ? HGColor.primary : HGColor.homeTimelineBorder, lineWidth: 2)
-                    .frame(width: 20, height: 20)
+                    .fill(isActive ? HGColor.primary : HGColor.surface)
+                    .stroke(isActive ? HGColor.primary : HGColor.homeTimelineBorder, lineWidth: 1.5)
+                    .frame(width: 15, height: 15)
                 if isActive {
                     Circle()
-                        .fill(HGColor.primary)
-                        .frame(width: 10, height: 10)
+                        .fill(.white)
+                        .frame(width: 5, height: 5)
                 }
             }
-            .frame(width: 24)
+            .frame(width: 20)
 
             HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(displayTime(rawTime))
-                        .font(HGFont.bold(15, relativeTo: .subheadline))
+                        .font(HGFont.bold(12, relativeTo: .subheadline))
                         .foregroundStyle(HGColor.primaryText)
-                    Text(isActive ? "다음 체크 시간 · 오늘 항목 확인" : "오늘 항목 확인")
-                        .font(HGFont.regular(12, relativeTo: .caption))
+                    Text(isPast ? "회차별 결과를 불러올 수 없어요" : "시간을 눌러 체크 항목을 확인하세요")
+                        .font(HGFont.regular(9, relativeTo: .caption))
                         .foregroundStyle(HGColor.secondaryText)
+                        .lineLimit(1)
                 }
                 Spacer(minLength: 4)
-                if isActive {
-                    Text("다음")
-                        .font(HGFont.medium(11, relativeTo: .caption))
-                        .foregroundStyle(HGColor.primary)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
-                        .background(HGColor.photoSelectionBackground, in: Capsule())
-                }
+                Text(isActive ? "다음" : (isPast ? "상태 미제공" : "예정"))
+                    .font(HGFont.medium(9, relativeTo: .caption))
+                    .foregroundStyle(isActive ? HGColor.primary : HGColor.secondaryText)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(isActive ? HGColor.photoSelectionBackground : HGColor.appBackground, in: Capsule())
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(HGColor.homeChevron)
             }
-            .padding(.horizontal, 14)
-            .frame(maxWidth: .infinity, minHeight: 58)
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, minHeight: 42)
             .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 14))
             .overlay {
                 RoundedRectangle(cornerRadius: 14)
-                    .stroke(isActive ? HGColor.primary : .clear, lineWidth: 1.5)
+                    .stroke(isActive ? HGColor.primary : .clear, lineWidth: 1)
             }
         }
         .contentShape(Rectangle())
