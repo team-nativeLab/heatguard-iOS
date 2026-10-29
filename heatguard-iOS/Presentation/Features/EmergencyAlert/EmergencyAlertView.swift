@@ -25,11 +25,8 @@ struct EmergencyAlertView: View {
 
     var body: some View {
         HGStatusPopup(title: "긴급 호출") {
-            emergencyNotice
-                .padding(.top, 33)
-
             callPrompt
-                .padding(.top, 17)
+                .padding(.top, 33)
 
             contactCard
                 .padding(.top, 28)
@@ -43,10 +40,6 @@ struct EmergencyAlertView: View {
         } message: {
             Text(error?.alertMessage ?? "")
         }
-    }
-
-    private var emergencyNotice: some View {
-        HGEmergencyNotice()
     }
 
     private var callPrompt: some View {

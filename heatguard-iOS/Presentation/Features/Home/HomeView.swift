@@ -535,14 +535,15 @@ struct HomeView: View {
                 totalCount: checklist.totalCount,
                 siteName: dashboard.siteName,
                 teamName: dashboard.teamName
-            ) {
-                flowPath.append(HomeFlowRoute.checklist)
+            ) { selectedTime in
+                flowPath.append(HomeFlowRoute.checklist(selectedTime))
             }
-        case .checklist:
+        case let .checklist(selectedTime):
             ChecklistView(
                 times: checklist.times,
                 siteName: dashboard.siteName,
-                teamName: dashboard.teamName
+                teamName: dashboard.teamName,
+                selectedTime: selectedTime
             ) { checkedCount, totalCount in
                 checklist = HGChecklistSummary(
                     times: checklist.times,
@@ -843,7 +844,7 @@ private enum EmergencySheet: Identifiable, Equatable {
 
 private enum HomeFlowRoute: Hashable {
     case checklistOverview
-    case checklist
+    case checklist(String?)
     case thermometer
     case workPhoto
     case restPhoto

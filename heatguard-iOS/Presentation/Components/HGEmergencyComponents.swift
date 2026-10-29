@@ -23,25 +23,6 @@ struct HGEmergencyPulse: View {
     }
 }
 
-struct HGEmergencyNotice: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("긴급 상황이에요")
-                .font(HGFont.bold(16))
-            Text("현장관리자에게 즉시 도움을 요청합니다")
-                .font(HGFont.semiBold(12, relativeTo: .caption))
-        }
-        .foregroundStyle(HGColor.emergencyNoticeText)
-        .frame(maxWidth: .infinity, minHeight: 73, alignment: .leading)
-        .padding(.horizontal, 19)
-        .background(
-            HGColor.emergencyNoticeBackground,
-            in: RoundedRectangle(cornerRadius: HGLayout.popupCornerRadius)
-        )
-        .padding(.horizontal, HGLayout.screenHorizontalPadding)
-    }
-}
-
 struct HGEmergencyContactCard: View {
     let contact: HGEmergencyContact
     var onPhoneCall: () -> Void = {}

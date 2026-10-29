@@ -1,3 +1,4 @@
+import AVFoundation
 import PhotosUI
 import SwiftUI
 
@@ -10,6 +11,7 @@ struct HGPhotoCaptureSection: View {
     @State private var showsPhotoPicker = false
     @State private var showsCameraPicker = false
     @State private var showsCameraUnavailable = false
+    @State private var showsCameraPermissionRequired = false
     @State private var photoImportMessage: String?
     @Binding private var images: [UIImage]
     private let isSourceSheet: Bool
@@ -56,10 +58,31 @@ struct HGPhotoCaptureSection: View {
             }
             .ignoresSafeArea()
         }
-        .alert("카메라를 사용할 수 없습니다.", isPresented: $showsCameraUnavailable) {
-            Button("확인", role: .cancel) {}
+        .alert(
+            showsCameraPermissionRequired ? "카메라 접근 권한이 필요합니다." : "카메라를 사용할 수 없습니다.",
+            isPresented: Binding(
+                get: { showsCameraUnavailable || showsCameraPermissionRequired },
+                set: { isPresented in
+                    if !isPresented {
+                        showsCameraUnavailable = false
+                        showsCameraPermissionRequired = false
+                    }
+                }
+            )
+        ) {
+            if showsCameraPermissionRequired {
+                Button("설정 열기") {
+                    guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
+                    UIApplication.shared.open(settingsURL)
+                }
+            }
+            Button("취소", role: .cancel) {}
         } message: {
-            Text("실제 기기에서 카메라 촬영을 사용할 수 있습니다.")
+            Text(
+                showsCameraPermissionRequired
+                    ? "설정 앱에서 HeatGuard의 카메라 접근을 허용해주세요."
+                    : "실제 기기에서 카메라 촬영을 사용할 수 있습니다."
+            )
         }
     }
 
@@ -135,8 +158,25 @@ struct HGPhotoCaptureSection: View {
 
     private func presentCamera() {
         guard selectedPhotoCount < maximumPhotoCount else { return }
-        showsCameraPicker = UIImagePickerController.isSourceTypeAvailable(.camera)
-        showsCameraUnavailable = !showsCameraPicker
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            showsCameraUnavailable = true
+            return
+        }
+
+        Task { @MainActor in
+            switch AVCaptureDevice.authorizationStatus(for: .video) {
+            case .authorized:
+                showsCameraPicker = true
+            case .notDetermined:
+                let isAuthorized = await AVCaptureDevice.requestAccess(for: .video)
+                showsCameraPicker = isAuthorized
+                showsCameraPermissionRequired = !isAuthorized
+            case .denied, .restricted:
+                showsCameraPermissionRequired = true
+            @unknown default:
+                showsCameraUnavailable = true
+            }
+        }
     }
 
     private var backgroundColor: Color { HGColor.photoSelectionBackground }
