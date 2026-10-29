@@ -93,7 +93,11 @@ struct HGRecordUploadService {
         for attempt in 0 ... 1 {
             try Task.checkCancellation()
             let response: HGUploadURLResponse = try await client.send(
-                HGUploadURLRequest(files: photos.map(HGUploadFileRequest.init)),
+                HGUploadURLRequest(
+                    files: photos.enumerated().map { index, photo in
+                        HGUploadFileRequest(slot: index + 1, photo: photo)
+                    }
+                ),
                 method: "POST",
                 path: HGAPIPath.teamUploads,
                 requiresAuthentication: true
@@ -138,7 +142,10 @@ struct HGRecordUploadService {
                    expiresAt <= .now || HGS3UploadErrorResponse.isExpired(responseData) {
                     throw HGRecordUploadError.uploadExpired
                 }
-                throw HGRecordUploadError.uploadFailed(statusCode: httpResponse.statusCode)
+                throw HGRecordUploadError.uploadFailed(
+                    statusCode: httpResponse.statusCode,
+                    s3Details: HGS3UploadErrorResponse.details(responseData)
+                )
             }
         }
     }
@@ -218,10 +225,12 @@ private struct HGUploadURLRequest: Encodable {
 }
 
 private struct HGUploadFileRequest: Encodable {
+    let slot: Int
     let contentType: String
     let size: Int
 
-    init(photo: HGUploadPhoto) {
+    init(slot: Int, photo: HGUploadPhoto) {
+        self.slot = slot
         contentType = photo.contentType
         size = photo.data.count
     }
@@ -289,7 +298,7 @@ enum HGRecordUploadError: LocalizedError {
     case uploadExpired
     case uploadPreparation
     case requiredHeadersMissing
-    case uploadFailed(statusCode: Int?)
+    case uploadFailed(statusCode: Int?, s3Details: HGS3UploadErrorDetails? = nil)
 
     var errorDescription: String? {
         switch self {
@@ -300,7 +309,14 @@ enum HGRecordUploadError: LocalizedError {
         case .uploadExpired: "사진 업로드 시간이 만료됐습니다. 다시 저장해주세요."
         case .uploadPreparation: "사진 업로드를 준비하지 못했습니다."
         case .requiredHeadersMissing: "업로드 서버가 필요한 사진 전송 정보를 주지 않았습니다."
-        case .uploadFailed: "사진 업로드에 실패했습니다."
+        case let .uploadFailed(_, s3Details):
+            guard let s3Details else { return "사진 업로드에 실패했습니다." }
+            let details = [
+                s3Details.code.map { "Code: \($0)" },
+                s3Details.message.map { "Message: \($0)" },
+                s3Details.requestID.map { "RequestId: \($0)" }
+            ].compactMap { $0 }
+            return details.isEmpty ? "사진 업로드에 실패했습니다." : "사진 업로드에 실패했습니다.\n\(details.joined(separator: "\n"))"
         }
     }
 
@@ -313,7 +329,7 @@ enum HGRecordUploadError: LocalizedError {
         case .uploadExpired: "UPLOAD_EXPIRED"
         case .uploadPreparation: "UPLOAD_PREPARATION"
         case .requiredHeadersMissing: "UPLOAD_HEADERS_MISSING"
-        case let .uploadFailed(statusCode):
+        case let .uploadFailed(statusCode, _):
             statusCode.map { "S3_UPLOAD_HTTP_\($0)" } ?? "S3_UPLOAD_FAILED"
         }
     }

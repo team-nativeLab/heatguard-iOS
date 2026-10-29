@@ -16,7 +16,8 @@ final class RecordUploadVerificationTests: XCTestCase {
         let body = try XCTUnwrap(preparation.httpBody)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
         let file = try XCTUnwrap((json["files"] as? [[String: Any]])?.first)
-        XCTAssertEqual(Set(file.keys), ["contentType", "size"])
+        XCTAssertEqual(Set(file.keys), ["slot", "contentType", "size"])
+        XCTAssertEqual(file["slot"] as? Int, 1)
         XCTAssertGreaterThan(try XCTUnwrap(file["size"] as? Int), 0)
         XCTAssertEqual(upload.value(forHTTPHeaderField: "x-amz-meta-fixture"), "signed-value")
         XCTAssertEqual(requests.filter { $0.httpMethod == "POST" && $0.url?.path == HGAPIPath.teamRecords }.count, 1)
@@ -79,6 +80,9 @@ final class RecordUploadVerificationTests: XCTestCase {
             XCTFail("Unexpired 403 must fail")
         } catch let error as HGRecordUploadError {
             XCTAssertEqual(error.diagnosticCode, "S3_UPLOAD_HTTP_403")
+            XCTAssertTrue(error.localizedDescription.contains("Code: AccessDenied"))
+            XCTAssertTrue(error.localizedDescription.contains("Message: Access denied"))
+            XCTAssertTrue(error.localizedDescription.contains("RequestId: fixture-request-id"))
         }
     }
 
@@ -195,7 +199,9 @@ final class RecordUploadVerificationTests: XCTestCase {
                 }
                 status = isForbidden || isExpiredXML ? 403 : 200
                 let message = isExpiredXML ? "Request has expired" : "Access denied"
-                data = Data("<Error><Code>AccessDenied</Code><Message>\(message)</Message></Error>".utf8)
+                let xml = "<Error><Code>AccessDenied</Code><Message>\(message)</Message>"
+                    + "<RequestId>fixture-request-id</RequestId></Error>"
+                data = Data(xml.utf8)
             } else if url.path == HGAPIPath.teamUploads {
                 let attempt = log.requests.filter { $0.url?.path == HGAPIPath.teamUploads }.count
                 let expired = scenario == .alwaysExpired || (scenario == .expiredOnce && attempt == 1)
