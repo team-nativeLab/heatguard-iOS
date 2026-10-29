@@ -32,12 +32,29 @@ struct HGProfilePhotoService {
 
     func uploadPhoto(_ image: UIImage) async throws {
         let data = try Self.jpegData(from: image)
+        for attempt in 0 ... 1 {
+            try Task.checkCancellation()
+            do {
+                try await uploadPhotoData(data)
+                return
+            } catch HGProfilePhotoError.uploadExpired where attempt == 0 {
+                continue
+            }
+        }
+        throw HGProfilePhotoError.uploadExpired
+    }
+
+    private func uploadPhotoData(_ data: Data) async throws {
         let upload: HGProfilePhotoUploadResponse = try await client.send(
             HGProfilePhotoUploadRequest(contentType: "image/jpeg", size: data.count),
             method: "POST",
             path: HGAPIPath.teamProfilePhotoUploads,
             requiresAuthentication: true
         )
+        guard let expiresAt = upload.expiresAt.hgISO8601Date else {
+            throw HGProfilePhotoError.invalidUploadContract
+        }
+        guard expiresAt > .now else { throw HGProfilePhotoError.uploadExpired }
         guard let url = URL(string: upload.uploadURL), url.scheme?.lowercased() == "https" else {
             throw HGProfilePhotoError.invalidURL
         }
@@ -65,15 +82,22 @@ struct HGProfilePhotoService {
         }
         guard let httpResponse = response as? HTTPURLResponse,
               (200 ... 299).contains(httpResponse.statusCode) else {
+            if (response as? HTTPURLResponse)?.statusCode == 403, expiresAt <= .now {
+                throw HGProfilePhotoError.uploadExpired
+            }
             throw HGProfilePhotoError.uploadFailed(statusCode: (response as? HTTPURLResponse)?.statusCode)
         }
 
-        let _: HGProfilePhotoResponse = try await client.send(
-            HGProfilePhotoFinalizeRequest(uploadID: upload.uploadID),
-            method: "PUT",
-            path: HGAPIPath.teamProfilePhoto,
-            requiresAuthentication: true
-        )
+        do {
+            let _: HGProfilePhotoResponse = try await client.send(
+                HGProfilePhotoFinalizeRequest(uploadID: upload.uploadID),
+                method: "PUT",
+                path: HGAPIPath.teamProfilePhoto,
+                requiresAuthentication: true
+            )
+        } catch HGAPIError.server(_, 409, "UPLOAD_EXPIRED") {
+            throw HGProfilePhotoError.uploadExpired
+        }
     }
 
     func removePhoto() async throws {
@@ -127,11 +151,13 @@ private struct HGProfilePhotoFinalizeRequest: Encodable {
 private struct HGProfilePhotoUploadResponse: Decodable {
     let uploadID: String
     let uploadURL: String
+    let expiresAt: String
     let requiredHeaders: [String: String]
 
     enum CodingKeys: String, CodingKey {
         case uploadID = "uploadId"
         case uploadURL = "uploadUrl"
+        case expiresAt
         case requiredHeaders
     }
 }
@@ -149,6 +175,7 @@ private enum HGProfilePhotoError: LocalizedError {
     case invalidURL
     case invalidUploadContract
     case downloadFailed
+    case uploadExpired
     case uploadFailed(statusCode: Int?)
 
     var errorDescription: String? {
@@ -159,6 +186,8 @@ private enum HGProfilePhotoError: LocalizedError {
             "프로필 사진 서버 주소가 올바르지 않습니다."
         case .invalidUploadContract:
             "서버 업로드 규격과 사진 크기가 일치하지 않습니다."
+        case .uploadExpired:
+            "사진 업로드 시간이 만료됐습니다. 다시 시도해주세요."
         case .downloadFailed:
             "프로필 사진을 불러오지 못했습니다."
         case .uploadFailed:
