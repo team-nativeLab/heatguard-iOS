@@ -51,6 +51,92 @@ final class ChecklistServiceTests: XCTestCase {
         XCTAssertEqual(payload, ["checked": true])
     }
 
+    func testFetchRoundsUsesDateQueryAndDecodesServerSummary() async throws {
+        let harness = try makeService { _ in
+            (200, #"{"success":true,"data":{"date":"2026-10-30","teamId":"team_01","summary":{"totalRounds":3,"completedRounds":1,"missedRounds":0,"remainingRounds":2,"progressPercent":33},"items":[{"roundId":"08:00","startsAt":"2026-10-30T08:00:00+09:00","endsAt":"2026-10-30T10:00:00+09:00","status":"COMPLETED","totalItems":6,"checkedItems":6,"progressPercent":100,"completedAt":"2026-10-30T08:12:00+09:00"}]}}"#)
+        }
+        defer { try? harness.tokenStore.clear() }
+
+        let rounds = try await harness.service.fetchRounds(date: "2026-10-30")
+
+        XCTAssertEqual(rounds.summary.progressPercent, 33)
+        XCTAssertEqual(rounds.items.first?.status, .completed)
+        let request = try XCTUnwrap(harness.requests.requests.first)
+        XCTAssertEqual(request.url?.path, HGAPIPath.teamChecklistRounds)
+        XCTAssertEqual(URLComponents(url: try XCTUnwrap(request.url), resolvingAgainstBaseURL: false)?.queryItems,
+                       [URLQueryItem(name: "date", value: "2026-10-30")])
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer checklist-fixture-token")
+    }
+
+    func testFetchRoundPercentEncodesColonAndDecodesItems() async throws {
+        let harness = try makeService { _ in
+            (200, #"{"success":true,"data":{"date":"2026-10-30","teamId":"team_01","roundId":"08:00","startsAt":"2026-10-30T08:00:00+09:00","endsAt":"2026-10-30T10:00:00+09:00","status":"IN_PROGRESS","totalItems":1,"checkedItems":0,"progressPercent":0,"completedAt":null,"items":[{"itemId":"item_01","text":"식수를 준비했나요?","sortOrder":1,"checked":false,"checkedAt":null}]}}"#)
+        }
+        defer { try? harness.tokenStore.clear() }
+
+        let round = try await harness.service.fetchRound(id: "08:00", date: "2026-10-30")
+
+        XCTAssertEqual(round.items.first?.text, "식수를 준비했나요?")
+        let request = try XCTUnwrap(harness.requests.requests.first)
+        XCTAssertTrue(try XCTUnwrap(request.url?.absoluteString).contains("/rounds/08%3A00?date=2026-10-30"))
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer checklist-fixture-token")
+    }
+
+    func testEmptyRoundDoesNotBecomeCompletedAutomatically() async throws {
+        let harness = try makeService { _ in
+            (200, #"{"success":true,"data":{"date":"2026-10-30","teamId":"team_01","roundId":"08:00","startsAt":"2026-10-30T08:00:00+09:00","endsAt":"2026-10-30T10:00:00+09:00","status":"IN_PROGRESS","totalItems":0,"checkedItems":0,"progressPercent":0,"completedAt":null,"items":[]}}"#)
+        }
+        defer { try? harness.tokenStore.clear() }
+
+        let round = try await harness.service.fetchRound(id: "08:00", date: "2026-10-30")
+
+        XCTAssertFalse(round.isComplete)
+        XCTAssertEqual(round.status, .inProgress)
+    }
+
+    func testRoundItemUpdateRefetchesDetailAndRoundsAfterPut() async throws {
+        let harness = try makeService { request in
+            if request.httpMethod == "PUT" {
+                return (200, #"{"success":true,"data":{"date":"2026-10-30","roundId":"08:00","itemId":"item_01","checked":true,"checkedAt":"2026-10-30T08:10:00+09:00"}}"#)
+            }
+            if request.url?.path.contains("/rounds/08:00") == true {
+                return (200, #"{"success":true,"data":{"date":"2026-10-30","teamId":"team_01","roundId":"08:00","startsAt":"2026-10-30T08:00:00+09:00","endsAt":"2026-10-30T10:00:00+09:00","status":"IN_PROGRESS","totalItems":1,"checkedItems":1,"progressPercent":100,"completedAt":null,"items":[{"itemId":"item_01","text":"식수를 준비했나요?","sortOrder":1,"checked":true,"checkedAt":"2026-10-30T08:10:00+09:00"}]}}"#)
+            }
+            return (200, #"{"success":true,"data":{"date":"2026-10-30","teamId":"team_01","summary":{"totalRounds":1,"completedRounds":0,"missedRounds":0,"remainingRounds":1,"progressPercent":0},"items":[{"roundId":"08:00","startsAt":"2026-10-30T08:00:00+09:00","endsAt":"2026-10-30T10:00:00+09:00","status":"IN_PROGRESS","totalItems":1,"checkedItems":1,"progressPercent":100,"completedAt":null}]}}"#)
+        }
+        defer { try? harness.tokenStore.clear() }
+
+        let refreshed = try await harness.service.updateRoundItem(
+            roundID: "08:00", itemID: "item_01", isChecked: true, date: "2026-10-30"
+        )
+
+        XCTAssertTrue(refreshed.round.items[0].checked)
+        XCTAssertEqual(refreshed.rounds.items[0].checkedItems, 1)
+        let requests = harness.requests.requests
+        XCTAssertEqual(requests.map(\.httpMethod), ["PUT", "GET", "GET"])
+        XCTAssertTrue(try XCTUnwrap(requests[0].url?.absoluteString).contains("/rounds/08%3A00/items/item_01"))
+        XCTAssertEqual(requests[0].value(forHTTPHeaderField: "Authorization"), "Bearer checklist-fixture-token")
+        let body = try XCTUnwrap(requestBody(for: requests[0]))
+        XCTAssertEqual(try JSONSerialization.jsonObject(with: body) as? [String: Bool], ["checked": true])
+    }
+
+    func testChecklistRoundServerErrorsKeepTheirDiagnosticCodesAndUserMeaning() {
+        let cases: [(Int, String, String)] = [
+            (400, "VALIDATION_ERROR", "체크 요청을 확인해주세요"),
+            (403, "TEAM_MEMBERSHIP_REQUIRED", "팀 권한을 확인해주세요"),
+            (404, "RESOURCE_NOT_FOUND", "회차 정보를 찾을 수 없습니다"),
+            (409, "ROUND_NOT_OPEN", "체크할 수 없는 회차입니다")
+        ]
+
+        for (status, code, expectedTitle) in cases {
+            let error = HGAPIError.server(message: "server detail", statusCode: status, serverCode: code)
+            let presentation = HGChecklistAPIErrorPresentation.make(from: error)
+            XCTAssertEqual(presentation.title, expectedTitle)
+            XCTAssertEqual(presentation.diagnosticCode, "HTTP \(status) · \(code)")
+            XCTAssertNotEqual(presentation.message, "server detail")
+        }
+    }
+
     func testChecklistScreenRendersAtFigmaCanvasSize() async throws {
         let harness = try makeService { _ in
             (

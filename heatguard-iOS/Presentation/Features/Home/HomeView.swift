@@ -530,27 +530,13 @@ struct HomeView: View {
         switch route {
         case .checklistOverview:
             ChecklistOverviewView(
-                times: checklist.times,
-                checkedCount: checklist.checkedCount,
-                totalCount: checklist.totalCount,
                 siteName: dashboard.siteName,
                 teamName: dashboard.teamName
-            ) { selectedTime in
-                flowPath.append(HomeFlowRoute.checklist(selectedTime))
+            ) { roundID, date in
+                flowPath.append(HomeFlowRoute.checklistRound(id: roundID, date: date))
             }
-        case let .checklist(selectedTime):
-            ChecklistView(
-                times: checklist.times,
-                siteName: dashboard.siteName,
-                teamName: dashboard.teamName,
-                selectedTime: selectedTime
-            ) { checkedCount, totalCount in
-                checklist = HGChecklistSummary(
-                    times: checklist.times,
-                    checkedCount: checkedCount,
-                    totalCount: totalCount
-                )
-            }
+        case let .checklistRound(roundID, date):
+            ChecklistRoundDetailView(roundID: roundID, date: date)
         case .thermometer:
             ThermometerRecordView(weather: dashboard.weather,
                 teamName: dashboard.teamName,
@@ -844,7 +830,7 @@ private enum EmergencySheet: Identifiable, Equatable {
 
 private enum HomeFlowRoute: Hashable {
     case checklistOverview
-    case checklist(String?)
+    case checklistRound(id: String, date: String)
     case thermometer
     case workPhoto
     case restPhoto
