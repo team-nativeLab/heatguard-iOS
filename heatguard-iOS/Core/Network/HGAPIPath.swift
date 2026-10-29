@@ -15,6 +15,7 @@ enum HGAPIPath {
     static let teamProfile = "/api/v1/team/profile"
     static let teamHome = "/api/v1/team"
     static let teamChecklist = "/api/v1/team/checklist"
+    static let teamChecklistRounds = "\(teamChecklist)/rounds"
     static let teamUploads = "/api/v1/team/uploads"
     static let teamRecords = "/api/v1/team/records"
     static let teamEmergencyCalls = "/api/v1/team/emergency-calls"
@@ -23,10 +24,19 @@ enum HGAPIPath {
     static let teamNotifications = "/api/v1/team/notifications"
 
     static func teamChecklistItem(id: String) -> String { "\(teamChecklist)/items/\(id)" }
+    static func teamChecklistRound(id: String) -> String { "\(teamChecklistRounds)/\(encodedPathSegment(id))" }
+    static func teamChecklistRoundItem(roundID: String, itemID: String) -> String {
+        "\(teamChecklistRound(id: roundID))/items/\(encodedPathSegment(itemID))"
+    }
     static func teamRecord(id: String) -> String { "\(teamRecords)/\(id)" }
     static func teamEmergencyCall(id: String) -> String { "\(teamEmergencyCalls)/\(id)" }
     static func teamInquiry(id: String) -> String { "\(teamInquiries)/\(id)" }
     static func teamNotificationRead(id: String) -> String { "\(teamNotifications)/\(id)/read" }
     static func teamMembershipSelect(id: String) -> String { "\(teamMemberships)/\(id)/select" }
     static func teamMembershipLeave(id: String) -> String { "\(teamMemberships)/\(id)" }
+
+    private static func encodedPathSegment(_ value: String) -> String {
+        let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
+        return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+    }
 }
