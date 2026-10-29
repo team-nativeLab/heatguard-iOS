@@ -49,7 +49,9 @@ struct ChecklistOverviewView: View {
                                     statusIcon(round.status)
                                     VStack(alignment: .leading, spacing: 3) {
                                         HStack {
-                                            Text(round.roundId).font(HGFont.bold(15, relativeTo: .subheadline)).foregroundStyle(HGColor.primaryText)
+                                            Text(round.roundId)
+                                                .font(HGFont.bold(15, relativeTo: .subheadline))
+                                                .foregroundStyle(HGColor.primaryText)
                                             Spacer()
                                             Text(statusText(round.status))
                                                 .font(HGFont.medium(10, relativeTo: .caption2))
@@ -61,11 +63,16 @@ struct ChecklistOverviewView: View {
                                             .font(HGFont.regular(11, relativeTo: .caption2))
                                             .foregroundStyle(HGColor.secondaryText)
                                     }
-                                    Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(HGColor.homeChevron)
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundStyle(HGColor.homeChevron)
                                 }
                                 .padding(.horizontal, 14).frame(maxWidth: .infinity, minHeight: 58)
                                 .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 14))
-                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(round.status == .inProgress ? HGColor.primary : .clear, lineWidth: 1.5))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(round.status == .inProgress ? HGColor.primary : .clear, lineWidth: 1.5)
+                                }
                             }
                             .buttonStyle(.plain)
                         }
@@ -101,15 +108,24 @@ struct ChecklistOverviewView: View {
                         Text(location).font(HGFont.regular(10, relativeTo: .caption2)).foregroundStyle(.white.opacity(0.82)).lineLimit(1)
                     }
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text(summary.map { String($0.completedRounds) } ?? "—").font(HGFont.bold(30, relativeTo: .largeTitle)).foregroundStyle(.white)
-                        Text("/ \(summary.map { String($0.totalRounds) } ?? "—")회차 완료").font(HGFont.medium(13, relativeTo: .headline)).foregroundStyle(.white.opacity(0.85))
+                        Text(summary.map { String($0.completedRounds) } ?? "—")
+                            .font(HGFont.bold(30, relativeTo: .largeTitle))
+                            .foregroundStyle(.white)
+                        Text("/ \(summary.map { String($0.totalRounds) } ?? "—")회차 완료")
+                            .font(HGFont.medium(13, relativeTo: .headline))
+                            .foregroundStyle(.white.opacity(0.85))
                     }
                 }
                 Spacer(minLength: 8)
                 ZStack {
                     Circle().stroke(.white.opacity(0.28), lineWidth: 5)
-                    Circle().trim(from: 0, to: progress).stroke(.white, style: StrokeStyle(lineWidth: 5, lineCap: .round)).rotationEffect(.degrees(-90))
-                    Text(summary.map { "\($0.progressPercent)%" } ?? "—").font(HGFont.bold(12, relativeTo: .caption)).foregroundStyle(.white)
+                    Circle()
+                        .trim(from: 0, to: progress)
+                        .stroke(.white, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    Text(summary.map { "\($0.progressPercent)%" } ?? "—")
+                        .font(HGFont.bold(12, relativeTo: .caption))
+                        .foregroundStyle(.white)
                 }.frame(width: 64, height: 64)
             }
             Spacer(minLength: 0)
@@ -122,8 +138,17 @@ struct ChecklistOverviewView: View {
             }
             .padding(.horizontal, 12).padding(.vertical, 8).background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: 14))
         }
-        .padding(18).frame(maxWidth: .infinity, alignment: .leading).frame(height: 168)
-        .background(LinearGradient(colors: [Color(red: 0.247, green: 0.576, blue: 0.969), Color(red: 0.110, green: 0.384, blue: 0.839)], startPoint: .topLeading, endPoint: .bottomTrailing), in: RoundedRectangle(cornerRadius: 22))
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: 168)
+        .background(
+            LinearGradient(
+                colors: [Color(red: 0.247, green: 0.576, blue: 0.969), Color(red: 0.110, green: 0.384, blue: 0.839)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 22)
+        )
         .shadow(color: HGColor.primary.opacity(0.22), radius: 12, y: 8)
     }
 
@@ -178,9 +203,14 @@ struct ChecklistOverviewView: View {
     @MainActor
     private func loadRounds() async {
         isLoading = true
-        do { rounds = try await service.fetchRounds(); error = nil }
-        catch is CancellationError { return }
-        catch { self.error = HGChecklistAPIErrorPresentation.make(from: error) }
+        do {
+            rounds = try await service.fetchRounds()
+            error = nil
+        } catch is CancellationError {
+            return
+        } catch {
+            self.error = HGChecklistAPIErrorPresentation.make(from: error)
+        }
         isLoading = false
     }
 }
