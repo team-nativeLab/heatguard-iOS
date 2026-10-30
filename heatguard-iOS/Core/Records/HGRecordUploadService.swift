@@ -7,7 +7,7 @@ struct HGRecordUploadService {
 
     init(
         client: HGAPIClient = HGAPIClient(),
-        session: URLSession = .shared
+        session: URLSession = HGExternalUploadSession.shared
     ) {
         self.client = client
         self.session = session
@@ -94,9 +94,7 @@ struct HGRecordUploadService {
             try Task.checkCancellation()
             let response: HGUploadURLResponse = try await client.send(
                 HGUploadURLRequest(
-                    files: photos.enumerated().map { index, photo in
-                        HGUploadFileRequest(slot: index + 1, photo: photo)
-                    }
+                    files: photos.map(HGUploadFileRequest.init(photo:))
                 ),
                 method: "POST",
                 path: HGAPIPath.teamUploads,
@@ -128,6 +126,16 @@ struct HGRecordUploadService {
             request.httpMethod = "PUT"
             guard let requiredHeaders = destination.requiredHeaders else {
                 throw HGRecordUploadError.requiredHeadersMissing
+            }
+            guard let contentType = requiredHeaders.first(where: {
+                $0.key.caseInsensitiveCompare("Content-Type") == .orderedSame
+            })?.value, contentType == photo.contentType else {
+                throw HGRecordUploadError.uploadPreparation
+            }
+            if let contentLength = requiredHeaders.first(where: {
+                $0.key.caseInsensitiveCompare("Content-Length") == .orderedSame
+            })?.value, Int(contentLength) != photo.data.count {
+                throw HGRecordUploadError.uploadPreparation
             }
             for (name, value) in requiredHeaders {
                 request.setValue(value, forHTTPHeaderField: name)
@@ -225,12 +233,10 @@ private struct HGUploadURLRequest: Encodable {
 }
 
 private struct HGUploadFileRequest: Encodable {
-    let slot: Int
     let contentType: String
     let size: Int
 
-    init(slot: Int, photo: HGUploadPhoto) {
-        self.slot = slot
+    init(photo: HGUploadPhoto) {
         contentType = photo.contentType
         size = photo.data.count
     }

@@ -12,12 +12,12 @@ final class RecordUploadVerificationTests: XCTestCase {
         let upload = try XCTUnwrap(requests.first { $0.httpMethod == "PUT" })
         XCTAssertEqual(upload.value(forHTTPHeaderField: "Content-Type"), "image/jpeg")
         XCTAssertNil(upload.value(forHTTPHeaderField: "Authorization"))
+        XCTAssertEqual(upload.url?.query, "X-Amz-Credential=fixture%2Fscope&X-Amz-Signature=fixture-signature")
         let preparation = try XCTUnwrap(requests.first { $0.url?.path == HGAPIPath.teamUploads })
         let body = try XCTUnwrap(preparation.httpBody)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
         let file = try XCTUnwrap((json["files"] as? [[String: Any]])?.first)
-        XCTAssertEqual(Set(file.keys), ["slot", "contentType", "size"])
-        XCTAssertEqual(file["slot"] as? Int, 1)
+        XCTAssertEqual(Set(file.keys), ["contentType", "size"])
         XCTAssertGreaterThan(try XCTUnwrap(file["size"] as? Int), 0)
         XCTAssertEqual(upload.value(forHTTPHeaderField: "x-amz-meta-fixture"), "signed-value")
         XCTAssertEqual(requests.filter { $0.httpMethod == "POST" && $0.url?.path == HGAPIPath.teamRecords }.count, 1)
@@ -45,6 +45,37 @@ final class RecordUploadVerificationTests: XCTestCase {
         } catch let error as HGRecordUploadError {
             XCTAssertEqual(error.diagnosticCode, "UPLOAD_HEADERS_MISSING")
         }
+    }
+
+    func testMismatchedRequiredContentLengthFailsBeforeUpload() async throws {
+        do {
+            _ = try await saveFixture(.contentLengthMismatch)
+            XCTFail("실제 JPEG 바이트 수와 다른 서명 길이는 거부해야 합니다")
+        } catch let error as HGRecordUploadError {
+            XCTAssertEqual(error.diagnosticCode, "UPLOAD_PREPARATION")
+        }
+    }
+
+    func testPresignedUploadRedirectIsNotFollowed() {
+        let delegate = HGExternalUploadRedirectDelegate()
+        let response = HTTPURLResponse(
+            url: URL(string: "https://upload.example.invalid/fixture")!,
+            statusCode: 307,
+            httpVersion: nil,
+            headerFields: nil
+        )!
+        var redirectedRequest: URLRequest?
+        let task = URLSession.shared.dataTask(with: URLRequest(url: response.url!))
+
+        delegate.urlSession(
+            .shared,
+            task: task,
+            willPerformHTTPRedirection: response,
+            newRequest: URLRequest(url: URL(string: "https://other.example.invalid/fixture")!),
+            completionHandler: { redirectedRequest = $0 }
+        )
+
+        XCTAssertNil(redirectedRequest)
     }
 
     func testExpiredReservationIsRenewedAndOnlyNewObjectKeyIsSaved() async throws {
@@ -176,7 +207,8 @@ final class RecordUploadVerificationTests: XCTestCase {
     }
 
     private enum Scenario {
-        case complete, detailUnavailable, noConnectedPhotos, headersMissing, expiredOnce, alwaysExpired, forbidden, s3ExpiredXML
+        case complete, detailUnavailable, noConnectedPhotos, headersMissing, contentLengthMismatch
+        case expiredOnce, alwaysExpired, forbidden, s3ExpiredXML
     }
 
     private func saveFixture(_ scenario: Scenario) async throws -> (HGRecordSaveResult, [URLRequest]) {
@@ -210,10 +242,13 @@ final class RecordUploadVerificationTests: XCTestCase {
                     "objectKey": "fixture-\(attempt).jpg",
                     "uploadId": "up-\(attempt)",
                     "expiresAt": ISO8601DateFormatter().string(from: Date().addingTimeInterval(expired ? -60 : 300)),
-                    "uploadUrl": "https://upload.example.invalid/fixture"
+                    "uploadUrl": "https://upload.example.invalid/fixture?X-Amz-Credential=fixture%2Fscope&X-Amz-Signature=fixture-signature"
                 ]
                 if scenario != .headersMissing {
-                    upload["requiredHeaders"] = ["Content-Type": "image/jpeg", "x-amz-meta-fixture": "signed-value"]
+                    let contentLength = scenario == .contentLengthMismatch ? "1" : nil
+                    var headers = ["Content-Type": "image/jpeg", "x-amz-meta-fixture": "signed-value"]
+                    if let contentLength { headers["Content-Length"] = contentLength }
+                    upload["requiredHeaders"] = headers
                 }
                 data = try JSONSerialization.data(withJSONObject: ["success": true, "data": ["uploads": [upload]]])
             } else if request.httpMethod == "POST", url.path == HGAPIPath.teamRecords {
