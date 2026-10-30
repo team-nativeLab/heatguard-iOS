@@ -7,7 +7,7 @@ struct HGRecordUploadService {
 
     init(
         client: HGAPIClient = HGAPIClient(),
-        session: URLSession = .shared
+        session: URLSession = HGExternalUploadSession.shared
     ) {
         self.client = client
         self.session = session
@@ -93,7 +93,9 @@ struct HGRecordUploadService {
         for attempt in 0 ... 1 {
             try Task.checkCancellation()
             let response: HGUploadURLResponse = try await client.send(
-                HGUploadURLRequest(files: photos.map(HGUploadFileRequest.init)),
+                HGUploadURLRequest(
+                    files: photos.map(HGUploadFileRequest.init(photo:))
+                ),
                 method: "POST",
                 path: HGAPIPath.teamUploads,
                 requiresAuthentication: true
@@ -125,6 +127,16 @@ struct HGRecordUploadService {
             guard let requiredHeaders = destination.requiredHeaders else {
                 throw HGRecordUploadError.requiredHeadersMissing
             }
+            guard let contentType = requiredHeaders.first(where: {
+                $0.key.caseInsensitiveCompare("Content-Type") == .orderedSame
+            })?.value, contentType == photo.contentType else {
+                throw HGRecordUploadError.uploadPreparation
+            }
+            if let contentLength = requiredHeaders.first(where: {
+                $0.key.caseInsensitiveCompare("Content-Length") == .orderedSame
+            })?.value, Int(contentLength) != photo.data.count {
+                throw HGRecordUploadError.uploadPreparation
+            }
             for (name, value) in requiredHeaders {
                 request.setValue(value, forHTTPHeaderField: name)
             }
@@ -138,7 +150,10 @@ struct HGRecordUploadService {
                    expiresAt <= .now || HGS3UploadErrorResponse.isExpired(responseData) {
                     throw HGRecordUploadError.uploadExpired
                 }
-                throw HGRecordUploadError.uploadFailed(statusCode: httpResponse.statusCode)
+                throw HGRecordUploadError.uploadFailed(
+                    statusCode: httpResponse.statusCode,
+                    s3Details: HGS3UploadErrorResponse.details(responseData)
+                )
             }
         }
     }
@@ -289,18 +304,25 @@ enum HGRecordUploadError: LocalizedError {
     case uploadExpired
     case uploadPreparation
     case requiredHeadersMissing
-    case uploadFailed(statusCode: Int?)
+    case uploadFailed(statusCode: Int?, s3Details: HGS3UploadErrorDetails? = nil)
 
     var errorDescription: String? {
         switch self {
-        case .teamUnavailable: "기록할 팀 정보를 찾지 못했습니다."
-        case .photoCount: "사진은 1~2장 선택해주세요."
-        case .photoEncoding: "선택한 사진을 처리하지 못했습니다."
-        case .photoTooLarge: "사진은 장당 5MiB 이하로 선택해주세요."
-        case .uploadExpired: "사진 업로드 시간이 만료됐습니다. 다시 저장해주세요."
-        case .uploadPreparation: "사진 업로드를 준비하지 못했습니다."
-        case .requiredHeadersMissing: "업로드 서버가 필요한 사진 전송 정보를 주지 않았습니다."
-        case .uploadFailed: "사진 업로드에 실패했습니다."
+        case .teamUnavailable: return "기록할 팀 정보를 찾지 못했습니다."
+        case .photoCount: return "사진은 1~2장 선택해주세요."
+        case .photoEncoding: return "선택한 사진을 처리하지 못했습니다."
+        case .photoTooLarge: return "사진은 장당 5MiB 이하로 선택해주세요."
+        case .uploadExpired: return "사진 업로드 시간이 만료됐습니다. 다시 저장해주세요."
+        case .uploadPreparation: return "사진 업로드를 준비하지 못했습니다."
+        case .requiredHeadersMissing: return "업로드 서버가 필요한 사진 전송 정보를 주지 않았습니다."
+        case let .uploadFailed(_, s3Details):
+            guard let s3Details else { return "사진 업로드에 실패했습니다." }
+            let details = [
+                s3Details.code.map { "Code: \($0)" },
+                s3Details.message.map { "Message: \($0)" },
+                s3Details.requestID.map { "RequestId: \($0)" }
+            ].compactMap { $0 }
+            return details.isEmpty ? "사진 업로드에 실패했습니다." : "사진 업로드에 실패했습니다.\n\(details.joined(separator: "\n"))"
         }
     }
 
@@ -313,7 +335,7 @@ enum HGRecordUploadError: LocalizedError {
         case .uploadExpired: "UPLOAD_EXPIRED"
         case .uploadPreparation: "UPLOAD_PREPARATION"
         case .requiredHeadersMissing: "UPLOAD_HEADERS_MISSING"
-        case let .uploadFailed(statusCode):
+        case let .uploadFailed(statusCode, _):
             statusCode.map { "S3_UPLOAD_HTTP_\($0)" } ?? "S3_UPLOAD_FAILED"
         }
     }
