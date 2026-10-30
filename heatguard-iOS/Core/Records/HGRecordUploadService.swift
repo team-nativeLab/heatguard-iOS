@@ -302,13 +302,13 @@ enum HGRecordUploadError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .teamUnavailable: "기록할 팀 정보를 찾지 못했습니다."
-        case .photoCount: "사진은 1~2장 선택해주세요."
-        case .photoEncoding: "선택한 사진을 처리하지 못했습니다."
-        case .photoTooLarge: "사진은 장당 5MiB 이하로 선택해주세요."
-        case .uploadExpired: "사진 업로드 시간이 만료됐습니다. 다시 저장해주세요."
-        case .uploadPreparation: "사진 업로드를 준비하지 못했습니다."
-        case .requiredHeadersMissing: "업로드 서버가 필요한 사진 전송 정보를 주지 않았습니다."
+        case .teamUnavailable: return "기록할 팀 정보를 찾지 못했습니다."
+        case .photoCount: return "사진은 1~2장 선택해주세요."
+        case .photoEncoding: return "선택한 사진을 처리하지 못했습니다."
+        case .photoTooLarge: return "사진은 장당 5MiB 이하로 선택해주세요."
+        case .uploadExpired: return "사진 업로드 시간이 만료됐습니다. 다시 저장해주세요."
+        case .uploadPreparation: return "사진 업로드를 준비하지 못했습니다."
+        case .requiredHeadersMissing: return "업로드 서버가 필요한 사진 전송 정보를 주지 않았습니다."
         case let .uploadFailed(_, s3Details):
             guard let s3Details else { return "사진 업로드에 실패했습니다." }
             let details = [
