@@ -12,6 +12,18 @@ final class HomeWeatherLayoutTests: XCTestCase {
         XCTAssertEqual(weather(delta: 3.2).temperatureDeltaBadgeText, "▲ +3.2°C")
     }
 
+    func testWeatherAvailabilityDistinguishesServerStatesAndDoesNotInventSky() {
+        XCTAssertEqual(weather(delta: nil, availability: "UNAVAILABLE", skyStatus: nil).weatherStatusText, "기상 정보 없음")
+        XCTAssertEqual(weather(delta: nil, availability: "CACHED", skyStatus: nil).weatherStatusText, "이전 정보")
+        XCTAssertEqual(weather(delta: nil, availability: "AVAILABLE", skyStatus: nil).weatherStatusText, "날씨 확인 중")
+        XCTAssertEqual(weather(delta: nil, availability: nil, skyStatus: nil).weatherStatusText, "정보 없음")
+        XCTAssertNil(weather(delta: nil, availability: nil, skyStatus: nil).skyIllustrationAssetName)
+    }
+
+    func testHomeUsesBackendApparentTemperatureWhenProvided() {
+        XCTAssertEqual(weather(delta: nil).apparentTemperatureText, "40.5°C")
+    }
+
     func testHomeFitsDesignAndSmallScreensWithoutScrollContainer() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let dashboard = HomeDashboard(
@@ -46,12 +58,13 @@ final class HomeWeatherLayoutTests: XCTestCase {
         }
     }
 
-    private func weather(delta: Double?) -> HomeWeather {
+    private func weather(delta: Double?, availability: String? = nil, skyStatus: String? = "PARTLY_CLOUDY") -> HomeWeather {
         HomeWeather(
             temperature: 47.5, humidity: 55, apparentTemperature: 40.5, heatLevel: 2,
             temperatureDelta: delta, comparisonTemperature: 44.3,
-            observedAt: "2026-10-14T05:56:00+09:00", skyStatus: "PARTLY_CLOUDY",
-            comparisonObservedAt: "2026-10-14T05:26:00+09:00", comparisonBasis: "PREVIOUS"
+            observedAt: "2026-10-14T05:56:00+09:00", skyStatus: skyStatus,
+            comparisonObservedAt: "2026-10-14T05:26:00+09:00", comparisonBasis: "PREVIOUS",
+            availability: availability
         )
     }
 
