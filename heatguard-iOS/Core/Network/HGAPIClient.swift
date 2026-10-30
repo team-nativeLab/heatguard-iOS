@@ -38,7 +38,8 @@ struct HGAPIClient {
         method: String,
         path: String,
         requiresAuthentication: Bool = false,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
+        pathIsPercentEncoded: Bool = false
     ) async throws -> Response {
         let body = try JSONEncoder().encode(requestBody)
         return try await request(
@@ -46,7 +47,8 @@ struct HGAPIClient {
             path: path,
             body: body,
             requiresAuthentication: requiresAuthentication,
-            headers: headers
+            headers: headers,
+            pathIsPercentEncoded: pathIsPercentEncoded
         )
     }
 
@@ -54,14 +56,16 @@ struct HGAPIClient {
         path: String,
         requiresAuthentication: Bool = false,
         headers: [String: String] = [:],
-        queryItems: [URLQueryItem] = []
+        queryItems: [URLQueryItem] = [],
+        pathIsPercentEncoded: Bool = false
     ) async throws -> Response {
         try await request(
             method: "GET",
             path: path,
             requiresAuthentication: requiresAuthentication,
             headers: headers,
-            queryItems: queryItems
+            queryItems: queryItems,
+            pathIsPercentEncoded: pathIsPercentEncoded
         )
     }
 
@@ -106,10 +110,24 @@ struct HGAPIClient {
         body: Data? = nil,
         requiresAuthentication: Bool,
         headers: [String: String] = [:],
-        queryItems: [URLQueryItem] = []
+        queryItems: [URLQueryItem] = [],
+        pathIsPercentEncoded: Bool = false
     ) async throws -> Response {
         let baseURL = try HGAPIConfiguration.baseURL()
-        guard var components = URLComponents(url: baseURL.appending(path: path), resolvingAgainstBaseURL: false) else {
+        let requestBaseURL: URL
+        if pathIsPercentEncoded {
+            guard var baseComponents = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
+                throw HGAPIError.configuration("서버 주소를 처리하지 못했습니다.")
+            }
+            baseComponents.percentEncodedPath = path
+            guard let encodedURL = baseComponents.url else {
+                throw HGAPIError.configuration("서버 요청 주소를 만들지 못했습니다.")
+            }
+            requestBaseURL = encodedURL
+        } else {
+            requestBaseURL = baseURL.appending(path: path)
+        }
+        guard var components = URLComponents(url: requestBaseURL, resolvingAgainstBaseURL: false) else {
             throw HGAPIError.configuration("서버 주소를 처리하지 못했습니다.")
         }
         components.queryItems = queryItems.isEmpty ? nil : queryItems

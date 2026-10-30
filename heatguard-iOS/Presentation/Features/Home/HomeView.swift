@@ -268,7 +268,7 @@ struct HomeView: View {
                         .background(HGColor.homeHeatLevelBackground, in: Capsule())
                         .padding(.leading, 23)
 
-                    Text("현재 온도")
+                    Text(dashboard.weather.measurementTitle)
                         .font(HGFont.medium(12, relativeTo: .caption))
                         .padding(.leading, 20)
                         .padding(.top, 16)
@@ -316,9 +316,19 @@ struct HomeView: View {
             if let observationTime = dashboard.weather.observationTimeText {
                 Text(observationTime)
                     .font(HGFont.regular(10, relativeTo: .caption2))
-                    .foregroundStyle(HGColor.secondaryText)
+                    .foregroundStyle(dashboard.weather.observationStatusIsWarning ? Color.orange : HGColor.secondaryText)
                     .padding(.leading, 20)
                     .padding(.top, isCompact ? 2 : 4)
+            }
+
+            if let observationStatus = dashboard.weather.observationStatusText {
+                Text(observationStatus)
+                    .font(HGFont.medium(9, relativeTo: .caption2))
+                    .foregroundStyle(dashboard.weather.observationStatusIsWarning ? Color.orange : HGColor.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .padding(.leading, 20)
+                    .accessibilityLabel("날씨 측정 상태: \(observationStatus)")
             }
 
             HStack(spacing: 0) {
@@ -530,20 +540,27 @@ struct HomeView: View {
         switch route {
         case .checklistOverview:
             ChecklistOverviewView(
-                times: checklist.times,
-                checkedCount: checklist.checkedCount,
-                totalCount: checklist.totalCount,
                 siteName: dashboard.siteName,
                 teamName: dashboard.teamName
-            ) { selectedTime in
-                flowPath.append(HomeFlowRoute.checklist(selectedTime))
+            ) { roundID, date in
+                flowPath.append(HomeFlowRoute.checklistRound(id: roundID, date: date))
             }
-        case let .checklist(selectedTime):
+        case let .checklistRound(roundID, date):
+            ChecklistRoundDetailView(
+                roundID: roundID,
+                date: date,
+                siteName: dashboard.siteName,
+                teamName: dashboard.teamName,
+                onSelectRound: { nextRoundID, selectedDate in
+                    if flowPath.count > 1 { flowPath.removeLast() }
+                    flowPath.append(HomeFlowRoute.checklistRound(id: nextRoundID, date: selectedDate))
+                }
+            )
+        case .checklist:
             ChecklistView(
                 times: checklist.times,
                 siteName: dashboard.siteName,
-                teamName: dashboard.teamName,
-                selectedTime: selectedTime
+                teamName: dashboard.teamName
             ) { checkedCount, totalCount in
                 checklist = HGChecklistSummary(
                     times: checklist.times,
@@ -844,7 +861,8 @@ private enum EmergencySheet: Identifiable, Equatable {
 
 private enum HomeFlowRoute: Hashable {
     case checklistOverview
-    case checklist(String?)
+    case checklist
+    case checklistRound(id: String, date: String)
     case thermometer
     case workPhoto
     case restPhoto

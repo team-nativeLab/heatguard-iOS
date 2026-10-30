@@ -12,6 +12,35 @@ final class HomeWeatherLayoutTests: XCTestCase {
         XCTAssertEqual(weather(delta: 3.2).temperatureDeltaBadgeText, "▲ +3.2°C")
     }
 
+    func testManualWeatherKeepsObservedTimeAndMarksOldValuesAsPreviousMeasurements() throws {
+        let payload = #"{"temperature":26.0,"humidity":41.0,"apparentTemperature":24.8,"heatLevel":0,"observedAt":"2026-10-08T20:56:34.625Z","source":"MANUAL","sourceName":"현장 수동 입력","isStale":false,"skyStatus":null}"#.data(using: .utf8)!
+        let response = try JSONDecoder().decode(WorkerHomeWeather.self, from: payload)
+        let value = HomeWeather(response: response)
+        let now = try XCTUnwrap("2026-10-30T14:17:00Z".hgISO8601Date)
+
+        XCTAssertEqual(value.temperatureText, "26.0°C")
+        XCTAssertEqual(value.measurementTitle, "최근 측정 온도")
+        XCTAssertEqual(value.heatLevelTitle, "측정값 갱신 필요")
+        XCTAssertEqual(value.apparentTemperatureText, "24.8°C")
+        XCTAssertEqual(value.weatherStatusText, "정보 없음")
+        XCTAssertEqual(value.observationStatusText(asOf: now), "이전 날짜의 수동 측정값")
+        XCTAssertTrue(value.observationTimeText?.contains("2026.10.09 05:56") == true)
+    }
+
+    func testUnavailableWeatherDoesNotRenderMeasurementsFromAContradictoryPayload() {
+        let value = HomeWeather(
+            temperature: 26, humidity: 41, apparentTemperature: 24.8, heatLevel: 0,
+            temperatureDelta: nil, comparisonTemperature: nil, observedAt: nil,
+            availability: "UNAVAILABLE", skyStatus: nil,
+            comparisonObservedAt: nil, comparisonBasis: nil
+        )
+
+        XCTAssertEqual(value.temperatureText, "—")
+        XCTAssertEqual(value.humidityText, "—")
+        XCTAssertEqual(value.observationStatusText, "현재 날씨 관측값이 없어요")
+        XCTAssertTrue(value.observationStatusIsWarning)
+    }
+
     func testHomeFitsDesignAndSmallScreensWithoutScrollContainer() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let dashboard = HomeDashboard(
