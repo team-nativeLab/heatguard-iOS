@@ -39,6 +39,13 @@ private struct WorkerHomeWeather: Decodable {
     let skyStatus: String?
     let comparisonObservedAt: String?
     let comparisonBasis: String?
+    let availability: String?
+    let errorCode: String?
+    let isStale: Bool?
+    let source: String?
+    let sourceName: String?
+    let skySource: String?
+    let skyForecastAt: String?
 }
 
 private struct WorkerChecklistSummary: Decodable { let total: Int?; let completed: Int? }
@@ -72,7 +79,14 @@ struct HomeDashboard: Equatable {
             observedAt: source?.observedAt,
             skyStatus: source?.skyStatus,
             comparisonObservedAt: source?.comparisonObservedAt,
-            comparisonBasis: source?.comparisonBasis
+            comparisonBasis: source?.comparisonBasis,
+            availability: source?.availability,
+            errorCode: source?.errorCode,
+            isStale: source?.isStale,
+            source: source?.source,
+            sourceName: source?.sourceName,
+            skySource: source?.skySource,
+            skyForecastAt: source?.skyForecastAt
         )
         checklist = HGChecklistSummary(
             times: response.checkTimes ?? [],
@@ -122,6 +136,39 @@ struct HomeWeather: Equatable {
     let skyStatus: String?
     let comparisonObservedAt: String?
     let comparisonBasis: String?
+    let availability: String?
+    let errorCode: String?
+    let isStale: Bool?
+    let source: String?
+    let sourceName: String?
+    let skySource: String?
+    let skyForecastAt: String?
+
+    init(
+        temperature: Double?, humidity: Double?, apparentTemperature: Double?, heatLevel: Double?,
+        temperatureDelta: Double?, comparisonTemperature: Double?, observedAt: String?, skyStatus: String?,
+        comparisonObservedAt: String?, comparisonBasis: String?, availability: String? = nil,
+        errorCode: String? = nil, isStale: Bool? = nil, source: String? = nil,
+        sourceName: String? = nil, skySource: String? = nil, skyForecastAt: String? = nil
+    ) {
+        self.temperature = temperature
+        self.humidity = humidity
+        self.apparentTemperature = apparentTemperature
+        self.heatLevel = heatLevel
+        self.temperatureDelta = temperatureDelta
+        self.comparisonTemperature = comparisonTemperature
+        self.observedAt = observedAt
+        self.skyStatus = skyStatus
+        self.comparisonObservedAt = comparisonObservedAt
+        self.comparisonBasis = comparisonBasis
+        self.availability = availability
+        self.errorCode = errorCode
+        self.isStale = isStale
+        self.source = source
+        self.sourceName = sourceName
+        self.skySource = skySource
+        self.skyForecastAt = skyForecastAt
+    }
 
     var heatLevelTitle: String {
         switch heatLevel {
@@ -140,7 +187,11 @@ struct HomeWeather: Equatable {
         return HGWeatherMeasurement(temperature: temperature, humidity: humidity)?.apparentTemperature
     }
 
-    var apparentTemperatureText: String { measurementText(calculatedApparentTemperature, suffix: "°C") }
+    var displayedApparentTemperature: Double? {
+        apparentTemperature ?? calculatedApparentTemperature
+    }
+
+    var apparentTemperatureText: String { measurementText(displayedApparentTemperature, suffix: "°C") }
 
     var weatherStatusText: String {
         switch skyStatus {
@@ -149,7 +200,13 @@ struct HomeWeather: Equatable {
         case "CLOUDY": "흐림"
         case "RAIN": "비"
         case "SNOW": "눈"
-        default: "정보 없음"
+        default:
+            switch availability {
+            case "UNAVAILABLE": "기상 정보 없음"
+            case "CACHED": "이전 정보"
+            case "AVAILABLE": "날씨 확인 중"
+            default: "정보 없음"
+            }
         }
     }
 
@@ -167,7 +224,7 @@ struct HomeWeather: Equatable {
     var skyIllustrationAssetName: String? {
         switch skyStatus {
         case "CLEAR": "WeatherSunny"
-        case "PARTLY_CLOUDY", .none: "WeatherPartlyCloudy"
+        case "PARTLY_CLOUDY": "WeatherPartlyCloudy"
         default: nil
         }
     }
