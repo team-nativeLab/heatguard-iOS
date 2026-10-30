@@ -5,7 +5,7 @@ struct HGProfilePhotoService {
     private let client: HGAPIClient
     private let session: URLSession
 
-    init(client: HGAPIClient = HGAPIClient(), session: URLSession = .shared) {
+    init(client: HGAPIClient = HGAPIClient(), session: URLSession = HGExternalUploadSession.shared) {
         self.client = client
         self.session = session
     }

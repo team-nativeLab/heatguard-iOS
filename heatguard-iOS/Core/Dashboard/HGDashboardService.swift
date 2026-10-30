@@ -37,16 +37,16 @@ struct WorkerHomeWeather: Decodable {
     let comparisonTemperature: Double?
     let observedAt: String?
     let fetchedAt: String?
-    let source: String?
-    let sourceName: String?
-    let availability: String?
-    let isStale: Bool?
-    let errorCode: String?
     let skyStatus: String?
-    let skySource: String?
-    let skyForecastAt: String?
     let comparisonObservedAt: String?
     let comparisonBasis: String?
+    let availability: String?
+    let errorCode: String?
+    let isStale: Bool?
+    let source: String?
+    let sourceName: String?
+    let skySource: String?
+    let skyForecastAt: String?
 }
 
 private struct WorkerChecklistSummary: Decodable { let total: Int?; let completed: Int? }
@@ -69,7 +69,27 @@ struct HomeDashboard: Equatable {
         siteName = response.site?.name
         teamName = response.team?.name
         workplace = response.team?.workplace
-        weather = HomeWeather(response: response.weather)
+        let source = response.weather
+        weather = HomeWeather(
+            temperature: source?.temperature,
+            humidity: source?.humidity,
+            apparentTemperature: source?.apparentTemperature,
+            heatLevel: source?.heatLevel,
+            temperatureDelta: source?.temperatureDelta,
+            comparisonTemperature: source?.comparisonTemperature,
+            observedAt: source?.observedAt,
+            skyStatus: source?.skyStatus,
+            comparisonObservedAt: source?.comparisonObservedAt,
+            comparisonBasis: source?.comparisonBasis,
+            availability: source?.availability,
+            errorCode: source?.errorCode,
+            isStale: source?.isStale,
+            source: source?.source,
+            sourceName: source?.sourceName,
+            skySource: source?.skySource,
+            skyForecastAt: source?.skyForecastAt,
+            fetchedAt: source?.fetchedAt
+        )
         checklist = HGChecklistSummary(
             times: response.checkTimes ?? [],
             checkedCount: response.checklistSummary?.completed,
@@ -115,67 +135,44 @@ struct HomeWeather: Equatable {
     let temperatureDelta: Double?
     let comparisonTemperature: Double?
     let observedAt: String?
-    let fetchedAt: String?
-    let source: String?
-    let sourceName: String?
-    let availability: String?
-    let isStale: Bool?
-    let errorCode: String?
     let skyStatus: String?
-    let skySource: String?
-    let skyForecastAt: String?
     let comparisonObservedAt: String?
     let comparisonBasis: String?
+    let availability: String?
+    let errorCode: String?
+    let isStale: Bool?
+    let source: String?
+    let sourceName: String?
+    let skySource: String?
+    let skyForecastAt: String?
+    let fetchedAt: String?
 
     init(
         temperature: Double?, humidity: Double?, apparentTemperature: Double?, heatLevel: Double?,
-        temperatureDelta: Double?, comparisonTemperature: Double?, observedAt: String?,
-        fetchedAt: String? = nil, source: String? = nil, sourceName: String? = nil,
-        availability: String? = nil, isStale: Bool? = nil, errorCode: String? = nil,
-        skyStatus: String?, skySource: String? = nil, skyForecastAt: String? = nil,
-        comparisonObservedAt: String?, comparisonBasis: String?
+        temperatureDelta: Double?, comparisonTemperature: Double?, observedAt: String?, skyStatus: String?,
+        comparisonObservedAt: String?, comparisonBasis: String?, availability: String? = nil,
+        errorCode: String? = nil, isStale: Bool? = nil, source: String? = nil,
+        sourceName: String? = nil, skySource: String? = nil, skyForecastAt: String? = nil,
+        fetchedAt: String? = nil
     ) {
         self.temperature = availability == "UNAVAILABLE" ? nil : temperature
         self.humidity = availability == "UNAVAILABLE" ? nil : humidity
         self.apparentTemperature = availability == "UNAVAILABLE" ? nil : apparentTemperature
         self.heatLevel = availability == "UNAVAILABLE" ? nil : heatLevel
-        self.temperatureDelta = temperatureDelta
-        self.comparisonTemperature = comparisonTemperature
+        self.temperatureDelta = availability == "UNAVAILABLE" ? nil : temperatureDelta
+        self.comparisonTemperature = availability == "UNAVAILABLE" ? nil : comparisonTemperature
         self.observedAt = observedAt
-        self.fetchedAt = fetchedAt
-        self.source = source
-        self.sourceName = sourceName
-        self.availability = availability
-        self.isStale = isStale
-        self.errorCode = errorCode
         self.skyStatus = skyStatus
-        self.skySource = skySource
-        self.skyForecastAt = skyForecastAt
         self.comparisonObservedAt = comparisonObservedAt
         self.comparisonBasis = comparisonBasis
-    }
-
-    init(response: WorkerHomeWeather?) {
-        self.init(
-            temperature: response?.temperature,
-            humidity: response?.humidity,
-            apparentTemperature: response?.apparentTemperature,
-            heatLevel: response?.heatLevel,
-            temperatureDelta: response?.temperatureDelta,
-            comparisonTemperature: response?.comparisonTemperature,
-            observedAt: response?.observedAt,
-            fetchedAt: response?.fetchedAt,
-            source: response?.source,
-            sourceName: response?.sourceName,
-            availability: response?.availability,
-            isStale: response?.isStale,
-            errorCode: response?.errorCode,
-            skyStatus: response?.skyStatus,
-            skySource: response?.skySource,
-            skyForecastAt: response?.skyForecastAt,
-            comparisonObservedAt: response?.comparisonObservedAt,
-            comparisonBasis: response?.comparisonBasis
-        )
+        self.availability = availability
+        self.errorCode = errorCode
+        self.isStale = isStale
+        self.source = source
+        self.sourceName = sourceName
+        self.skySource = skySource
+        self.skyForecastAt = skyForecastAt
+        self.fetchedAt = fetchedAt
     }
 
     var measurementTitle: String { source == "MANUAL" ? "최근 측정 온도" : "현재 온도" }
@@ -199,9 +196,11 @@ struct HomeWeather: Equatable {
         return HGWeatherMeasurement(temperature: temperature, humidity: humidity)?.apparentTemperature
     }
 
-    var apparentTemperatureText: String {
-        measurementText(apparentTemperature ?? calculatedApparentTemperature, suffix: "°C")
+    var displayedApparentTemperature: Double? {
+        apparentTemperature ?? calculatedApparentTemperature
     }
+
+    var apparentTemperatureText: String { measurementText(displayedApparentTemperature, suffix: "°C") }
 
     var weatherStatusText: String {
         switch skyStatus {
@@ -210,7 +209,13 @@ struct HomeWeather: Equatable {
         case "CLOUDY": "흐림"
         case "RAIN": "비"
         case "SNOW": "눈"
-        default: "정보 없음"
+        default:
+            switch availability {
+            case "UNAVAILABLE": "기상 정보 없음"
+            case "CACHED": "이전 정보"
+            case "AVAILABLE": "날씨 확인 중"
+            default: "정보 없음"
+            }
         }
     }
 
@@ -228,7 +233,7 @@ struct HomeWeather: Equatable {
     var skyIllustrationAssetName: String? {
         switch skyStatus {
         case "CLEAR": "WeatherSunny"
-        case "PARTLY_CLOUDY", .none: "WeatherPartlyCloudy"
+        case "PARTLY_CLOUDY": "WeatherPartlyCloudy"
         default: nil
         }
     }
@@ -278,15 +283,13 @@ struct HomeWeather: Equatable {
         availability == "UNAVAILABLE"
             || isStale == true
             || availability == "CACHED"
-            || (source == "MANUAL" && observationStatusText == "이전 날짜의 수동 측정값")
+            || observationStatusText == "이전 날짜의 수동 측정값"
     }
 
     static let unavailable = HomeWeather(
         temperature: nil, humidity: nil, apparentTemperature: nil, heatLevel: nil,
-        temperatureDelta: nil, comparisonTemperature: nil, observedAt: nil, fetchedAt: nil,
-        source: nil, sourceName: nil, availability: "UNAVAILABLE", isStale: false, errorCode: nil,
-        skyStatus: nil, skySource: nil, skyForecastAt: nil,
-        comparisonObservedAt: nil, comparisonBasis: nil
+        temperatureDelta: nil, comparisonTemperature: nil, observedAt: nil,
+        skyStatus: nil, comparisonObservedAt: nil, comparisonBasis: nil
     )
 
     private func measurementText(_ value: Double?, suffix: String) -> String {

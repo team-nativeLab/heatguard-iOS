@@ -5,14 +5,10 @@ struct ChecklistRoundDetailView: View {
 
     let roundID: String
     let date: String
-    let siteName: String?
-    let teamName: String?
     private let service: HGChecklistService
     private let onRoundsUpdated: (HGChecklistRounds) -> Void
-    private let onSelectRound: (String, String) -> Void
 
     @State private var round: HGChecklistRound?
-    @State private var rounds: HGChecklistRounds?
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var error: HGErrorPresentation?
@@ -20,31 +16,19 @@ struct ChecklistRoundDetailView: View {
     init(
         roundID: String,
         date: String,
-        siteName: String? = nil,
-        teamName: String? = nil,
         service: HGChecklistService = HGChecklistService(),
-        onRoundsUpdated: @escaping (HGChecklistRounds) -> Void = { _ in },
-        onSelectRound: @escaping (String, String) -> Void = { _, _ in }
+        onRoundsUpdated: @escaping (HGChecklistRounds) -> Void = { _ in }
     ) {
         self.roundID = roundID
         self.date = date
-        self.siteName = siteName
-        self.teamName = teamName
         self.service = service
         self.onRoundsUpdated = onRoundsUpdated
-        self.onSelectRound = onSelectRound
     }
 
     private var checkedCount: Int { round?.items.filter(\.checked).count ?? 0 }
     private var totalCount: Int { round?.items.count ?? 0 }
     private var isComplete: Bool { round?.isComplete == true }
     private var canEdit: Bool { round?.status == .inProgress && !isSaving && !isLoading }
-    private var location: String {
-        [siteName, teamName]
-            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: " · ")
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -132,14 +116,9 @@ struct ChecklistRoundDetailView: View {
                         .background(statusColor(round.status).opacity(0.10), in: Capsule())
                 }
             }
-            Text(location.isEmpty ? date : location)
+            Text(date)
                 .font(HGFont.regular(12, relativeTo: .caption))
                 .foregroundStyle(HGColor.secondaryText)
-            if !location.isEmpty {
-                Text(date)
-                    .font(HGFont.regular(10, relativeTo: .caption2))
-                    .foregroundStyle(HGColor.secondaryText)
-            }
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     Capsule().fill(HGColor.homeTimelineLine)
@@ -163,23 +142,14 @@ struct ChecklistRoundDetailView: View {
     }
 
     private var schedulePills: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 58), spacing: 7)], alignment: .leading, spacing: 7) {
-            ForEach(rounds?.items ?? []) { item in
-                Button {
-                    guard item.roundId != roundID else { return }
-                    onSelectRound(item.roundId, date)
-                } label: {
-                    Text(roundPillTitle(item))
-                        .font(HGFont.medium(10, relativeTo: .caption2))
-                        .foregroundStyle(item.roundId == roundID ? HGColor.primary : pillColor(item.status))
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 5)
-                        .background(item.roundId == roundID ? HGColor.photoSelectionBackground : HGColor.surface, in: Capsule())
-                        .overlay(Capsule().stroke(pillColor(item.status).opacity(0.22), lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(item.roundId) \(statusText(item.status))")
-                .accessibilityAddTraits(item.roundId == roundID ? [] : .isButton)
+        HStack(spacing: 7) {
+            ForEach(["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"], id: \.self) { time in
+                Text(time)
+                    .font(HGFont.medium(10, relativeTo: .caption2))
+                    .foregroundStyle(time == roundID ? HGColor.primary : HGColor.secondaryText)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 5)
+                    .background(time == roundID ? HGColor.photoSelectionBackground : HGColor.surface, in: Capsule())
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -234,37 +204,11 @@ struct ChecklistRoundDetailView: View {
         }
     }
 
-    private func pillColor(_ status: HGChecklistRoundStatus) -> Color {
-        switch status {
-        case .completed: HGColor.primary
-        case .missed: HGColor.error
-        case .inProgress: HGColor.primary
-        case .scheduled: HGColor.secondaryText
-        }
-    }
-
-    private func roundPillTitle(_ item: HGChecklistRoundSummary) -> String {
-        let rawTime = HGDateFormatting.time(item.startsAt)
-        let time = rawTime.hasSuffix(":00") ? String(rawTime.prefix(2)) + "시" : rawTime
-        let marker: String
-        switch item.status {
-        case .completed: marker = "✓"
-        case .missed: marker = "!"
-        case .inProgress: marker = "●"
-        case .scheduled: marker = ""
-        }
-        return marker.isEmpty ? time : "\(marker) \(time)"
-    }
-
     @MainActor
     private func loadRound() async {
         isLoading = true
         do {
-            async let roundRequest = service.fetchRound(id: roundID, date: date)
-            async let roundsRequest = service.fetchRounds(date: date)
-            let (loadedRound, loadedRounds) = try await (roundRequest, roundsRequest)
-            round = loadedRound
-            rounds = loadedRounds
+            round = try await service.fetchRound(id: roundID, date: date)
             error = nil
         } catch is CancellationError {
             return
@@ -284,25 +228,11 @@ struct ChecklistRoundDetailView: View {
             let refreshed = try await service.updateRoundItem(
                 roundID: roundID,
                 itemID: item.id,
-                isChecked: !previousValue
+                isChecked: !previousValue,
+                date: date
             )
-            round?.items[index].checked = refreshed.checked
-            do {
-                async let updatedRound = service.fetchRound(id: roundID, date: date)
-                async let updatedRounds = service.fetchRounds(date: date)
-                let (loadedRound, loadedRounds) = try await (updatedRound, updatedRounds)
-                round = loadedRound
-                rounds = loadedRounds
-                onRoundsUpdated(loadedRounds)
-            } catch {
-                self.error = HGErrorPresentation(
-                    title: "저장은 완료됐지만 새로고침하지 못했습니다",
-                    message: "체크 상태는 저장됐어요. 화면을 다시 열거나 다시 시도해 최신 진행률을 확인해주세요.",
-                    diagnosticCode: HGChecklistAPIErrorPresentation.make(from: error).diagnosticCode
-                )
-                isSaving = false
-                return
-            }
+            round = refreshed.round
+            onRoundsUpdated(refreshed.rounds)
             error = nil
         } catch is CancellationError {
             round?.items[index].checked = previousValue
@@ -311,12 +241,9 @@ struct ChecklistRoundDetailView: View {
             let presentation = HGChecklistAPIErrorPresentation.make(from: error)
             if case HGAPIError.server(_, 409, "ROUND_NOT_OPEN") = error {
                 do {
-                    async let updatedRound = service.fetchRound(id: roundID, date: date)
-                    async let updatedRounds = service.fetchRounds(date: date)
-                    let (loadedRound, loadedRounds) = try await (updatedRound, updatedRounds)
-                    round = loadedRound
-                    rounds = loadedRounds
-                    onRoundsUpdated(loadedRounds)
+                    round = try await service.fetchRound(id: roundID, date: date)
+                    let rounds = try await service.fetchRounds(date: date)
+                    onRoundsUpdated(rounds)
                 } catch {
                     // Keep the original 409 as the actionable error; the next retry will refresh again.
                 }

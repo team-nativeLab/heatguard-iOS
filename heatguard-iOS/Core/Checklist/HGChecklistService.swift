@@ -61,15 +61,21 @@ struct HGChecklistService {
     func updateRoundItem(
         roundID: String,
         itemID: String,
-        isChecked: Bool
-    ) async throws -> HGChecklistRoundItemUpdateResponse {
-        try await client.send(
+        isChecked: Bool,
+        date: String
+    ) async throws -> HGChecklistRoundRefresh {
+        let _: HGChecklistRoundItemUpdateResponse = try await client.send(
             HGChecklistUpdateRequest(checked: isChecked),
             method: "PUT",
             path: HGAPIPath.teamChecklistRoundItem(roundID: roundID, itemID: itemID),
             requiresAuthentication: true,
             pathIsPercentEncoded: true
         )
+        async let updatedRound = fetchRound(id: roundID, date: date)
+        async let updatedRounds = fetchRounds(date: date)
+        let refreshedRound = try await updatedRound
+        let refreshedRounds = try await updatedRounds
+        return HGChecklistRoundRefresh(round: refreshedRound, rounds: refreshedRounds)
     }
 }
 
@@ -155,6 +161,11 @@ struct HGChecklistRoundItemUpdateResponse: Decodable, Equatable {
     let itemId: String
     let checked: Bool
     let checkedAt: String?
+}
+
+struct HGChecklistRoundRefresh {
+    let round: HGChecklistRound
+    let rounds: HGChecklistRounds
 }
 
 enum HGChecklistAPIErrorPresentation {
