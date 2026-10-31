@@ -34,7 +34,8 @@ struct ChecklistOverviewView: View {
                 HStack {
                     Text("오늘 회차").font(HGFont.bold(17, relativeTo: .headline)).foregroundStyle(HGColor.primaryText)
                     Spacer()
-                    Text("2시간마다 체크").font(HGFont.regular(11, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
+                    Text(rounds.map { "총 \($0.summary.totalRounds)회차" } ?? "회차 정보를 불러오는 중")
+                        .font(HGFont.regular(11, relativeTo: .caption)).foregroundStyle(HGColor.secondaryText)
                 }
                 if isLoading && rounds == nil {
                     ProgressView("회차 정보를 불러오는 중...").tint(HGColor.primary)
