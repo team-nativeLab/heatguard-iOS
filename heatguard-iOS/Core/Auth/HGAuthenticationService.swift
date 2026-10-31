@@ -128,6 +128,24 @@ struct HGAuthenticationService {
         phone: String,
         version: Int?
     ) async throws -> HGTeamProfile {
+        do {
+            return try await patchProfile(name: name, email: email, phone: phone, version: version)
+        } catch HGAPIError.server(_, 409, "CONFLICT") {
+            // The profile may have changed after the edit screen loaded. Refresh
+            // its version and retry once so the user's explicit edits are retained.
+            let latestProfile = try await currentProfile()
+            guard let latestVersion = latestProfile.version, latestVersion != version else {
+                throw HGAPIError.server(
+                    message: "다른 변경이 먼저 저장되었습니다. 최신 정보를 불러온 뒤 다시 저장해주세요.",
+                    statusCode: 409,
+                    serverCode: "CONFLICT"
+                )
+            }
+            return try await patchProfile(name: name, email: email, phone: phone, version: latestVersion)
+        }
+    }
+
+    private func patchProfile(name: String, email: String?, phone: String, version: Int?) async throws -> HGTeamProfile {
         try await client.send(
             TeamProfileUpdateRequest(name: name, email: email, phone: phone, version: version),
             method: "PATCH",
