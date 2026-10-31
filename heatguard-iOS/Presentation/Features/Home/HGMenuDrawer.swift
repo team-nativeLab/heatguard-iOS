@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct HGMenuProfile: Equatable {
     let name: String
@@ -40,6 +41,7 @@ struct HGMenuDrawer: View {
     }
 
     @GestureState private var dragOffset: CGFloat = 0
+    @State private var profileImage: UIImage?
 
     let profile: HGMenuProfile
     let isPresented: Bool
@@ -72,6 +74,17 @@ struct HGMenuDrawer: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .ignoresSafeArea()
+        .task(id: isPresented) {
+            guard isPresented else {
+                profileImage = nil
+                return
+            }
+            do {
+                profileImage = try await HGProfilePhotoService().loadPhoto()
+            } catch {
+                profileImage = nil
+            }
+        }
     }
 
     private var drawerContent: some View {
@@ -87,11 +100,21 @@ struct HGMenuDrawer: View {
 
     private var profileSection: some View {
         HStack(spacing: 12) {
-            Text(profile.initial)
-                .font(HGFont.bold(18, relativeTo: .title3))
-                .foregroundStyle(HGColor.primary)
-                .frame(width: 48, height: 48)
-                .background(HGColor.photoSelectionBackground, in: Circle())
+            Group {
+                if let profileImage {
+                    Image(uiImage: profileImage)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Text(profile.initial)
+                        .font(HGFont.bold(18, relativeTo: .title3))
+                        .foregroundStyle(HGColor.primary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(HGColor.photoSelectionBackground)
+                }
+            }
+            .frame(width: 48, height: 48)
+            .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(profile.name)
