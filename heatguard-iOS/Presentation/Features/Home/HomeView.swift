@@ -268,7 +268,7 @@ struct HomeView: View {
                         .background(HGColor.homeHeatLevelBackground, in: Capsule())
                         .padding(.leading, 23)
 
-                    Text("현재 온도")
+                    Text(dashboard.weather.measurementTitle)
                         .font(HGFont.medium(12, relativeTo: .caption))
                         .padding(.leading, 20)
                         .padding(.top, 16)
@@ -313,12 +313,21 @@ struct HomeView: View {
                 .offset(y: -2)
             }
 
-            if let observationTime = dashboard.weather.observationTimeText {
-                Text(observationTime)
+            if dashboard.weather.observationTimeText != nil || dashboard.weather.observationStatusText != nil {
+                let observationDescription = [
+                    dashboard.weather.observationStatusText,
+                    dashboard.weather.observationTimeText
+                ]
+                .compactMap { $0 }
+                .joined(separator: " · ")
+                Text(observationDescription)
                     .font(HGFont.regular(10, relativeTo: .caption2))
-                    .foregroundStyle(HGColor.secondaryText)
+                    .foregroundStyle(dashboard.weather.observationStatusIsWarning ? Color.orange : HGColor.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                     .padding(.leading, 20)
                     .padding(.top, isCompact ? 2 : 4)
+                    .accessibilityLabel("날씨 측정 상태: \(observationDescription)")
             }
 
             HStack(spacing: 0) {

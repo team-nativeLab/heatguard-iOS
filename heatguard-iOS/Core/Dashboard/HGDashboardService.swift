@@ -28,7 +28,7 @@ private struct WorkerHomeCompany: Decodable { let name: String?; let phone: Stri
 private struct WorkerHomeSite: Decodable { let name: String?; let managerPhone: String? }
 private struct WorkerHomeTeam: Decodable { let name: String?; let workplace: String? }
 
-private struct WorkerHomeWeather: Decodable {
+struct WorkerHomeWeather: Decodable {
     let temperature: Double?
     let humidity: Double?
     let apparentTemperature: Double?
@@ -36,6 +36,7 @@ private struct WorkerHomeWeather: Decodable {
     let temperatureDelta: Double?
     let comparisonTemperature: Double?
     let observedAt: String?
+    let fetchedAt: String?
     let skyStatus: String?
     let comparisonObservedAt: String?
     let comparisonBasis: String?
@@ -86,7 +87,8 @@ struct HomeDashboard: Equatable {
             source: source?.source,
             sourceName: source?.sourceName,
             skySource: source?.skySource,
-            skyForecastAt: source?.skyForecastAt
+            skyForecastAt: source?.skyForecastAt,
+            fetchedAt: source?.fetchedAt
         )
         checklist = HGChecklistSummary(
             times: response.checkTimes ?? [],
@@ -143,20 +145,22 @@ struct HomeWeather: Equatable {
     let sourceName: String?
     let skySource: String?
     let skyForecastAt: String?
+    let fetchedAt: String?
 
     init(
         temperature: Double?, humidity: Double?, apparentTemperature: Double?, heatLevel: Double?,
         temperatureDelta: Double?, comparisonTemperature: Double?, observedAt: String?, skyStatus: String?,
         comparisonObservedAt: String?, comparisonBasis: String?, availability: String? = nil,
         errorCode: String? = nil, isStale: Bool? = nil, source: String? = nil,
-        sourceName: String? = nil, skySource: String? = nil, skyForecastAt: String? = nil
+        sourceName: String? = nil, skySource: String? = nil, skyForecastAt: String? = nil,
+        fetchedAt: String? = nil
     ) {
-        self.temperature = temperature
-        self.humidity = humidity
-        self.apparentTemperature = apparentTemperature
-        self.heatLevel = heatLevel
-        self.temperatureDelta = temperatureDelta
-        self.comparisonTemperature = comparisonTemperature
+        self.temperature = availability == "UNAVAILABLE" ? nil : temperature
+        self.humidity = availability == "UNAVAILABLE" ? nil : humidity
+        self.apparentTemperature = availability == "UNAVAILABLE" ? nil : apparentTemperature
+        self.heatLevel = availability == "UNAVAILABLE" ? nil : heatLevel
+        self.temperatureDelta = availability == "UNAVAILABLE" ? nil : temperatureDelta
+        self.comparisonTemperature = availability == "UNAVAILABLE" ? nil : comparisonTemperature
         self.observedAt = observedAt
         self.skyStatus = skyStatus
         self.comparisonObservedAt = comparisonObservedAt
@@ -168,10 +172,15 @@ struct HomeWeather: Equatable {
         self.sourceName = sourceName
         self.skySource = skySource
         self.skyForecastAt = skyForecastAt
+        self.fetchedAt = fetchedAt
     }
 
+    var measurementTitle: String { source == "MANUAL" ? "최근 측정 온도" : "현재 온도" }
+
     var heatLevelTitle: String {
-        switch heatLevel {
+        if availability == "UNAVAILABLE" { return "폭염 정보 없음" }
+        if observationStatusIsWarning { return "측정값 갱신 필요" }
+        return switch heatLevel {
         case let value? where value >= 3: "폭염 위험 단계"
         case let value? where value >= 2: "폭염 주의 단계"
         case let value? where value >= 1: "폭염 관심 단계"
@@ -253,7 +262,28 @@ struct HomeWeather: Equatable {
 
     var observationTimeText: String? {
         guard let observedDate = observedAt?.hgISO8601Date else { return nil }
-        return "측정 \(HGDateFormatting.timestamp(observedDate))"
+        let label = source == "MANUAL" ? "마지막 수동 측정" : "측정"
+        return "\(label) \(HGDateFormatting.timestamp(observedDate))"
+    }
+
+    var observationStatusText: String? {
+        observationStatusText(asOf: .now)
+    }
+
+    func observationStatusText(asOf now: Date) -> String? {
+        if availability == "UNAVAILABLE" { return "현재 날씨 관측값이 없어요" }
+        if isStale == true || availability == "CACHED" { return "최근 관측값 · 갱신 지연" }
+        guard source == "MANUAL", let observedDate = observedAt?.hgISO8601Date else { return nil }
+        let observedDay = HGDateFormatting.calendar.startOfDay(for: observedDate)
+        let today = HGDateFormatting.calendar.startOfDay(for: now)
+        return observedDay < today ? "이전 날짜의 수동 측정값" : "현장 수동 입력값"
+    }
+
+    var observationStatusIsWarning: Bool {
+        availability == "UNAVAILABLE"
+            || isStale == true
+            || availability == "CACHED"
+            || observationStatusText == "이전 날짜의 수동 측정값"
     }
 
     static let unavailable = HomeWeather(

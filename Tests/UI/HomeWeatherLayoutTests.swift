@@ -24,6 +24,53 @@ final class HomeWeatherLayoutTests: XCTestCase {
         XCTAssertEqual(weather(delta: nil).apparentTemperatureText, "40.5°C")
     }
 
+    func testManualWeatherKeepsObservedTimeAndMarksOldValuesAsPreviousMeasurements() throws {
+        let payload = Data(
+            #"""
+            {
+              "temperature": 26.0,
+              "humidity": 41.0,
+              "apparentTemperature": 24.8,
+              "heatLevel": 0,
+              "observedAt": "2026-10-08T20:56:34.625Z",
+              "source": "MANUAL",
+              "sourceName": "현장 수동 입력",
+              "isStale": false,
+              "availability": "AVAILABLE",
+              "skyStatus": null
+            }
+            """#.utf8
+        )
+        let response = try JSONDecoder().decode(WorkerHomeWeather.self, from: payload)
+        let value = HomeWeather(
+            temperature: response.temperature, humidity: response.humidity,
+            apparentTemperature: response.apparentTemperature, heatLevel: response.heatLevel,
+            temperatureDelta: response.temperatureDelta, comparisonTemperature: response.comparisonTemperature,
+            observedAt: response.observedAt, skyStatus: response.skyStatus,
+            comparisonObservedAt: response.comparisonObservedAt, comparisonBasis: response.comparisonBasis,
+            availability: response.availability, errorCode: response.errorCode, isStale: response.isStale,
+            source: response.source, sourceName: response.sourceName, skySource: response.skySource,
+            skyForecastAt: response.skyForecastAt
+        )
+        let now = try XCTUnwrap("2026-10-30T14:17:00Z".hgISO8601Date)
+
+        XCTAssertEqual(value.measurementTitle, "최근 측정 온도")
+        XCTAssertEqual(value.heatLevelTitle, "측정값 갱신 필요")
+        XCTAssertEqual(value.weatherStatusText, "정보 없음")
+        XCTAssertEqual(value.observationStatusText(asOf: now), "이전 날짜의 수동 측정값")
+        XCTAssertTrue(value.observationTimeText?.contains("2026.10.09 05:56") == true)
+    }
+
+    func testUnavailableWeatherDoesNotRenderMeasurementsFromAContradictoryPayload() {
+        let value = weather(delta: 3.2, availability: "UNAVAILABLE")
+
+        XCTAssertEqual(value.temperatureText, "—")
+        XCTAssertEqual(value.humidityText, "—")
+        XCTAssertEqual(value.apparentTemperatureText, "—")
+        XCTAssertEqual(value.observationStatusText, "현재 날씨 관측값이 없어요")
+        XCTAssertTrue(value.observationStatusIsWarning)
+    }
+
     func testHomeFitsDesignAndSmallScreensWithoutScrollContainer() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let dashboard = HomeDashboard(
