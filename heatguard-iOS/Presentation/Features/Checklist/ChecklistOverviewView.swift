@@ -89,7 +89,6 @@ struct ChecklistOverviewView: View {
         .background(HGColor.appBackground.ignoresSafeArea())
         .hgRouteNavigationHeader(title: "체크리스트")
         .task { await loadRounds() }
-        .onAppear { if rounds != nil { Task { await loadRounds() } } }
         .alert(error?.title ?? "체크리스트 오류", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
             Button("다시 시도") { Task { await loadRounds() } }
             Button("확인", role: .cancel) {}
