@@ -9,6 +9,7 @@ struct ChecklistRoundDetailView: View {
     private let onRoundsUpdated: (HGChecklistRounds) -> Void
 
     @State private var round: HGChecklistRound?
+    @State private var rounds: HGChecklistRounds?
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var error: HGErrorPresentation?
@@ -141,18 +142,36 @@ struct ChecklistRoundDetailView: View {
         return CGFloat((checkedCount * 100) / totalCount) / 100
     }
 
+    @ViewBuilder
     private var schedulePills: some View {
-        HStack(spacing: 7) {
-            ForEach(["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"], id: \.self) { time in
-                Text(time)
-                    .font(HGFont.medium(10, relativeTo: .caption2))
-                    .foregroundStyle(time == roundID ? HGColor.primary : HGColor.secondaryText)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 5)
-                    .background(time == roundID ? HGColor.photoSelectionBackground : HGColor.surface, in: Capsule())
+        if let rounds, !rounds.items.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 7) {
+                    ForEach(rounds.items) { item in
+                        HStack(spacing: 4) {
+                            if item.status == .completed {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 8, weight: .bold))
+                            } else if item.status == .missed {
+                                Image(systemName: "exclamationmark")
+                                    .font(.system(size: 8, weight: .bold))
+                            }
+                            Text(item.roundId)
+                                .font(HGFont.medium(10, relativeTo: .caption2))
+                        }
+                        .foregroundStyle(statusColor(item.status))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(statusColor(item.status).opacity(0.10), in: Capsule())
+                        .overlay {
+                            Capsule()
+                                .stroke(item.roundId == roundID ? HGColor.primary : .clear, lineWidth: 1)
+                        }
+                    }
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func itemRow(_ item: HGChecklistRound.Item) -> some View {
@@ -209,6 +228,7 @@ struct ChecklistRoundDetailView: View {
         isLoading = true
         do {
             round = try await service.fetchRound(id: roundID, date: date)
+            rounds = try? await service.fetchRounds(date: date)
             error = nil
         } catch is CancellationError {
             return
@@ -232,6 +252,7 @@ struct ChecklistRoundDetailView: View {
                 date: date
             )
             round = refreshed.round
+            rounds = refreshed.rounds
             onRoundsUpdated(refreshed.rounds)
             error = nil
         } catch is CancellationError {
@@ -242,8 +263,9 @@ struct ChecklistRoundDetailView: View {
             if case HGAPIError.server(_, 409, "ROUND_NOT_OPEN") = error {
                 do {
                     round = try await service.fetchRound(id: roundID, date: date)
-                    let rounds = try await service.fetchRounds(date: date)
-                    onRoundsUpdated(rounds)
+                    let updatedRounds = try await service.fetchRounds(date: date)
+                    rounds = updatedRounds
+                    onRoundsUpdated(updatedRounds)
                 } catch {
                     // Keep the original 409 as the actionable error; the next retry will refresh again.
                 }
