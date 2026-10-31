@@ -54,7 +54,7 @@ struct HGPhotoCaptureSection: View {
         .sheet(isPresented: $showsCameraPicker) {
             HGCameraPicker { image in
                 guard images.count < maximumPhotoCount else { return }
-                images.append(image)
+                images.append(HGPhotoImageProcessor.downsample(image: image) ?? image)
             }
             .ignoresSafeArea()
         }
@@ -191,10 +191,8 @@ struct HGPhotoCaptureSection: View {
         var failedCount = 0
         for item in items.prefix(availableSlots) {
             do {
-                guard
-                    let data = try await item.loadTransferable(type: Data.self),
-                    let image = UIImage(data: data)
-                else {
+                guard let data = try await item.loadTransferable(type: Data.self),
+                      let image = HGPhotoImageProcessor.downsample(data: data) else {
                     failedCount += 1
                     continue
                 }
