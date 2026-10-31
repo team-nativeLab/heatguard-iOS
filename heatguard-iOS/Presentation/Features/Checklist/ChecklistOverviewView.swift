@@ -58,35 +58,38 @@ struct ChecklistOverviewView: View {
                                     HStack(spacing: 12) {
                                         statusIcon(round.status)
                                             .frame(width: 26)
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(round.roundId)
-                                                .font(HGFont.bold(17, relativeTo: .subheadline))
-                                                .foregroundStyle(HGColor.primaryText)
-                                            Text(roundSubtitle(round))
-                                                .font(HGFont.regular(12, relativeTo: .caption))
-                                                .foregroundStyle(round.status == .missed ? HGColor.error : HGColor.secondaryText)
-                                                .lineLimit(1)
-                                                .minimumScaleFactor(0.8)
+                                        HStack(spacing: 10) {
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text(round.roundId)
+                                                    .font(HGFont.bold(17, relativeTo: .subheadline))
+                                                    .foregroundStyle(HGColor.primaryText)
+                                                Text(roundSubtitle(round))
+                                                    .font(HGFont.regular(12, relativeTo: .caption))
+                                                    .foregroundStyle(round.status == .missed ? HGColor.error : HGColor.secondaryText)
+                                                    .lineLimit(1)
+                                                    .minimumScaleFactor(0.8)
+                                            }
+                                            Spacer(minLength: 4)
+                                            Text(statusText(round.status))
+                                                .font(HGFont.semiBold(12, relativeTo: .caption))
+                                                .foregroundStyle(statusColor(round.status))
+                                                .padding(.horizontal, 11)
+                                                .padding(.vertical, 5)
+                                                .background(statusColor(round.status).opacity(0.10), in: Capsule())
+                                            Image(systemName: "chevron.right")
+                                                .font(.system(size: 13, weight: .semibold))
+                                                .foregroundStyle(HGColor.homeChevron)
                                         }
-                                        Spacer(minLength: 4)
-                                        Text(statusText(round.status))
-                                            .font(HGFont.semiBold(12, relativeTo: .caption))
-                                            .foregroundStyle(statusColor(round.status))
-                                            .padding(.horizontal, 11)
-                                            .padding(.vertical, 5)
-                                            .background(statusColor(round.status).opacity(0.10), in: Capsule())
-                                        Image(systemName: "chevron.right")
-                                            .font(.system(size: 13, weight: .semibold))
-                                            .foregroundStyle(HGColor.homeChevron)
+                                        .padding(.horizontal, 16)
+                                        .frame(maxWidth: .infinity, minHeight: 78, alignment: .leading)
+                                        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 18))
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 18)
+                                                .stroke(round.status == .inProgress ? HGColor.primary : .clear, lineWidth: 1.5)
+                                        }
+                                        .shadow(color: HGColor.cardShadow.opacity(0.12), radius: 8, x: 0, y: 3)
                                     }
-                                    .padding(.horizontal, 14)
-                                    .frame(maxWidth: .infinity, minHeight: 78, alignment: .leading)
-                                    .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 18))
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: 18)
-                                            .stroke(round.status == .inProgress ? HGColor.primary : .clear, lineWidth: 1.5)
-                                    }
-                                    .shadow(color: HGColor.cardShadow.opacity(0.12), radius: 8, x: 0, y: 3)
+                                    .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityElement(children: .combine)
@@ -115,7 +118,7 @@ struct ChecklistOverviewView: View {
 
     private var summaryCard: some View {
         let summary = rounds?.summary
-        let progress = CGFloat(summary?.progressPercent ?? 0) / 100
+        let progress = min(max(CGFloat(summary?.progressPercent ?? 0) / 100, 0), 1)
         return ZStack {
             GeometryReader { geometry in
                 Circle()
@@ -230,8 +233,10 @@ struct ChecklistOverviewView: View {
     private func roundSubtitle(_ round: HGChecklistRoundSummary) -> String {
         switch round.status {
         case .completed:
-            let time = displayTime(round.completedAt) ?? ""
-            return "\(round.totalItems)개 항목 · \(time) 완료"
+            if let time = displayTime(round.completedAt) {
+                return "\(round.totalItems)개 항목 · \(time) 완료"
+            }
+            return "\(round.totalItems)개 항목 · 완료"
         case .missed:
             return "\(round.checkedItems) / \(round.totalItems) 체크 · 기한 지남"
         case .inProgress:
