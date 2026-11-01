@@ -28,6 +28,10 @@ enum HGKeyboardMotion {
             Animation.timingCurve(0, 0, 0.58, 1, duration: duration)
         case UIView.AnimationCurve.linear.rawValue:
             Animation.linear(duration: duration)
+        case 7:
+            // Keyboard transitions may report this private curve value.
+            // Ease-out moves the controls sooner while keeping the same end time.
+            Animation.easeOut(duration: duration)
         default:
             Animation.easeInOut(duration: duration)
         }
