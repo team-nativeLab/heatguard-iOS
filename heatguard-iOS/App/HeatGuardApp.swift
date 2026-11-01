@@ -9,6 +9,7 @@ import SwiftUI
 
 @main
 struct HeatGuardApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var isRestoringSession = true
     @State private var hasFinishedIntro = false
     @State private var isAuthenticated = false
@@ -18,7 +19,15 @@ struct HeatGuardApp: App {
 
     var body: some Scene {
         WindowGroup {
-            rootView
+            ZStack {
+                rootView
+                    .accessibilityHidden(scenePhase != .active)
+
+                if scenePhase != .active {
+                    privacyCover
+                        .zIndex(1)
+                }
+            }
                 .preferredColorScheme(.light)
                 .task { await startApp() }
                 .onOpenURL(perform: handleIncomingURL)
@@ -26,6 +35,20 @@ struct HeatGuardApp: App {
                     handleSessionExpired(notification.object as? String)
                 }
         }
+    }
+
+    private var privacyCover: some View {
+        HGColor.appBackground
+            .ignoresSafeArea()
+            .overlay {
+                Image("BrandIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 64, height: 64)
+                    .accessibilityHidden(true)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("HeatGuard")
     }
 
     @ViewBuilder
