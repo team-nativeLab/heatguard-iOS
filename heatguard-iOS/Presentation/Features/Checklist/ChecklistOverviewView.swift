@@ -46,10 +46,33 @@ struct ChecklistOverviewView: View {
                     ZStack(alignment: .leading) {
                         if rounds.items.count > 1 {
                             GeometryReader { geometry in
-                                Rectangle()
-                                    .fill(HGColor.homeTimelineLine)
-                                    .frame(width: 2, height: max(0, geometry.size.height - 78))
-                                    .position(x: 13, y: geometry.size.height / 2)
+                                let trackHeight = max(0, geometry.size.height - 78)
+                                let segmentHeight = trackHeight / CGFloat(rounds.items.count - 1)
+
+                                ZStack {
+                                    Capsule()
+                                        .fill(HGColor.homeTimelineLine)
+                                        .frame(width: 2, height: trackHeight)
+                                    ForEach(Array(rounds.items.dropLast().enumerated()), id: \.offset) { index, round in
+                                        let fillHeight = segmentHeight * timelineSegmentProgress(for: round)
+                                        if fillHeight > 0 {
+                                            Capsule()
+                                                .fill(timelineSegmentColor(for: round))
+                                                .frame(width: 2, height: fillHeight)
+                                                .position(
+                                                    x: 13,
+                                                    y: 39 + segmentHeight * CGFloat(index) + fillHeight / 2
+                                                )
+                                        }
+                                    }
+                                }
+                                .position(x: 13, y: 39 + trackHeight / 2)
+                                .animation(
+                                    .easeInOut(duration: 0.72),
+                                    value: rounds.items.map {
+                                        "\($0.status.rawValue):\($0.checkedItems):\($0.totalItems)"
+                                    }
+                                )
                             }
                             .allowsHitTesting(false)
                         }
@@ -246,6 +269,27 @@ struct ChecklistOverviewView: View {
         case .scheduled:
             let startTime = displayTime(round.startsAt) ?? round.roundId
             return "\(startTime)부터 체크할 수 있어요"
+        }
+    }
+
+    private func timelineSegmentProgress(for round: HGChecklistRoundSummary) -> CGFloat {
+        switch round.status {
+        case .completed, .missed:
+            return 1
+        case .inProgress:
+            guard round.totalItems > 0 else { return 0 }
+            return min(max(CGFloat(round.checkedItems) / CGFloat(round.totalItems), 0), 1)
+        case .scheduled:
+            return 0
+        }
+    }
+
+    private func timelineSegmentColor(for round: HGChecklistRoundSummary) -> Color {
+        switch round.status {
+        case .completed: HGColor.checklistSuccess
+        case .missed: HGColor.error
+        case .inProgress: HGColor.primary
+        case .scheduled: HGColor.homeTimelineLine
         }
     }
 
