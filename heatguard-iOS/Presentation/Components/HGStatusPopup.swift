@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HGStatusPopup<Content: View, Actions: View>: View {
     let title: String
+    var height: CGFloat = 683
     @ViewBuilder let content: Content
     @ViewBuilder let actions: Actions
 
@@ -16,7 +17,7 @@ struct HGStatusPopup<Content: View, Actions: View>: View {
         }
         .background(HGColor.popupBackground)
         .presentationBackground(HGColor.popupBackground)
-        .presentationDetents([.height(683)])
+        .presentationDetents([.height(height)])
         .presentationCornerRadius(40)
         .presentationDragIndicator(.hidden)
     }

@@ -24,16 +24,16 @@ struct EmergencyAlertView: View {
     }
 
     var body: some View {
-        HGStatusPopup(title: "긴급 호출") {
+        HGStatusPopup(title: "긴급 호출", height: 560) {
             callPrompt
-                .padding(.top, 33)
+                .padding(.top, 22)
 
             contactCard
-                .padding(.top, 28)
+                .padding(.top, 20)
         } actions: {
             HGSecondaryButton(title: isCalling ? "호출 중..." : "호출하기", action: onCall)
                 .disabled(isCalling)
-                .padding(.horizontal, 28)
+                .padding(.horizontal, 18)
         }
         .alert(error?.title ?? "본사 전화 오류", isPresented: errorAlert) {
             Button("확인", role: .cancel) {}
