@@ -305,8 +305,7 @@ struct HomeView: View {
                         Image(systemName: dashboard.weather.skySymbol)
                             .resizable()
                             .scaledToFit()
-                            .symbolRenderingMode(.multicolor)
-                            .foregroundStyle(HGColor.primary)
+                            .foregroundStyle(weatherSymbolColor(for: dashboard.weather.skyStatus))
                     }
                 }
                 .frame(width: isCompact ? 120 : 159, height: 121)
@@ -326,7 +325,12 @@ struct HomeView: View {
                 Divider().frame(height: 24).padding(.horizontal, 8)
                 HomeMetric(icon: "HomeFeelsLike", title: "체감온도", value: dashboard.weather.apparentTemperatureText)
                 Divider().frame(height: 24).padding(.horizontal, 8)
-                HomeMetric(icon: "HomeWeather", title: "날씨", value: dashboard.weather.weatherStatusText)
+                HomeMetric(
+                    symbol: dashboard.weather.skySymbol,
+                    symbolColor: weatherSymbolColor(for: dashboard.weather.skyStatus),
+                    title: "날씨",
+                    value: dashboard.weather.weatherStatusText
+                )
             }
             .padding(.horizontal, 18)
             .frame(height: 78)
@@ -337,6 +341,17 @@ struct HomeView: View {
         }
         .padding(.horizontal, -12)
         .foregroundStyle(HGColor.primaryText)
+    }
+
+    private func weatherSymbolColor(for skyStatus: String?) -> Color {
+        switch skyStatus {
+        case "CLEAR": Color(red: 1, green: 0.67, blue: 0.12)
+        case "PARTLY_CLOUDY": Color(red: 0.96, green: 0.65, blue: 0.20)
+        case "CLOUDY": Color(red: 0.48, green: 0.55, blue: 0.66)
+        case "RAIN": Color(red: 0.20, green: 0.52, blue: 0.88)
+        case "SNOW": Color(red: 0.36, green: 0.69, blue: 0.91)
+        default: HGColor.secondaryText
+        }
     }
 
     private func checkCard(isCompact: Bool) -> some View {
@@ -856,21 +871,43 @@ private enum HomeFlowRoute: Hashable {
 }
 
 private struct HomeMetric: View {
-    let icon: String
+    var icon: String?
+    var symbol: String?
+    var symbolColor: Color?
     let title: String
     let value: String
 
+    init(
+        icon: String? = nil,
+        symbol: String? = nil,
+        symbolColor: Color? = nil,
+        title: String,
+        value: String
+    ) {
+        self.icon = icon
+        self.symbol = symbol
+        self.symbolColor = symbolColor
+        self.title = title
+        self.value = value
+    }
+
     var body: some View {
         HStack(spacing: 8) {
-            Image(icon)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 20, height: 20)
-                .frame(width: 36, height: 36)
-                .background(
-                    HGColor.homeMetricIconBackground,
-                    in: Circle()
-                )
+            Group {
+                if let symbol {
+                    Image(systemName: symbol)
+                        .resizable()
+                        .scaledToFit()
+                        .foregroundStyle(symbolColor ?? HGColor.secondaryText)
+                } else if let icon {
+                    Image(icon)
+                        .resizable()
+                        .scaledToFit()
+                }
+            }
+            .frame(width: 20, height: 20)
+            .frame(width: 36, height: 36)
+            .background(HGColor.homeMetricIconBackground, in: Circle())
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)

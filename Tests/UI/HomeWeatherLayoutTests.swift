@@ -20,6 +20,15 @@ final class HomeWeatherLayoutTests: XCTestCase {
         XCTAssertNil(weather(delta: nil, availability: nil, skyStatus: nil).skyIllustrationAssetName)
     }
 
+    func testWeatherIconsReflectBackendSkyStatus() {
+        XCTAssertEqual(weather(delta: nil, skyStatus: "CLEAR").skySymbol, "sun.max.fill")
+        XCTAssertEqual(weather(delta: nil, skyStatus: "PARTLY_CLOUDY").skySymbol, "cloud.sun.fill")
+        XCTAssertEqual(weather(delta: nil, skyStatus: "CLOUDY").skySymbol, "cloud.fill")
+        XCTAssertEqual(weather(delta: nil, skyStatus: "RAIN").skySymbol, "cloud.rain.fill")
+        XCTAssertEqual(weather(delta: nil, skyStatus: "SNOW").skySymbol, "cloud.snow.fill")
+        XCTAssertEqual(weather(delta: nil, skyStatus: nil).skySymbol, "cloud.questionmark.fill")
+    }
+
     func testHomeUsesBackendApparentTemperatureWhenProvided() {
         XCTAssertEqual(weather(delta: nil).apparentTemperatureText, "40.5°C")
     }
@@ -58,7 +67,11 @@ final class HomeWeatherLayoutTests: XCTestCase {
         }
     }
 
-    private func weather(delta: Double?, availability: String? = nil, skyStatus: String? = "PARTLY_CLOUDY") -> HomeWeather {
+    private func weather(
+        delta: Double?,
+        availability: String? = nil,
+        skyStatus: String? = "PARTLY_CLOUDY"
+    ) -> HomeWeather {
         HomeWeather(
             temperature: 47.5, humidity: 55, apparentTemperature: 40.5, heatLevel: 2,
             temperatureDelta: delta, comparisonTemperature: 44.3,
