@@ -217,7 +217,7 @@ struct HomeWeather: Equatable {
         case "CLOUDY": "cloud.fill"
         case "RAIN": "cloud.rain.fill"
         case "SNOW": "cloud.snow.fill"
-        default: "cloud.questionmark.fill"
+        default: "sun.max.fill"
         }
     }
 
@@ -225,7 +225,7 @@ struct HomeWeather: Equatable {
         switch skyStatus {
         case "CLEAR": "WeatherSunny"
         case "PARTLY_CLOUDY": "WeatherPartlyCloudy"
-        default: nil
+        default: "WeatherSunny"
         }
     }
 

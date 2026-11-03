@@ -12,12 +12,12 @@ final class HomeWeatherLayoutTests: XCTestCase {
         XCTAssertEqual(weather(delta: 3.2).temperatureDeltaBadgeText, "▲ +3.2°C")
     }
 
-    func testWeatherAvailabilityDistinguishesServerStatesAndDoesNotInventSky() {
+    func testWeatherAvailabilityDistinguishesServerStatesAndUsesSunnyFallback() {
         XCTAssertEqual(weather(delta: nil, availability: "UNAVAILABLE", skyStatus: nil).weatherStatusText, "기상 정보 없음")
         XCTAssertEqual(weather(delta: nil, availability: "CACHED", skyStatus: nil).weatherStatusText, "이전 정보")
         XCTAssertEqual(weather(delta: nil, availability: "AVAILABLE", skyStatus: nil).weatherStatusText, "날씨 확인 중")
         XCTAssertEqual(weather(delta: nil, availability: nil, skyStatus: nil).weatherStatusText, "정보 없음")
-        XCTAssertNil(weather(delta: nil, availability: nil, skyStatus: nil).skyIllustrationAssetName)
+        XCTAssertEqual(weather(delta: nil, availability: nil, skyStatus: nil).skyIllustrationAssetName, "WeatherSunny")
     }
 
     func testWeatherIconsReflectBackendSkyStatus() {
@@ -26,7 +26,15 @@ final class HomeWeatherLayoutTests: XCTestCase {
         XCTAssertEqual(weather(delta: nil, skyStatus: "CLOUDY").skySymbol, "cloud.fill")
         XCTAssertEqual(weather(delta: nil, skyStatus: "RAIN").skySymbol, "cloud.rain.fill")
         XCTAssertEqual(weather(delta: nil, skyStatus: "SNOW").skySymbol, "cloud.snow.fill")
-        XCTAssertEqual(weather(delta: nil, skyStatus: nil).skySymbol, "cloud.questionmark.fill")
+        XCTAssertEqual(weather(delta: nil, skyStatus: nil).skySymbol, "sun.max.fill")
+        XCTAssertEqual(weather(delta: nil, skyStatus: nil).skyIllustrationAssetName, "WeatherSunny")
+    }
+
+    func testWeatherSymbolsAreAvailableInCurrentSystem() {
+        let statuses: [String?] = ["CLEAR", "PARTLY_CLOUDY", "CLOUDY", "RAIN", "SNOW", nil]
+        for status in statuses {
+            XCTAssertNotNil(UIImage(systemName: weather(delta: nil, skyStatus: status).skySymbol))
+        }
     }
 
     func testHomeUsesBackendApparentTemperatureWhenProvided() {

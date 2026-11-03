@@ -350,7 +350,7 @@ struct HomeView: View {
         case "CLOUDY": Color(red: 0.48, green: 0.55, blue: 0.66)
         case "RAIN": Color(red: 0.20, green: 0.52, blue: 0.88)
         case "SNOW": Color(red: 0.36, green: 0.69, blue: 0.91)
-        default: HGColor.secondaryText
+        default: Color(red: 1, green: 0.67, blue: 0.12)
         }
     }
 
