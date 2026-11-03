@@ -29,7 +29,7 @@ struct EmergencyCallView: View {
     var body: some View {
         HGStatusPopup(title: "긴급 호출", height: 620) {
             callStatus
-                .padding(.top, 32)
+                .padding(.top, 22)
 
             contactCard
                 .padding(.top, 20)
