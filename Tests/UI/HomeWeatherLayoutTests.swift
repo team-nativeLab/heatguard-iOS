@@ -26,7 +26,14 @@ final class HomeWeatherLayoutTests: XCTestCase {
         XCTAssertEqual(weather(delta: nil, skyStatus: "CLOUDY").skySymbol, "cloud.fill")
         XCTAssertEqual(weather(delta: nil, skyStatus: "RAIN").skySymbol, "cloud.rain.fill")
         XCTAssertEqual(weather(delta: nil, skyStatus: "SNOW").skySymbol, "cloud.snow.fill")
-        XCTAssertEqual(weather(delta: nil, skyStatus: nil).skySymbol, "cloud.questionmark.fill")
+        XCTAssertEqual(weather(delta: nil, skyStatus: nil).skySymbol, "cloud.fill")
+    }
+
+    func testWeatherSymbolsAreAvailableInCurrentSystem() {
+        let statuses: [String?] = ["CLEAR", "PARTLY_CLOUDY", "CLOUDY", "RAIN", "SNOW", nil]
+        for status in statuses {
+            XCTAssertNotNil(UIImage(systemName: weather(delta: nil, skyStatus: status).skySymbol))
+        }
     }
 
     func testHomeUsesBackendApparentTemperatureWhenProvided() {
