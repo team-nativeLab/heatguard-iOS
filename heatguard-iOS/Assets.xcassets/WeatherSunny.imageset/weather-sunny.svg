@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="145" height="150" viewBox="0 0 145 150" fill="none">
+  <defs>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(72.5 75) rotate(90) scale(72.5 70)">
+      <stop stop-color="#FFD66B" stop-opacity=".32"/>
+      <stop offset=".58" stop-color="#FFC86A" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#FFC86A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sun" x1="42" y1="32" x2="105" y2="117" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD765"/>
+      <stop offset=".54" stop-color="#FFAE3C"/>
+      <stop offset="1" stop-color="#FF853D"/>
+    </linearGradient>
+    <radialGradient id="highlight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(56 57) rotate(90) scale(14 21)">
+      <stop stop-color="#FFF3A4" stop-opacity=".75"/>
+      <stop offset="1" stop-color="#FFF3A4" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="72.5" cy="75" r="72.5" fill="url(#glow)"/>
+  <circle cx="72.5" cy="75" r="41" fill="url(#sun)"/>
+  <ellipse cx="56" cy="57" rx="21" ry="14" fill="url(#highlight)"/>
+</svg>

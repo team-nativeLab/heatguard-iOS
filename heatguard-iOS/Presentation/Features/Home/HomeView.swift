@@ -301,9 +301,6 @@ struct HomeView: View {
                         Image(assetName)
                             .resizable()
                             .scaledToFit()
-                            // WeatherSunny is a legacy raster with a white canvas baked in.
-                            // Multiply it into the dashboard background to hide that canvas.
-                            .blendMode(assetName == "WeatherSunny" ? .multiply : .normal)
                     } else {
                         Image(systemName: dashboard.weather.skySymbol)
                             .resizable()

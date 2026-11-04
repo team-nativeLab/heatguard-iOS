@@ -1,5 +1,11 @@
 import SwiftUI
 
+enum HGEmergencyPopupLayout {
+    static let contentTopPadding: CGFloat = 22
+    static let contactCardTopPadding: CGFloat = 20
+    static let actionHorizontalPadding: CGFloat = 18
+}
+
 struct HGEmergencyPulse: View {
     @State private var isExpanded = false
 
