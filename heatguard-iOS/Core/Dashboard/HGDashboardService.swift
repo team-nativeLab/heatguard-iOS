@@ -225,6 +225,9 @@ struct HomeWeather: Equatable {
         switch skyStatus {
         case "CLEAR": "WeatherSunny"
         case "PARTLY_CLOUDY": "WeatherPartlyCloudy"
+        case "CLOUDY": "WeatherCloudy"
+        case "RAIN": "WeatherRain"
+        case "SNOW": nil
         default: "WeatherSunny"
         }
     }
