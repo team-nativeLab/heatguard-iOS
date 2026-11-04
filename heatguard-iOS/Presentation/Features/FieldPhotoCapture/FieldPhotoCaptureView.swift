@@ -122,7 +122,7 @@ struct FieldPhotoCaptureView: View {
     private var measurementCard: some View {
         VStack(spacing: 0) {
             measurementInput(title: "온도 ( ℃ )", text: $temperature, color: HGColor.primaryText)
-            measurementInput(title: "습도 ( % )", text: $humidity, color: HGColor.secondaryText)
+            measurementInput(title: "습도 ( % )", text: $humidity, color: HGColor.primaryText)
             FieldMeasurementRow(measurement: FieldMeasurement(
                 title: "체감온도 ( ℃ )",
                 value: apparentTemperature.map { formattedMeasurement($0) } ?? "자동 계산"
@@ -221,9 +221,9 @@ private struct FieldMeasurementRow: View {
 
             Text(measurement.value)
                 .font(HGFont.semiBold(13, relativeTo: .caption))
-                .foregroundStyle(measurement.title.hasPrefix("온도") ? HGColor.primaryText : HGColor.secondaryText)
+                .foregroundStyle(HGColor.primaryText)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                .padding(.leading, showDivider ? 9 : 44)
+                .padding(.leading, 9)
                 .overlay(alignment: .bottom) {
                     if showDivider {
                         Rectangle()

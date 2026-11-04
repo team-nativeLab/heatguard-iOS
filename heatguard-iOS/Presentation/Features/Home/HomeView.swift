@@ -301,6 +301,8 @@ struct HomeView: View {
                         Image(assetName)
                             .resizable()
                             .scaledToFit()
+                            .brightness(assetName == "WeatherCloudy" ? -0.07 : 0)
+                            .contrast(assetName == "WeatherCloudy" ? 1.04 : 1)
                     } else {
                         Image(systemName: dashboard.weather.skySymbol)
                             .resizable()
