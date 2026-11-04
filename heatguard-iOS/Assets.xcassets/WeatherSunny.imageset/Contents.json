@@ -1,14 +1,11 @@
 {
   "images" : [
     {
-      "filename" : "weather-sunny.svg",
+      "filename" : "weather-sunny.png",
       "idiom" : "universal",
       "scale" : "1x"
     }
   ],
-  "properties" : {
-    "preserves-vector-representation" : true
-  },
   "info" : {
     "author" : "xcode",
     "version" : 1

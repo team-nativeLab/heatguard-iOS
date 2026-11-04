@@ -27,7 +27,7 @@ struct EmergencyCallView: View {
     }
 
     var body: some View {
-        HGStatusPopup(title: "긴급 호출", height: 620) {
+        HGStatusPopup(title: "긴급 호출", height: HGEmergencyPopupLayout.popupHeight) {
             callStatus
                 .padding(.top, HGEmergencyPopupLayout.contentTopPadding)
 
