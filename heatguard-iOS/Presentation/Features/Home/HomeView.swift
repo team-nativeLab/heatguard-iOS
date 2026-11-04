@@ -174,7 +174,11 @@ struct HomeView: View {
         } message: {
             Text(dashboardError?.alertMessage ?? "")
         }
-        .alert("긴급 호출에 실패했습니다.", isPresented: emergencyErrorAlert) {
+        .alert(emergencyError?.title ?? "긴급 호출 상태 확인 오류", isPresented: emergencyErrorAlert) {
+            Button("다시 시도") {
+                emergencyError = nil
+                Task { await restoreCurrentEmergencyCall() }
+            }
             Button("확인", role: .cancel) {}
         } message: {
             Text(emergencyError?.alertMessage ?? "")
@@ -497,7 +501,12 @@ struct HomeView: View {
             activeEmergencyCallID = currentCall.id
             activeEmergencyCallStatus = currentCall.status
         } catch {
-            emergencyError = HGErrorPresentation(error: error)
+            guard !Task.isCancelled, !error.hgIsNetworkCancellation else { return }
+            emergencyError = HGErrorPresentation(
+                title: "긴급 호출 상태를 확인하지 못했습니다",
+                message: "네트워크 연결을 확인한 뒤 다시 시도해주세요. 진행 중인 호출은 관리자에게 확인해주세요.",
+                diagnosticCode: HGErrorPresentation(error: error).diagnosticCode
+            )
         }
     }
 
