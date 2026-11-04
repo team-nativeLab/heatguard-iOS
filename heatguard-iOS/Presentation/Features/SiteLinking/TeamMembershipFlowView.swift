@@ -80,7 +80,7 @@ struct TeamMembershipFlowView: View {
 
     private var invitationConfirmation: some View {
         VStack(spacing: 0) {
-            flowHeader(title: "현장 연동", backgroundColor: HGColor.appBackground, height: 54, topInset: 10)
+            flowHeader(title: "현장 연동")
 
             Spacer(minLength: 24)
 
@@ -157,7 +157,6 @@ struct TeamMembershipFlowView: View {
         }
         .dismissKeyboardOnBackgroundTap()
         .background(HGColor.appBackground.ignoresSafeArea())
-        .toolbar(.hidden, for: .navigationBar)
     }
 
     @ViewBuilder
@@ -505,7 +504,7 @@ struct TeamMembershipFlowView: View {
 
     private var membershipList: some View {
         VStack(spacing: 0) {
-            flowHeader(title: "내 현장 목록", backgroundColor: HGColor.appBackground, height: 54, topInset: 10)
+            flowHeader(title: "내 현장 목록")
             if memberships.isEmpty {
                 ContentUnavailableView(
                     "초대받은 현장이 없어요",
@@ -582,30 +581,28 @@ struct TeamMembershipFlowView: View {
 
     private func flowHeader(
         title: String,
-        backgroundColor: Color = HGColor.surface,
-        height: CGFloat = 48,
-        topInset: CGFloat = 0,
         onBack: (() -> Void)? = nil
     ) -> some View {
-        ZStack {
-            Text(title)
-                .font(HGFont.semiBold(18, relativeTo: .headline))
-                .foregroundStyle(HGColor.primaryText)
-            HStack {
-                Button(action: onBack ?? onClose) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .semibold))
+        Color.clear
+            .frame(height: 0)
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar)
+            .toolbarBackground(HGColor.appBackground, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(title)
+                        .font(HGFont.semiBold(18, relativeTo: .headline))
                         .foregroundStyle(HGColor.primaryText)
-                        .frame(width: 44, height: 44)
                 }
-                .accessibilityLabel("뒤로")
-                Spacer()
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: onBack ?? onClose) {
+                        Image(systemName: "chevron.backward")
+                    }
+                    .accessibilityLabel("뒤로")
+                }
             }
-        }
-        .frame(height: height)
-        .padding(.horizontal, 14)
-        .padding(.top, topInset)
-        .background(backgroundColor)
     }
 
     @MainActor
