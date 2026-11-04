@@ -330,7 +330,7 @@ struct HomeView: View {
                 HomeMetric(
                     symbol: dashboard.weather.skySymbol,
                     symbolColor: weatherSymbolColor(for: dashboard.weather.skyStatus),
-                    title: "날씨",
+                    title: nil,
                     value: dashboard.weather.weatherStatusText
                 )
             }
@@ -876,14 +876,14 @@ private struct HomeMetric: View {
     var icon: String?
     var symbol: String?
     var symbolColor: Color?
-    let title: String
+    let title: String?
     let value: String
 
     init(
         icon: String? = nil,
         symbol: String? = nil,
         symbolColor: Color? = nil,
-        title: String,
+        title: String?,
         value: String
     ) {
         self.icon = icon
@@ -912,9 +912,11 @@ private struct HomeMetric: View {
             .background(HGColor.homeMetricIconBackground, in: Circle())
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(HGFont.regular(10, relativeTo: .caption2))
-                    .foregroundStyle(HGColor.secondaryText)
+                if let title {
+                    Text(title)
+                        .font(HGFont.regular(10, relativeTo: .caption2))
+                        .foregroundStyle(HGColor.secondaryText)
+                }
 
                 Text(value)
                     .font(HGFont.bold(14, relativeTo: .caption))

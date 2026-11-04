@@ -202,9 +202,9 @@ struct HomeWeather: Equatable {
         case "SNOW": "눈"
         default:
             switch availability {
-            case "UNAVAILABLE": "기상 정보 없음"
+            case "UNAVAILABLE": "정보 없음"
             case "CACHED": "이전 정보"
-            case "AVAILABLE": "날씨 확인 중"
+            case "AVAILABLE": "확인 중"
             default: "정보 없음"
             }
         }

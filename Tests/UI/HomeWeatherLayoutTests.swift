@@ -13,10 +13,12 @@ final class HomeWeatherLayoutTests: XCTestCase {
     }
 
     func testWeatherAvailabilityDistinguishesServerStatesAndUsesSunnyFallback() {
-        XCTAssertEqual(weather(delta: nil, availability: "UNAVAILABLE", skyStatus: nil).weatherStatusText, "기상 정보 없음")
+        XCTAssertEqual(weather(delta: nil, availability: "UNAVAILABLE", skyStatus: nil).weatherStatusText, "정보 없음")
         XCTAssertEqual(weather(delta: nil, availability: "CACHED", skyStatus: nil).weatherStatusText, "이전 정보")
-        XCTAssertEqual(weather(delta: nil, availability: "AVAILABLE", skyStatus: nil).weatherStatusText, "날씨 확인 중")
+        XCTAssertEqual(weather(delta: nil, availability: "AVAILABLE", skyStatus: nil).weatherStatusText, "확인 중")
         XCTAssertEqual(weather(delta: nil, availability: nil, skyStatus: nil).weatherStatusText, "정보 없음")
+        XCTAssertEqual(weather(delta: nil, skyStatus: "CLEAR").weatherStatusText, "맑음")
+        XCTAssertEqual(weather(delta: nil, skyStatus: "CLOUDY").weatherStatusText, "흐림")
         XCTAssertEqual(weather(delta: nil, availability: nil, skyStatus: nil).skyIllustrationAssetName, "WeatherSunny")
     }
 
