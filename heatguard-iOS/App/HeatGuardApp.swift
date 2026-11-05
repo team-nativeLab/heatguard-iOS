@@ -13,6 +13,7 @@ struct HeatGuardApp: App {
     @State private var hasFinishedIntro = false
     @State private var isAuthenticated = false
     @State private var showsTeamFlow = false
+    @State private var teamFlowHasPreviousScreen = false
     @State private var startsAccountRegistration = false
     @State private var pendingInvitationToken: String?
     @State private var restoredProfile: HGTeamProfile?
@@ -31,35 +32,53 @@ struct HeatGuardApp: App {
 
     @ViewBuilder
     private var rootView: some View {
+        NavigationStack {
+            rootContent
+                .navigationDestination(isPresented: $showsTeamFlow) {
+                    teamFlowDestination
+                }
+        }
+    }
+
+    @ViewBuilder
+    private var rootContent: some View {
         if !hasFinishedIntro {
             IntroView()
         } else if isRestoringSession {
             ProgressView()
-        } else if showsTeamFlow {
-            NavigationStack {
-                TeamMembershipFlowView(
-                    linkToken: pendingInvitationToken,
-                    startsWithRegistration: startsAccountRegistration,
-                    onClose: closeTeamFlow,
-                    onAuthenticated: { _ in isAuthenticated = true },
-                    onTeamSelected: finishTeamSelection
-                )
-            }
+        } else if showsTeamFlow && !teamFlowHasPreviousScreen {
+            HGColor.appBackground.ignoresSafeArea()
         } else if isAuthenticated {
             HomeView(
                 initialProfile: restoredProfile,
                 onSessionEnded: handleSessionEnded,
-                onTeamSelectionRequested: { showsTeamFlow = true }
+                onTeamSelectionRequested: {
+                    startsAccountRegistration = false
+                    teamFlowHasPreviousScreen = true
+                    showsTeamFlow = true
+                }
             )
         } else {
             LoginView(
                 onAuthenticated: { _ in Task { await routeAuthenticatedSession() } },
                 onSignUpTap: {
                     startsAccountRegistration = true
+                    teamFlowHasPreviousScreen = true
                     showsTeamFlow = true
                 }
             )
         }
+    }
+
+    private var teamFlowDestination: some View {
+        TeamMembershipFlowView(
+            linkToken: pendingInvitationToken,
+            startsWithRegistration: startsAccountRegistration,
+            onClose: closeTeamFlow,
+            onAuthenticated: { _ in isAuthenticated = true },
+            onTeamSelected: finishTeamSelection
+        )
+        .navigationBarBackButtonHidden(!teamFlowHasPreviousScreen)
     }
 
     @MainActor
@@ -102,17 +121,21 @@ struct HeatGuardApp: App {
             let memberships = try await HGAuthenticationService().memberships()
             if let selectedTeamID = memberships.selectedTeamID,
                memberships.items.contains(where: { $0.teamID == selectedTeamID }) {
+                teamFlowHasPreviousScreen = false
                 showsTeamFlow = false
                 return
             }
             if memberships.items.count == 1, let onlyMembership = memberships.items.first {
                 try await HGAuthenticationService().selectMembership(teamID: onlyMembership.teamID)
+                teamFlowHasPreviousScreen = false
                 showsTeamFlow = false
                 return
             }
+            teamFlowHasPreviousScreen = false
             showsTeamFlow = true
         } catch {
             // Keep the authenticated worker in the team-selection flow so the API error is visible.
+            teamFlowHasPreviousScreen = false
             showsTeamFlow = true
         }
     }
@@ -121,6 +144,7 @@ struct HeatGuardApp: App {
     private func finishTeamSelection() {
         isAuthenticated = true
         showsTeamFlow = false
+        teamFlowHasPreviousScreen = false
         startsAccountRegistration = false
         pendingInvitationToken = nil
     }
@@ -128,6 +152,7 @@ struct HeatGuardApp: App {
     @MainActor
     private func closeTeamFlow() {
         showsTeamFlow = false
+        teamFlowHasPreviousScreen = false
         startsAccountRegistration = false
         pendingInvitationToken = nil
         if isAuthenticated {
@@ -170,6 +195,7 @@ struct HeatGuardApp: App {
         guard let token, !token.isEmpty else { return }
         pendingInvitationToken = token
         startsAccountRegistration = false
+        teamFlowHasPreviousScreen = true
         showsTeamFlow = true
     }
 }
