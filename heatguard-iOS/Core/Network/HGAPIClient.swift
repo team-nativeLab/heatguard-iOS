@@ -169,7 +169,10 @@ struct HGAPIClient {
                 let diagnostic = (error as? URLError).map { "URL_ERROR_\($0.code.rawValue)" }
                     ?? String(describing: type(of: error))
                 Self.homeRequestLogger.error(
-                    "Home request failed method=\(method, privacy: .public) path=\(path, privacy: .public) diagnostic=\(diagnostic, privacy: .public) elapsedMs=\(elapsedMilliseconds)"
+                    "Home request failed method=\(method, privacy: .public) path=\(path, privacy: .public)"
+                )
+                Self.homeRequestLogger.error(
+                    "diagnostic=\(diagnostic, privacy: .public) elapsedMs=\(elapsedMilliseconds)"
                 )
             }
             throw error
@@ -180,7 +183,13 @@ struct HGAPIClient {
             let elapsedMilliseconds = Int((ProcessInfo.processInfo.systemUptime - requestStartedAt) * 1_000)
             let serverCode = Self.serverErrorCode(from: data) ?? "none"
             Self.homeRequestLogger.info(
-                "Home response method=\(method, privacy: .public) path=\(path, privacy: .public) status=\(httpResponse.statusCode) serverCode=\(serverCode, privacy: .public) requestId=\(requestID, privacy: .public) elapsedMs=\(elapsedMilliseconds)"
+                "Home response method=\(method, privacy: .public) path=\(path, privacy: .public)"
+            )
+            Self.homeRequestLogger.info(
+                "status=\(httpResponse.statusCode) serverCode=\(serverCode, privacy: .public)"
+            )
+            Self.homeRequestLogger.info(
+                "requestId=\(requestID, privacy: .public) elapsedMs=\(elapsedMilliseconds)"
             )
         }
 
@@ -204,7 +213,10 @@ struct HGAPIClient {
         } catch {
             if isHomeRequest {
                 Self.homeRequestLogger.error(
-                    "Home response decode failed path=\(path, privacy: .public) status=\(httpResponse.statusCode) requestId=\(Self.requestID(from: data) ?? "unavailable", privacy: .public)"
+                    "Home response decode failed path=\(path, privacy: .public) status=\(httpResponse.statusCode)"
+                )
+                Self.homeRequestLogger.error(
+                    "requestId=\(Self.requestID(from: data) ?? "unavailable", privacy: .public)"
                 )
             }
             throw HGAPIError.responseDecoding

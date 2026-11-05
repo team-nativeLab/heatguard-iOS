@@ -825,7 +825,14 @@ struct HomeView: View {
         Binding(get: { storedDraftError != nil }, set: { if !$0 { storedDraftError = nil } })
     }
 
-    private func loadDashboard() async {
+    @MainActor
+    private func loadProfile() async {
+        teamProfile = try? await HGAuthenticationService().currentProfile()
+    }
+}
+
+extension HomeView {
+    fileprivate func loadDashboard() async {
         for attempt in 0 ... 1 {
             do {
                 let loadedDashboard = try await HGDashboardService().fetchHomeDashboard()
@@ -847,7 +854,7 @@ struct HomeView: View {
                 return
             } catch {
                 guard !error.hgIsNetworkCancellation else { return }
-                guard attempt == 0, isRetryableDashboardFailure(error) else {
+                guard attempt == 0, HGDashboardRetryPolicy.shouldRetry(error) else {
                     dashboardError = HGErrorPresentation(error: error)
                     return
                 }
@@ -860,8 +867,10 @@ struct HomeView: View {
             }
         }
     }
+}
 
-    private func isRetryableDashboardFailure(_ error: Error) -> Bool {
+private enum HGDashboardRetryPolicy {
+    static func shouldRetry(_ error: Error) -> Bool {
         if let urlError = error as? URLError {
             return [
                 .timedOut,
@@ -878,11 +887,6 @@ struct HomeView: View {
             return false
         }
         return statusCode == 408 || statusCode == 429 || (500 ... 599).contains(statusCode)
-    }
-
-    @MainActor
-    private func loadProfile() async {
-        teamProfile = try? await HGAuthenticationService().currentProfile()
     }
 }
 
