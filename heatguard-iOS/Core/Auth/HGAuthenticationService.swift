@@ -111,8 +111,8 @@ struct HGAuthenticationService {
             return nil
         }
 
-        _ = try await currentProfile()
-        return TeamSession()
+        let profile = try await currentProfile()
+        return TeamSession(profile: profile)
     }
 
     func currentProfile() async throws -> HGTeamProfile {
@@ -327,7 +327,13 @@ private struct PasswordChangeResponse: Decodable {
 
 private struct WithdrawalRequest: Encodable { let currentPassword: String; let reason: String? }
 
-struct TeamSession: Equatable {}
+struct TeamSession: Equatable {
+    let profile: HGTeamProfile?
+
+    init(profile: HGTeamProfile? = nil) {
+        self.profile = profile
+    }
+}
 
 struct HGLoginCredentials: Codable {
     let email: String
