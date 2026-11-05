@@ -141,8 +141,8 @@ struct ThermometerRecordView: View {
                     Image("camera")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 42, height: 42)
-                        .padding(.leading, 19)
+                        .frame(width: 36, height: 36)
+                        .padding(.leading, 18)
 
                     Spacer()
 
@@ -153,7 +153,7 @@ struct ThermometerRecordView: View {
 
                     Spacer()
                 }
-                .frame(maxWidth: .infinity, minHeight: 135)
+                .frame(maxWidth: .infinity, minHeight: 88)
                 .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
                 .overlay {
                     RoundedRectangle(cornerRadius: 12)
