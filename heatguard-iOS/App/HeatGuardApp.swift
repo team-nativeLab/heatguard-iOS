@@ -15,6 +15,7 @@ struct HeatGuardApp: App {
     @State private var showsTeamFlow = false
     @State private var startsAccountRegistration = false
     @State private var pendingInvitationToken: String?
+    @State private var restoredProfile: HGTeamProfile?
 
     var body: some Scene {
         WindowGroup {
@@ -46,6 +47,7 @@ struct HeatGuardApp: App {
             }
         } else if isAuthenticated {
             HomeView(
+                initialProfile: restoredProfile,
                 onSessionEnded: handleSessionEnded,
                 onTeamSelectionRequested: { showsTeamFlow = true }
             )
@@ -77,7 +79,9 @@ struct HeatGuardApp: App {
         try? HGAuthTokenStore(account: "app-session-access-token").clear()
         UserDefaults.standard.removeObject(forKey: "selected-app-site-id")
         do {
-            isAuthenticated = (try await HGAuthenticationService().restoreSession()) != nil
+            let session = try await HGAuthenticationService().restoreSession()
+            restoredProfile = session?.profile
+            isAuthenticated = session != nil
             if isAuthenticated { await routeToSelectedTeamIfNeeded() }
         } catch {
             isAuthenticated = false
@@ -87,6 +91,7 @@ struct HeatGuardApp: App {
 
     @MainActor
     private func routeAuthenticatedSession() async {
+        restoredProfile = nil
         isAuthenticated = true
         await routeToSelectedTeamIfNeeded()
     }
@@ -133,6 +138,7 @@ struct HeatGuardApp: App {
     @MainActor
     private func handleSessionEnded() {
         HGAuthenticationService().endLocalSession()
+        restoredProfile = nil
         isAuthenticated = false
         showsTeamFlow = false
     }

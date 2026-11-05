@@ -8,6 +8,7 @@ struct HomeView: View {
 
     init(
         initialDashboard: HomeDashboard? = nil,
+        initialProfile: HGTeamProfile? = nil,
         onSessionEnded: @escaping () -> Void = {},
         onTeamSelectionRequested: @escaping () -> Void = {}
     ) {
@@ -15,6 +16,7 @@ struct HomeView: View {
         self.onTeamSelectionRequested = onTeamSelectionRequested
         self.loadsRemoteData = initialDashboard == nil
         _dashboard = State(initialValue: initialDashboard ?? .unavailable)
+        _teamProfile = State(initialValue: initialProfile)
         _checklist = State(initialValue: initialDashboard?.checklist ?? HGChecklistSummary(times: [], checkedCount: nil, totalCount: nil))
         _unreadNotificationCount = State(initialValue: initialDashboard?.unreadNotificationCount ?? 0)
     }
@@ -161,10 +163,15 @@ struct HomeView: View {
         .navigationDestination(for: HomeFlowRoute.self, destination: destinationView)
         .task {
             guard loadsRemoteData else { return }
-            await loadDashboard()
-            await loadProfile()
-            await restoreCurrentEmergencyCall()
             loadStoredDraft()
+            async let dashboardLoad: Void = loadDashboard()
+            async let emergencyLoad: Void = restoreCurrentEmergencyCall()
+            if teamProfile == nil {
+                async let profileLoad: Void = loadProfile()
+                _ = await (dashboardLoad, profileLoad, emergencyLoad)
+            } else {
+                _ = await (dashboardLoad, emergencyLoad)
+            }
         }
         .alert("홈 데이터를 불러오지 못했습니다.", isPresented: dashboardErrorAlert) {
             Button("다시 시도") {
