@@ -49,3 +49,12 @@ struct HGErrorPresentation: Hashable {
         "\(message)\n\n오류 코드: \(diagnosticCode)"
     }
 }
+
+extension Error {
+    var hgIsNetworkCancellation: Bool {
+        if self is CancellationError { return true }
+
+        let error = self as NSError
+        return error.domain == NSURLErrorDomain && error.code == NSURLErrorCancelled
+    }
+}
