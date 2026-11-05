@@ -151,7 +151,7 @@ struct TeamMembershipFlowView: View {
     private func accessForm(step: TeamRegistrationStep? = nil) -> some View {
         let visibleStep = step ?? .email
         return VStack(spacing: 0) {
-            flowHeader(title: isRegistering ? registrationStepTitle(for: visibleStep) : "로그인")
+            flowHeader(title: isRegistering ? "회원가입" : "로그인")
             ScrollView {
                 Group {
                     if isRegistering {
@@ -678,6 +678,7 @@ struct TeamMembershipFlowView: View {
             }
             guard normalizedVerificationCode.count == 6, verificationToken != nil else {
                 registrationStep = .verification
+                showsPassword = false
                 showInputError("이메일 인증번호 확인을 완료해주세요.")
                 return
             }
@@ -689,6 +690,7 @@ struct TeamMembershipFlowView: View {
             if isRegistering {
                 guard let verificationToken else {
                     registrationStep = .verification
+                    showsPassword = false
                     showInputError("이메일 인증번호 확인을 완료해주세요.")
                     return
                 }
@@ -722,6 +724,7 @@ struct TeamMembershipFlowView: View {
             let presentation = HGErrorPresentation(error: error)
             if isRegistrationCodeError(presentation.diagnosticCode) {
                 registrationStep = .verification
+                showsPassword = false
                 verificationErrorMessage = "인증번호가 올바르지 않거나 만료됐어요. 다시 확인해주세요."
                 isVerificationCodeFocused = true
             } else {
