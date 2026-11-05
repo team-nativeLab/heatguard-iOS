@@ -25,6 +25,7 @@ struct HGAuthenticationService {
             method: "POST",
             path: HGAPIPath.teamLogin
         )
+        HGProfilePhotoCache.shared.clear()
         try tokenStore.save(response.accessToken)
         // Passwords from the old test-account recovery path must not survive login.
         try credentialStore.clear()
@@ -165,6 +166,7 @@ struct HGAuthenticationService {
     }
 
     func endLocalSession(clearDraft: Bool = true) {
+        HGProfilePhotoCache.shared.clear()
         if clearDraft {
             try? HGRecordDraftStore(ownerID: sessionState.userID).clear()
         }

@@ -75,14 +75,13 @@ struct HGMenuDrawer: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .ignoresSafeArea()
         .task(id: isPresented) {
-            guard isPresented else {
-                profileImage = nil
-                return
-            }
+            guard isPresented else { return }
             do {
                 profileImage = try await HGProfilePhotoService().loadPhoto()
+            } catch is CancellationError {
+                return
             } catch {
-                profileImage = nil
+                // Keep any previously loaded image visible when a refresh fails.
             }
         }
     }

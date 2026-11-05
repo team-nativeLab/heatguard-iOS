@@ -11,11 +11,18 @@ struct HGProfilePhotoService {
     }
 
     func loadPhoto() async throws -> UIImage? {
+        if let data = HGProfilePhotoCache.shared.cachedData(), let image = UIImage(data: data) {
+            return image
+        }
+
         let response: HGProfilePhotoResponse = try await client.get(
             path: HGAPIPath.teamProfilePhoto,
             requiresAuthentication: true
         )
-        guard let rawURL = response.photoURL else { return nil }
+        guard let rawURL = response.photoURL else {
+            HGProfilePhotoCache.shared.clear()
+            return nil
+        }
         guard let url = URL(string: rawURL), url.scheme?.lowercased() == "https" else {
             throw HGProfilePhotoError.invalidURL
         }
@@ -27,6 +34,7 @@ struct HGProfilePhotoService {
               let image = UIImage(data: data) else {
             throw HGProfilePhotoError.downloadFailed
         }
+        HGProfilePhotoCache.shared.store(data)
         return image
     }
 
@@ -36,6 +44,7 @@ struct HGProfilePhotoService {
             try Task.checkCancellation()
             do {
                 try await uploadPhotoData(data)
+                HGProfilePhotoCache.shared.store(data)
                 return
             } catch HGProfilePhotoError.uploadExpired where attempt == 0 {
                 continue
@@ -114,6 +123,7 @@ struct HGProfilePhotoService {
             path: HGAPIPath.teamProfilePhoto,
             requiresAuthentication: true
         )
+        HGProfilePhotoCache.shared.clear()
     }
 
     private static func jpegData(from image: UIImage) throws -> Data {
@@ -140,6 +150,41 @@ struct HGProfilePhotoService {
             }
         }
         throw HGProfilePhotoError.invalidImage
+    }
+}
+
+final class HGProfilePhotoCache: @unchecked Sendable {
+    static let shared = HGProfilePhotoCache()
+
+    private let lock = NSLock()
+    private var imageData: Data?
+    private var expirationDate: Date?
+
+    private init() {}
+
+    func cachedData() -> Data? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let expirationDate, expirationDate > .now else {
+            imageData = nil
+            self.expirationDate = nil
+            return nil
+        }
+        return imageData
+    }
+
+    func store(_ data: Data) {
+        lock.lock()
+        defer { lock.unlock() }
+        imageData = data
+        expirationDate = .now.addingTimeInterval(10 * 60)
+    }
+
+    func clear() {
+        lock.lock()
+        defer { lock.unlock() }
+        imageData = nil
+        expirationDate = nil
     }
 }
 

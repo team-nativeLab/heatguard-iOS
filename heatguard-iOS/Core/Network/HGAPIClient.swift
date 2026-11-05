@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import Security
 
 enum HGAPIConfiguration {
@@ -19,6 +20,11 @@ enum HGAPIConfiguration {
 }
 
 struct HGAPIClient {
+    private static let homeRequestLogger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "HeatGuard",
+        category: "HomeRequest"
+    )
+
     private let session: URLSession
     private let tokenStore: HGAuthTokenStore
     private let notificationCenter: NotificationCenter
@@ -151,7 +157,32 @@ struct HGAPIClient {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        let (data, httpResponse) = try await authenticatedData(for: request, requiresAuthentication: requiresAuthentication)
+        let isHomeRequest = path == HGAPIPath.teamHome
+        let requestStartedAt = ProcessInfo.processInfo.systemUptime
+        let data: Data
+        let httpResponse: HTTPURLResponse
+        do {
+            (data, httpResponse) = try await authenticatedData(for: request, requiresAuthentication: requiresAuthentication)
+        } catch {
+            if isHomeRequest {
+                let elapsedMilliseconds = Int((ProcessInfo.processInfo.systemUptime - requestStartedAt) * 1_000)
+                let diagnostic = (error as? URLError).map { "URL_ERROR_\($0.code.rawValue)" }
+                    ?? String(describing: type(of: error))
+                Self.homeRequestLogger.error(
+                    "Home request failed method=\(method, privacy: .public) path=\(path, privacy: .public) diagnostic=\(diagnostic, privacy: .public) elapsedMs=\(elapsedMilliseconds)"
+                )
+            }
+            throw error
+        }
+
+        if isHomeRequest {
+            let requestID = Self.requestID(from: data) ?? httpResponse.value(forHTTPHeaderField: "X-Request-Id") ?? "unavailable"
+            let elapsedMilliseconds = Int((ProcessInfo.processInfo.systemUptime - requestStartedAt) * 1_000)
+            let serverCode = Self.serverErrorCode(from: data) ?? "none"
+            Self.homeRequestLogger.info(
+                "Home response method=\(method, privacy: .public) path=\(path, privacy: .public) status=\(httpResponse.statusCode) serverCode=\(serverCode, privacy: .public) requestId=\(requestID, privacy: .public) elapsedMs=\(elapsedMilliseconds)"
+            )
+        }
 
         guard (200 ... 299).contains(httpResponse.statusCode) else {
             throw responseError(from: data, statusCode: httpResponse.statusCode)
@@ -171,8 +202,21 @@ struct HGAPIClient {
         } catch let error as HGAPIError {
             throw error
         } catch {
+            if isHomeRequest {
+                Self.homeRequestLogger.error(
+                    "Home response decode failed path=\(path, privacy: .public) status=\(httpResponse.statusCode) requestId=\(Self.requestID(from: data) ?? "unavailable", privacy: .public)"
+                )
+            }
             throw HGAPIError.responseDecoding
         }
+    }
+
+    private static func requestID(from data: Data) -> String? {
+        (try? JSONDecoder().decode(HGAPIEnvelope<HGEmptyPayload>.self, from: data).meta?.requestID)
+    }
+
+    private static func serverErrorCode(from data: Data) -> String? {
+        (try? JSONDecoder().decode(HGAPIEnvelope<HGEmptyPayload>.self, from: data).error?.code)
     }
 
     private func responseError(from data: Data, statusCode: Int) -> HGAPIError {
@@ -216,6 +260,15 @@ struct HGAPIEnvelope<Payload: Decodable>: Decodable {
     let success: Bool
     let data: Payload?
     let error: HGAPIErrorDetail?
+    let meta: HGAPIResponseMeta?
+}
+
+struct HGAPIResponseMeta: Decodable {
+    let requestID: String?
+
+    enum CodingKeys: String, CodingKey {
+        case requestID = "requestId"
+    }
 }
 
 struct HGAPIErrorDetail: Decodable {
