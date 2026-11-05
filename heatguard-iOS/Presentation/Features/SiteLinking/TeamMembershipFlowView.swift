@@ -1,6 +1,6 @@
 import SwiftUI
 
-private enum TeamRegistrationStep: Equatable {
+private enum TeamRegistrationStep: Hashable {
     case email
     case verification
     case password
@@ -25,6 +25,8 @@ struct TeamMembershipFlowView: View {
     @State private var verificationErrorMessage: String?
     @State private var registrationNotice: String?
     @State private var registrationStep = TeamRegistrationStep.email
+    @State private var showsVerification = false
+    @State private var showsPassword = false
     @State private var codeExpiresAt: Date?
     @FocusState private var isVerificationCodeFocused: Bool
     @State private var memberships: [HGTeamMembership] = []
@@ -52,12 +54,18 @@ struct TeamMembershipFlowView: View {
             if isRestoringSession {
                 ProgressView().tint(HGColor.primary)
             } else if !isAuthenticated {
-                accessForm
+                accessForm()
             } else if hasPendingInvitation, !hasAcceptedInvitation {
                 invitationConfirmation
             } else {
                 membershipList
             }
+        }
+        .navigationDestination(isPresented: $showsVerification) {
+            accessForm(step: .verification)
+                .navigationDestination(isPresented: $showsPassword) {
+                    accessForm(step: .password)
+                }
         }
         .task { await restore() }
         .alert(
@@ -71,6 +79,18 @@ struct TeamMembershipFlowView: View {
         .onChange(of: linkToken) { _, newToken in
             hasAcceptedInvitation = false
             if newToken?.isEmpty != false, isAuthenticated { Task { await loadMemberships() } }
+        }
+        .onChange(of: showsPassword) { _, isShowing in
+            guard !isShowing, showsVerification else { return }
+            registrationStep = .verification
+            verificationToken = nil
+            verificationErrorMessage = nil
+            isVerificationCodeFocused = true
+        }
+        .onChange(of: showsVerification) { _, isShowing in
+            guard !isShowing else { return }
+            registrationStep = .email
+            verificationErrorMessage = nil
         }
     }
 
@@ -128,16 +148,14 @@ struct TeamMembershipFlowView: View {
         }
     }
 
-    private var accessForm: some View {
-        VStack(spacing: 0) {
-            flowHeader(
-                title: isRegistering ? "회원가입" : "로그인",
-                onBack: handleAccessBack
-            )
+    private func accessForm(step: TeamRegistrationStep? = nil) -> some View {
+        let visibleStep = step ?? .email
+        return VStack(spacing: 0) {
+            flowHeader(title: isRegistering ? "회원가입" : "로그인")
             ScrollView {
                 Group {
                     if isRegistering {
-                        registrationContent
+                        registrationContent(for: visibleStep)
                     } else {
                         loginContent
                     }
@@ -149,7 +167,7 @@ struct TeamMembershipFlowView: View {
             .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if isRegistering {
-                    registrationFooter
+                    registrationFooter(for: visibleStep)
                 } else {
                     Color.clear.frame(height: 16).allowsHitTesting(false)
                 }
@@ -201,10 +219,10 @@ struct TeamMembershipFlowView: View {
         }
     }
 
-    private var registrationContent: some View {
+    private func registrationContent(for step: TeamRegistrationStep) -> some View {
         VStack(alignment: .leading, spacing: 22) {
-            registrationProgress
-            switch registrationStep {
+            HGRegistrationProgress(step: registrationStepNumber(for: step), title: registrationStepTitle(for: step))
+            switch step {
             case .email:
                 emailStepContent
             case .verification:
@@ -213,10 +231,6 @@ struct TeamMembershipFlowView: View {
                 passwordStepContent
             }
         }
-    }
-
-    private var registrationProgress: some View {
-        HGRegistrationProgress(step: registrationStepNumber, title: registrationStepTitle)
     }
 
     private var emailStepContent: some View {
@@ -382,9 +396,9 @@ struct TeamMembershipFlowView: View {
     }
 
     @ViewBuilder
-    private var registrationFooter: some View {
+    private func registrationFooter(for step: TeamRegistrationStep) -> some View {
         VStack(spacing: 12) {
-            if registrationStep == .email {
+            if step == .email {
                 HStack(spacing: 6) {
                     Text("이미 계정이 있으신가요?")
                         .foregroundStyle(HGColor.secondaryText)
@@ -396,11 +410,11 @@ struct TeamMembershipFlowView: View {
             }
 
             HGPrimaryButton(
-                title: registrationButtonTitle,
-                isEnabled: canContinueRegistration && !busy,
+                title: registrationButtonTitle(for: step),
+                isEnabled: canContinueRegistration(for: step) && !busy,
                 isLoading: busy
             ) {
-                Task { await continueRegistration() }
+                Task { await continueRegistration(from: step) }
             }
             .accessibilityIdentifier("signup.continue")
         }
@@ -410,32 +424,32 @@ struct TeamMembershipFlowView: View {
         .background(HGColor.appBackground)
     }
 
-    private var registrationStepNumber: Int {
-        switch registrationStep {
+    private func registrationStepNumber(for step: TeamRegistrationStep) -> Int {
+        switch step {
         case .email: 1
         case .verification: 2
         case .password: 3
         }
     }
 
-    private var registrationStepTitle: String {
-        switch registrationStep {
+    private func registrationStepTitle(for step: TeamRegistrationStep) -> String {
+        switch step {
         case .email: "이메일 입력"
         case .verification: "이메일 인증"
         case .password: "비밀번호 설정"
         }
     }
 
-    private var registrationButtonTitle: String {
-        switch registrationStep {
+    private func registrationButtonTitle(for step: TeamRegistrationStep) -> String {
+        switch step {
         case .email: busy ? "인증번호 보내는 중..." : "인증번호 받기"
         case .verification: "다음"
         case .password: busy ? "가입 중..." : "가입 완료"
         }
     }
 
-    private var canContinueRegistration: Bool {
-        switch registrationStep {
+    private func canContinueRegistration(for step: TeamRegistrationStep) -> Bool {
+        switch step {
         case .email: isValidEmail(email)
         case .verification: verificationCode.count == 6
         case .password: isValidPassword && password == passwordConfirmation
@@ -458,27 +472,10 @@ struct TeamMembershipFlowView: View {
         return String(format: "%02d:%02d", remaining / 60, remaining % 60)
     }
 
-    private func handleAccessBack() {
-        guard isRegistering else {
-            onClose()
-            return
-        }
-        switch registrationStep {
-        case .email:
-            onClose()
-        case .verification:
-            registrationStep = .email
-            verificationErrorMessage = nil
-        case .password:
-            registrationStep = .verification
-            verificationToken = nil
-            verificationErrorMessage = nil
-            isVerificationCodeFocused = true
-        }
-    }
-
     private func beginRegistration() {
         registrationStep = .email
+        showsVerification = false
+        showsPassword = false
         verificationCode = ""
         verificationToken = nil
         password = ""
@@ -490,9 +487,9 @@ struct TeamMembershipFlowView: View {
     }
 
     @MainActor
-    private func continueRegistration() async {
-        guard canContinueRegistration, !busy else { return }
-        switch registrationStep {
+    private func continueRegistration(from step: TeamRegistrationStep) async {
+        guard canContinueRegistration(for: step), !busy else { return }
+        switch step {
         case .email:
             await requestCode()
         case .verification:
@@ -579,10 +576,7 @@ struct TeamMembershipFlowView: View {
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private func flowHeader(
-        title: String,
-        onBack: (() -> Void)? = nil
-    ) -> some View {
+    private func flowHeader(title: String) -> some View {
         Color.clear
             .frame(height: 0)
             .navigationTitle(title)
@@ -595,12 +589,6 @@ struct TeamMembershipFlowView: View {
                     Text(title)
                         .font(HGFont.semiBold(18, relativeTo: .headline))
                         .foregroundStyle(HGColor.primaryText)
-                }
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: onBack ?? onClose) {
-                        Image(systemName: "chevron.backward")
-                    }
-                    .accessibilityLabel("뒤로")
                 }
             }
     }
@@ -637,6 +625,7 @@ struct TeamMembershipFlowView: View {
             verificationErrorMessage = nil
             codeExpiresAt = expiresAt
             registrationStep = .verification
+            showsVerification = true
             isVerificationCodeFocused = true
         } catch {
             self.error = HGErrorPresentation(error: error)
@@ -656,6 +645,7 @@ struct TeamMembershipFlowView: View {
             )
             verificationErrorMessage = nil
             registrationStep = .password
+            showsPassword = true
             isVerificationCodeFocused = false
         } catch {
             let presentation = HGErrorPresentation(error: error)
@@ -688,6 +678,7 @@ struct TeamMembershipFlowView: View {
             }
             guard normalizedVerificationCode.count == 6, verificationToken != nil else {
                 registrationStep = .verification
+                showsPassword = false
                 showInputError("이메일 인증번호 확인을 완료해주세요.")
                 return
             }
@@ -699,6 +690,7 @@ struct TeamMembershipFlowView: View {
             if isRegistering {
                 guard let verificationToken else {
                     registrationStep = .verification
+                    showsPassword = false
                     showInputError("이메일 인증번호 확인을 완료해주세요.")
                     return
                 }
@@ -710,6 +702,8 @@ struct TeamMembershipFlowView: View {
                 )
                 isRegistering = false
                 registrationStep = .email
+                showsPassword = false
+                showsVerification = false
                 verificationCode = ""
                 self.verificationToken = nil
                 password = ""
@@ -730,6 +724,7 @@ struct TeamMembershipFlowView: View {
             let presentation = HGErrorPresentation(error: error)
             if isRegistrationCodeError(presentation.diagnosticCode) {
                 registrationStep = .verification
+                showsPassword = false
                 verificationErrorMessage = "인증번호가 올바르지 않거나 만료됐어요. 다시 확인해주세요."
                 isVerificationCodeFocused = true
             } else {
