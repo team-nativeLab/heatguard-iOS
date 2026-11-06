@@ -196,7 +196,7 @@ struct HomeWeather: Equatable {
     var weatherStatusText: String {
         switch skyStatus {
         case "CLEAR": "맑음"
-        case "PARTLY_CLOUDY": "구름 조금"
+        case "PARTLY_CLOUDY": "구름"
         case "CLOUDY": "흐림"
         case "RAIN": "비"
         case "SNOW": "눈"
