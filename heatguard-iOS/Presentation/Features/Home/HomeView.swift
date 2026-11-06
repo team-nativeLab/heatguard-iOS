@@ -825,32 +825,68 @@ struct HomeView: View {
         Binding(get: { storedDraftError != nil }, set: { if !$0 { storedDraftError = nil } })
     }
 
-    private func loadDashboard() async {
-        do {
-            let loadedDashboard = try await HGDashboardService().fetchHomeDashboard()
-            dashboard = loadedDashboard
-            unreadNotificationCount = loadedDashboard.unreadNotificationCount
-            checklist = loadedDashboard.checklist
-            dashboardError = nil
-
-            do {
-                let items = try await HGChecklistService().fetchItems()
-                checklist = HGChecklistSummary(
-                    times: loadedDashboard.checklist.times,
-                    checkedCount: items.filter(\.checked).count,
-                    totalCount: items.count
-                )
-            } catch {
-                checklist = loadedDashboard.checklist
-            }
-        } catch {
-            dashboardError = HGErrorPresentation(error: error)
-        }
-    }
-
     @MainActor
     private func loadProfile() async {
         teamProfile = try? await HGAuthenticationService().currentProfile()
+    }
+}
+
+extension HomeView {
+    fileprivate func loadDashboard() async {
+        for attempt in 0 ... 1 {
+            do {
+                let loadedDashboard = try await HGDashboardService().fetchHomeDashboard()
+                dashboard = loadedDashboard
+                unreadNotificationCount = loadedDashboard.unreadNotificationCount
+                checklist = loadedDashboard.checklist
+                dashboardError = nil
+
+                do {
+                    let items = try await HGChecklistService().fetchItems()
+                    checklist = HGChecklistSummary(
+                        times: loadedDashboard.checklist.times,
+                        checkedCount: items.filter(\.checked).count,
+                        totalCount: items.count
+                    )
+                } catch {
+                    checklist = loadedDashboard.checklist
+                }
+                return
+            } catch {
+                guard !error.hgIsNetworkCancellation else { return }
+                guard attempt == 0, HGDashboardRetryPolicy.shouldRetry(error) else {
+                    dashboardError = HGErrorPresentation(error: error)
+                    return
+                }
+
+                do {
+                    try await Task.sleep(nanoseconds: 350_000_000)
+                } catch {
+                    return
+                }
+            }
+        }
+    }
+}
+
+private enum HGDashboardRetryPolicy {
+    static func shouldRetry(_ error: Error) -> Bool {
+        if let urlError = error as? URLError {
+            return [
+                .timedOut,
+                .cannotFindHost,
+                .cannotConnectToHost,
+                .networkConnectionLost,
+                .dnsLookupFailed,
+                .notConnectedToInternet
+            ].contains(urlError.code)
+        }
+
+        guard let apiError = error as? HGAPIError,
+              case let .server(_, statusCode, _) = apiError else {
+            return false
+        }
+        return statusCode == 408 || statusCode == 429 || (500 ... 599).contains(statusCode)
     }
 }
 
