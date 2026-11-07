@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 private enum TeamRegistrationStep: Hashable {
     case email
@@ -28,7 +29,7 @@ struct TeamMembershipFlowView: View {
     @State private var showsVerification = false
     @State private var showsPassword = false
     @State private var codeExpiresAt: Date?
-    @FocusState private var isVerificationCodeFocused: Bool
+    @State private var isVerificationCodeFocused = false
     @State private var memberships: [HGTeamMembership] = []
     @State private var selectedTeamID: String?
     @State private var selectingTeamID: String?
@@ -318,20 +319,13 @@ struct TeamMembershipFlowView: View {
             }
         }
         .overlay {
-            TextField("", text: $verificationCode)
-                .keyboardType(.numberPad)
-                .textContentType(.oneTimeCode)
-                .focused($isVerificationCodeFocused)
-                .foregroundStyle(.clear)
-                .tint(.clear)
+            HGOneTimeCodeTextField(
+                text: $verificationCode,
+                isFocused: $isVerificationCodeFocused
+            )
                 .opacity(0.02)
                 .accessibilityLabel("이메일 인증번호 6자리")
                 .accessibilityIdentifier("signup.verification.code")
-                .onAppear {
-                    // The verification destination is pushed after requestCode returns.
-                    // Focus the field once it is mounted so SwiftUI can present the keypad.
-                    isVerificationCodeFocused = true
-                }
                 .background {
                     GeometryReader { geometry in
                         Color.clear.preference(
@@ -811,6 +805,110 @@ struct TeamMembershipFlowView: View {
             await loadMemberships()
         } catch {
             self.error = HGErrorPresentation(error: error)
+        }
+    }
+}
+
+struct HGOneTimeCodeTextField: UIViewRepresentable {
+    @Binding var text: String
+    @Binding var isFocused: Bool
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeUIView(context: Context) -> OTPTextField {
+        let textField = OTPTextField()
+        textField.delegate = context.coordinator
+        textField.keyboardType = .numberPad
+        textField.textContentType = .oneTimeCode
+        textField.textColor = .clear
+        textField.tintColor = .clear
+        textField.backgroundColor = .clear
+        textField.autocorrectionType = .no
+        textField.spellCheckingType = .no
+        textField.accessibilityLabel = "이메일 인증번호 6자리"
+        textField.accessibilityIdentifier = "signup.verification.code"
+        textField.wantsFirstResponder = isFocused
+        textField.addTarget(context.coordinator, action: #selector(Coordinator.textDidChange(_:)), for: .editingChanged)
+        return textField
+    }
+
+    func updateUIView(_ textField: OTPTextField, context: Context) {
+        context.coordinator.parent = self
+        if textField.text != text {
+            textField.text = text
+        }
+        textField.wantsFirstResponder = isFocused
+        if isFocused {
+            textField.focusIfNeeded()
+        } else if textField.isFirstResponder {
+            textField.resignFirstResponder()
+        }
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: HGOneTimeCodeTextField
+
+        init(parent: HGOneTimeCodeTextField) {
+            self.parent = parent
+        }
+
+        @objc func textDidChange(_ textField: UITextField) {
+            let digitsOnly = String((textField.text ?? "").filter(\.isNumber).prefix(6))
+            if textField.text != digitsOnly {
+                textField.text = digitsOnly
+            }
+            if parent.text != digitsOnly {
+                parent.text = digitsOnly
+            }
+        }
+
+        func textFieldDidBeginEditing(_ textField: UITextField) {
+            if !parent.isFocused {
+                parent.isFocused = true
+            }
+        }
+
+        func textFieldDidEndEditing(_ textField: UITextField) {
+            if parent.isFocused {
+                parent.isFocused = false
+            }
+        }
+
+        func textField(
+            _ textField: UITextField,
+            shouldChangeCharactersIn range: NSRange,
+            replacementString string: String
+        ) -> Bool {
+            guard let currentText = textField.text as NSString? else { return true }
+            let proposedText = currentText.replacingCharacters(in: range, with: string)
+            let digitsOnly = String(proposedText.filter(\.isNumber).prefix(6))
+            guard digitsOnly == proposedText else {
+                textField.text = digitsOnly
+                parent.text = digitsOnly
+                return false
+            }
+            return digitsOnly.count <= 6
+        }
+    }
+}
+
+@MainActor
+final class OTPTextField: UITextField {
+    var wantsFirstResponder = false
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        focusIfNeeded()
+    }
+
+    func focusIfNeeded() {
+        guard wantsFirstResponder, window != nil, !isFirstResponder else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.wantsFirstResponder, self.window != nil else { return }
+            self.becomeFirstResponder()
         }
     }
 }
