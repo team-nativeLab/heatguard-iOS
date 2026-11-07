@@ -27,7 +27,7 @@ struct HGRecordDraftStore {
 
     func save(draft: HGRecordDraft, images: [UIImage]) throws {
         guard let ownerID, !ownerID.isEmpty else { throw HGRecordDraftStoreError.accountRequired }
-        guard !images.isEmpty else { throw HGRecordDraftStoreError.photoRequired }
+        guard !images.isEmpty || draft.type == .thermometer else { throw HGRecordDraftStoreError.photoRequired }
 
         try clear()
         try fileManager.createDirectory(at: storageDirectory, withIntermediateDirectories: true)
@@ -59,7 +59,8 @@ struct HGRecordDraftStore {
             UIImage(contentsOfFile: photosDirectory.appending(path: fileName).path)
         }
 
-        guard !images.isEmpty, images.count == storedDraft.photoFileNames.count else {
+        guard images.count == storedDraft.photoFileNames.count,
+              !images.isEmpty || storedDraft.draft.type == .thermometer else {
             throw HGRecordDraftStoreError.unavailablePhotos
         }
 

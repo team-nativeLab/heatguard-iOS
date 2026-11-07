@@ -11,7 +11,7 @@ enum HGPhotoRecordSaveAction {
         draft: HGRecordDraft,
         images: [UIImage]
     ) async -> HGPhotoRecordSaveOutcome {
-        guard !images.isEmpty else {
+        guard !images.isEmpty || draft.type == .thermometer else {
             return .photoRequired
         }
 

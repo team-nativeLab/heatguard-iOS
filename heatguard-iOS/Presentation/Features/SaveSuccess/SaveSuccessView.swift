@@ -91,7 +91,10 @@ struct SaveSuccessView: View {
     }
 
     private var photoStatusMessage: String {
-        switch result.photoVerification {
+        if result.draft.type == .thermometer, result.expectedPhotoCount == 0 {
+            return "사진 없이 온도계 기록을 저장했어요."
+        }
+        return switch result.photoVerification {
         case let .checked(count) where count == result.expectedPhotoCount:
             "기록에 사진 \(count)장이 연결됐어요."
         case .checked:
@@ -102,7 +105,10 @@ struct SaveSuccessView: View {
     }
 
     private var photoSummary: String {
-        switch result.photoVerification {
+        if result.draft.type == .thermometer, result.expectedPhotoCount == 0 {
+            return "첨부된 사진 없음"
+        }
+        return switch result.photoVerification {
         case let .checked(count): "\(count)/\(result.expectedPhotoCount)장 연결 확인"
         case .unavailable: "사진 연결 확인 필요"
         }

@@ -42,7 +42,7 @@ struct FieldPhotoCaptureView: View {
                     .padding(.leading, 8)
                     .foregroundStyle(HGColor.primaryText)
 
-                Text("온도계 데이터를 입력하고 현장 사진을\n촬영해 주세요.")
+                Text(photoInstruction)
                     .font(HGFont.regular(14, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
                     .padding(.leading, 8)
@@ -77,7 +77,7 @@ struct FieldPhotoCaptureView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HGPrimaryButton(
                 title: isSaving ? "저장 중..." : "저장",
-                isEnabled: !photos.isEmpty && !isSaving,
+                isEnabled: (!photos.isEmpty || draft.type == .thermometer) && !isSaving,
                 isLoading: isSaving,
                 action: saveRecord
             )
@@ -142,6 +142,13 @@ struct FieldPhotoCaptureView: View {
             isPhotoSelectorPresented = isPresented
         }
         .disabled(isSaving)
+    }
+
+    private var photoInstruction: String {
+        if draft.type == .thermometer {
+            return "현장 사진은 선택사항이에요.\n사진 없이도 온도계 기록을 저장할 수 있어요."
+        }
+        return "현장 사진을 촬영하거나\n앨범에서 선택해 주세요."
     }
 
     private func measurementInput(title: String, text: Binding<String>, color: Color) -> some View {
