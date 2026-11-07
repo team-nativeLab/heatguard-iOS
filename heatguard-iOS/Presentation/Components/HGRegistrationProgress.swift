@@ -25,7 +25,9 @@ struct HGRegistrationProgress: View {
     }
 
     private func segment(at index: Int) -> some View {
-        let isFilled = hasAppeared && index <= step
+        let isCompleted = index < step
+        let isCurrentStep = index == step
+        let isFilled = isCompleted || (isCurrentStep && hasAppeared)
 
         return Capsule()
             .fill(HGColor.menuDivider)
