@@ -12,6 +12,21 @@ struct HGDashboardService {
         )
         return HomeDashboard(response: response)
     }
+
+    func fetchCurrentLocationWeather(latitude: Double, longitude: Double) async throws -> HomeWeather {
+        let response: WorkerHomeWeather = try await client.send(
+            HGCurrentWeatherRequest(latitude: latitude, longitude: longitude),
+            method: "POST",
+            path: HGAPIPath.teamWeather,
+            requiresAuthentication: true
+        )
+        return response.homeWeather
+    }
+}
+
+private struct HGCurrentWeatherRequest: Encodable {
+    let latitude: Double
+    let longitude: Double
 }
 
 private struct WorkerHomeDashboardResponse: Decodable {
@@ -47,6 +62,29 @@ struct WorkerHomeWeather: Decodable {
     let sourceName: String?
     let skySource: String?
     let skyForecastAt: String?
+
+    var homeWeather: HomeWeather {
+        HomeWeather(
+            temperature: temperature,
+            humidity: humidity,
+            apparentTemperature: apparentTemperature,
+            heatLevel: heatLevel,
+            temperatureDelta: temperatureDelta,
+            comparisonTemperature: comparisonTemperature,
+            observedAt: observedAt,
+            skyStatus: skyStatus,
+            comparisonObservedAt: comparisonObservedAt,
+            comparisonBasis: comparisonBasis,
+            availability: availability,
+            errorCode: errorCode,
+            isStale: isStale,
+            source: source,
+            sourceName: sourceName,
+            skySource: skySource,
+            skyForecastAt: skyForecastAt,
+            fetchedAt: fetchedAt
+        )
+    }
 }
 
 private struct WorkerChecklistSummary: Decodable { let total: Int?; let completed: Int? }
@@ -69,27 +107,7 @@ struct HomeDashboard: Equatable {
         siteName = response.site?.name
         teamName = response.team?.name
         workplace = response.team?.workplace
-        let source = response.weather
-        weather = HomeWeather(
-            temperature: source?.temperature,
-            humidity: source?.humidity,
-            apparentTemperature: source?.apparentTemperature,
-            heatLevel: source?.heatLevel,
-            temperatureDelta: source?.temperatureDelta,
-            comparisonTemperature: source?.comparisonTemperature,
-            observedAt: source?.observedAt,
-            skyStatus: source?.skyStatus,
-            comparisonObservedAt: source?.comparisonObservedAt,
-            comparisonBasis: source?.comparisonBasis,
-            availability: source?.availability,
-            errorCode: source?.errorCode,
-            isStale: source?.isStale,
-            source: source?.source,
-            sourceName: source?.sourceName,
-            skySource: source?.skySource,
-            skyForecastAt: source?.skyForecastAt,
-            fetchedAt: source?.fetchedAt
-        )
+        weather = response.weather?.homeWeather ?? .unavailable
         checklist = HGChecklistSummary(
             times: response.checkTimes ?? [],
             checkedCount: response.checklistSummary?.completed,
@@ -124,6 +142,20 @@ struct HomeDashboard: Equatable {
         self.weather = weather
         self.checklist = checklist
         self.unreadNotificationCount = unreadNotificationCount
+    }
+
+    func replacingWeather(_ weather: HomeWeather) -> HomeDashboard {
+        HomeDashboard(
+            companyName: companyName,
+            companyPhone: companyPhone,
+            managerPhone: managerPhone,
+            siteName: siteName,
+            teamName: teamName,
+            workplace: workplace,
+            weather: weather,
+            checklist: checklist,
+            unreadNotificationCount: unreadNotificationCount
+        )
     }
 }
 

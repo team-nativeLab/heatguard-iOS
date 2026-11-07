@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 
 struct HomeView: View {
+    @Environment(\.scenePhase) private var scenePhase
     let onSessionEnded: () -> Void
     private let onTeamSelectionRequested: () -> Void
     private let loadsRemoteData: Bool
@@ -49,6 +50,8 @@ struct HomeView: View {
     @State private var isResumingStoredDraft = false
     @State private var showsStoredDraft = false
     @State private var storedDraftError: String?
+    @State private var isRefreshingCurrentLocationWeather = false
+    @State private var lastCurrentLocationWeatherRefreshAt: Date?
 
     var body: some View {
         ZStack {
@@ -172,6 +175,11 @@ struct HomeView: View {
             } else {
                 _ = await (dashboardLoad, emergencyLoad)
             }
+            await refreshCurrentLocationWeatherIfNeeded()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, loadsRemoteData else { return }
+            Task { await refreshCurrentLocationWeatherIfNeeded() }
         }
         .alert("홈 데이터를 불러오지 못했습니다.", isPresented: dashboardErrorAlert) {
             Button("다시 시도") {
@@ -841,6 +849,33 @@ struct HomeView: View {
 }
 
 extension HomeView {
+    @MainActor
+    fileprivate func refreshCurrentLocationWeatherIfNeeded() async {
+        guard !isRefreshingCurrentLocationWeather else { return }
+        let locationProvider = HGCurrentLocationProvider.shared
+        let now = Date()
+        if locationProvider.canUseCachedWeatherRefresh,
+           let lastCurrentLocationWeatherRefreshAt,
+           now.timeIntervalSince(lastCurrentLocationWeatherRefreshAt) < 10 * 60 {
+            return
+        }
+
+        isRefreshingCurrentLocationWeather = true
+        lastCurrentLocationWeatherRefreshAt = now
+        defer { isRefreshingCurrentLocationWeather = false }
+
+        do {
+            let coordinate = try await locationProvider.currentCoordinate()
+            let weather = try await HGDashboardService().fetchCurrentLocationWeather(
+                latitude: coordinate.latitude,
+                longitude: coordinate.longitude
+            )
+            dashboard = dashboard.replacingWeather(weather)
+        } catch {
+            // Keep the existing team dashboard weather when location or its refresh is unavailable.
+        }
+    }
+
     fileprivate func loadDashboard() async {
         for attempt in 0 ... 1 {
             do {
