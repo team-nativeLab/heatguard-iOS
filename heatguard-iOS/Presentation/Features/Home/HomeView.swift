@@ -593,6 +593,8 @@ struct HomeView: View {
                 workplace: dashboard.workplace,
                 siteName: dashboard.siteName,
                 onContinue: { flowPath.append(HomeFlowRoute.fieldPhoto($0)) },
+                onSave: showSaveSuccess,
+                onFailure: showSaveFailure,
                 onNotificationsTap: showNotifications,
                 notificationCount: unreadNotificationCount
             )

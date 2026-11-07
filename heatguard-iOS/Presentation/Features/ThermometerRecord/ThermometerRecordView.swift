@@ -7,15 +7,19 @@ import SwiftUI
 
 struct ThermometerRecordView: View {
     @State private var isManualEntryEnabled = false
+    @State private var isSaving = false
     @State private var temperature: String
     @State private var humidity: String
-    private let automaticMeasurement: HGWeatherMeasurement?
+    private let automaticTemperature: Double?
+    private let automaticHumidity: Double?
     private let teamName: String?
     private let workplace: String?
     private let siteName: String?
     @State private var validationMessage: String?
 
     let onContinue: (HGRecordDraft) -> Void
+    let onSave: (HGRecordSaveResult) -> Void
+    let onFailure: (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void
     let onNotificationsTap: () -> Void
     let notificationCount: Int
 
@@ -25,19 +29,21 @@ struct ThermometerRecordView: View {
         workplace: String? = nil,
         siteName: String? = nil,
         onContinue: @escaping (HGRecordDraft) -> Void = { _ in },
+        onSave: @escaping (HGRecordSaveResult) -> Void = { _ in },
+        onFailure: @escaping (HGRecordSaveFailure, HGRecordDraft, [UIImage]) -> Void = { _, _, _ in },
         onNotificationsTap: @escaping () -> Void = {},
         notificationCount: Int = 0
     ) {
         _temperature = State(initialValue: weather.temperature.map { String(format: "%.1f", $0) } ?? "")
         _humidity = State(initialValue: weather.humidity.map { String(format: "%.0f", $0) } ?? "")
-        automaticMeasurement = {
-            guard let temperature = weather.temperature, let humidity = weather.humidity else { return nil }
-            return HGWeatherMeasurement(temperature: temperature, humidity: humidity)
-        }()
+        automaticTemperature = Self.validatedTemperature(weather.temperature)
+        automaticHumidity = Self.validatedHumidity(weather.humidity)
         self.teamName = teamName
         self.workplace = workplace
         self.siteName = siteName
         self.onContinue = onContinue
+        self.onSave = onSave
+        self.onFailure = onFailure
         self.onNotificationsTap = onNotificationsTap
         self.notificationCount = notificationCount
     }
@@ -49,7 +55,7 @@ struct ThermometerRecordView: View {
                     .font(HGFont.bold(20, relativeTo: .title2))
                     .foregroundStyle(HGColor.primaryText)
 
-                Text("온도계 데이터를 입력하고 현장 사진을\n촬영해 주세요.")
+                Text("온도계 데이터를 입력하고 필요하면 현장 사진을 추가해 주세요.")
                     .font(HGFont.regular(14, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.primaryText)
                     .padding(.top, 10)
@@ -68,6 +74,17 @@ struct ThermometerRecordView: View {
         .padding(.horizontal, HGLayout.screenHorizontalPadding)
         .padding(.top, 8)
         .background(HGColor.appBackground)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HGPrimaryButton(
+                title: isSaving ? "저장 중..." : "기록 저장",
+                isEnabled: currentDraft != nil && !isSaving,
+                isLoading: isSaving,
+                action: saveRecord
+            )
+            .padding(.horizontal, HGLayout.screenHorizontalPadding + 4)
+            .padding(.vertical, 8)
+            .background(HGColor.appBackground)
+        }
         .hgRouteNavigationHeader(notificationCount: notificationCount, onNotificationsTap: onNotificationsTap)
         .dismissKeyboardOnBackgroundTap()
         .alert("입력값을 확인해주세요", isPresented: validationAlert) {
@@ -169,52 +186,124 @@ struct ThermometerRecordView: View {
         HGColor.summaryText
     }
 
-    private var manualMeasurement: HGWeatherMeasurement? {
-        HGWeatherMeasurement(temperatureText: temperature, humidityText: humidity)
-    }
-
-    private var displayedMeasurement: HGWeatherMeasurement? {
-        isManualEntryEnabled ? manualMeasurement : automaticMeasurement
-    }
-
     private var displayedApparentTemperature: Double? {
-        displayedMeasurement?.apparentTemperature
+        guard let temperature = currentTemperature, let humidity = currentHumidity else { return nil }
+        return HGWeatherMeasurement(temperature: temperature, humidity: humidity)?.apparentTemperature
     }
 
     private var displayedTemperature: String {
-        guard let displayedMeasurement else { return "—" }
-        let value = isManualEntryEnabled ? temperature : String(format: "%.1f", displayedMeasurement.temperature)
+        guard let currentTemperature else { return "—" }
+        let value = isManualEntryEnabled
+            ? temperature.trimmingCharacters(in: .whitespacesAndNewlines)
+            : String(format: "%.1f", currentTemperature)
         return "\(value) °C"
     }
 
     private var displayedHumidity: String {
-        guard let displayedMeasurement else { return "—" }
-        let value = isManualEntryEnabled ? humidity : String(format: "%.0f", displayedMeasurement.humidity)
+        guard let currentHumidity else { return "—" }
+        let value = isManualEntryEnabled
+            ? humidity.trimmingCharacters(in: .whitespacesAndNewlines)
+            : String(format: "%.0f", currentHumidity)
         return "\(value)%"
     }
 
     private func continueToPhoto() {
         UIApplication.shared.dismissKeyboard()
-        guard let measurement = displayedMeasurement else {
-            validationMessage = isManualEntryEnabled
-                ? "온도는 -50~60°C, 습도는 0~100% 범위의 숫자로 입력해주세요."
-                : "자동 측정값이 없습니다. 직접 입력을 켜고 온도와 습도를 입력해주세요."
+        guard let draft = currentDraft else {
+            validationMessage = validationMessageForCurrentInput
             return
         }
-
-        continueWithRecord(temperature: measurement.temperature, humidity: measurement.humidity)
+        onContinue(draft)
     }
 
-    private func continueWithRecord(temperature: Double, humidity: Double) {
-        onContinue(HGRecordDraft(
+    private var currentTemperature: Double? {
+        isManualEntryEnabled ? Self.validatedTemperature(temperature) : automaticTemperature
+    }
+
+    private var currentHumidity: Double? {
+        isManualEntryEnabled ? Self.validatedHumidity(humidity) : automaticHumidity
+    }
+
+    private var currentDraft: HGRecordDraft? {
+        let values: (temperature: Double, humidity: Double?)
+        if isManualEntryEnabled {
+            guard let validated = HGPhotoWeatherInput.validatedTemperatureAndOptionalHumidity(
+                temperature: temperature,
+                humidity: humidity
+            ) else { return nil }
+            values = validated
+        } else {
+            guard let automaticTemperature else { return nil }
+            values = (automaticTemperature, automaticHumidity)
+        }
+
+        return HGRecordDraft(
             type: .thermometer,
             memo: "",
-            temperature: temperature,
-            humidity: humidity,
+            temperature: values.temperature,
+            humidity: values.humidity,
             teamName: teamName,
             workplace: workplace,
             siteName: siteName
-        ))
+        )
+    }
+
+    private var validationMessageForCurrentInput: String {
+        if isManualEntryEnabled {
+            let temperatureText = temperature.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let value = Double(temperatureText), value.isFinite, (-50...60).contains(value) else {
+                return "온도를 -50~60°C 범위의 숫자로 입력해주세요."
+            }
+            let humidityText = humidity.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !humidityText.isEmpty,
+               let humidityValue = Double(humidityText), humidityValue.isFinite, !(0...100).contains(humidityValue) {
+                return "습도는 0~100% 범위로 입력해주세요."
+            } else if !humidityText.isEmpty, Double(humidityText) == nil {
+                return "습도는 0~100% 범위의 숫자로 입력해주세요."
+            }
+        }
+        return "온도를 확인해주세요. 자동 측정값이 없으면 직접 입력을 켜고 온도를 입력해주세요."
+    }
+
+    private func saveRecord() {
+        UIApplication.shared.dismissKeyboard()
+        guard let draft = currentDraft else {
+            validationMessage = validationMessageForCurrentInput
+            return
+        }
+
+        isSaving = true
+        Task {
+            defer { isSaving = false }
+            switch await HGPhotoRecordSaveAction.perform(draft: draft, images: []) {
+            case .photoRequired:
+                return
+            case let .success(result):
+                onSave(result)
+            case let .failure(failure):
+                onFailure(failure, draft, [])
+            }
+        }
+    }
+
+    private static func validatedTemperature(_ value: Double?) -> Double? {
+        guard let value, value.isFinite, (-50...60).contains(value) else { return nil }
+        return value
+    }
+
+    private static func validatedTemperature(_ text: String) -> Double? {
+        validatedTemperature(Double(text.trimmingCharacters(in: .whitespacesAndNewlines)))
+    }
+
+    private static func validatedHumidity(_ value: Double?) -> Double? {
+        guard let value, value.isFinite, (0...100).contains(value) else { return nil }
+        return value
+    }
+
+    private static func validatedHumidity(_ text: String) -> Double? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return validatedHumidity(Double(trimmed))
     }
 
     private var validationAlert: Binding<Bool> { Binding(get: { validationMessage != nil }, set: { if !$0 { validationMessage = nil } }) }
