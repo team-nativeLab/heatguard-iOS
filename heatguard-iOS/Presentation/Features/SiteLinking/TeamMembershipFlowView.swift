@@ -327,6 +327,11 @@ struct TeamMembershipFlowView: View {
                 .opacity(0.02)
                 .accessibilityLabel("이메일 인증번호 6자리")
                 .accessibilityIdentifier("signup.verification.code")
+                .onAppear {
+                    // The verification destination is pushed after requestCode returns.
+                    // Focus the field once it is mounted so SwiftUI can present the keypad.
+                    isVerificationCodeFocused = true
+                }
                 .background {
                     GeometryReader { geometry in
                         Color.clear.preference(
