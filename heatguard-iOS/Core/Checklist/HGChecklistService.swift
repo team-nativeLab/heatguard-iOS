@@ -2,19 +2,26 @@ import Foundation
 
 struct HGChecklistService {
     private let client: HGAPIClient
+    private let sessionState: HGSessionStateStore
 
-    init(client: HGAPIClient = HGAPIClient()) {
+    init(
+        client: HGAPIClient = HGAPIClient(),
+        sessionState: HGSessionStateStore = .shared
+    ) {
         self.client = client
+        self.sessionState = sessionState
     }
 
     func fetch() async throws -> HGChecklistSummary {
+        let headers = try selectedTeamHeaders()
         let home: HGWorkerHomeChecklistResponse = try await client.get(
             path: HGAPIPath.teamHome,
             requiresAuthentication: true
         )
         let checklist: HGChecklistResponse = try await client.get(
             path: HGAPIPath.teamChecklist,
-            requiresAuthentication: true
+            requiresAuthentication: true,
+            headers: headers
         )
         return HGChecklistSummary(
             times: home.checkTimes ?? [],
@@ -26,7 +33,8 @@ struct HGChecklistService {
     func fetchItems() async throws -> [HGChecklistItem] {
         let response: HGChecklistResponse = try await client.get(
             path: HGAPIPath.teamChecklist,
-            requiresAuthentication: true
+            requiresAuthentication: true,
+            headers: try selectedTeamHeaders()
         )
         return response.items
     }
@@ -36,7 +44,8 @@ struct HGChecklistService {
             HGChecklistUpdateRequest(checked: isChecked),
             method: "PUT",
             path: HGAPIPath.teamChecklistItem(id: itemID),
-            requiresAuthentication: true
+            requiresAuthentication: true,
+            headers: try selectedTeamHeaders()
         )
     }
 
@@ -44,6 +53,7 @@ struct HGChecklistService {
         let response: HGChecklistRounds = try await client.get(
             path: HGAPIPath.teamChecklistRounds,
             requiresAuthentication: true,
+            headers: try selectedTeamHeaders(),
             queryItems: date.map { [URLQueryItem(name: "date", value: $0)] } ?? []
         )
         return response
@@ -53,6 +63,7 @@ struct HGChecklistService {
         try await client.get(
             path: HGAPIPath.teamChecklistRound(id: id),
             requiresAuthentication: true,
+            headers: try selectedTeamHeaders(),
             queryItems: date.map { [URLQueryItem(name: "date", value: $0)] } ?? [],
             pathIsPercentEncoded: true
         )
@@ -69,6 +80,7 @@ struct HGChecklistService {
             method: "PUT",
             path: HGAPIPath.teamChecklistRoundItem(roundID: roundID, itemID: itemID),
             requiresAuthentication: true,
+            headers: try selectedTeamHeaders(),
             pathIsPercentEncoded: true
         )
         async let updatedRound = fetchRound(id: roundID, date: date)
@@ -76,6 +88,14 @@ struct HGChecklistService {
         let refreshedRound = try await updatedRound
         let refreshedRounds = try await updatedRounds
         return HGChecklistRoundRefresh(round: refreshedRound, rounds: refreshedRounds)
+    }
+
+    private func selectedTeamHeaders() throws -> [String: String] {
+        guard let teamID = sessionState.selectedTeamID,
+              !teamID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw HGAPIError.configuration("선택된 팀 정보가 없습니다. 팀을 다시 선택한 뒤 시도해주세요.")
+        }
+        return ["X-Team-Id": teamID]
     }
 }
 

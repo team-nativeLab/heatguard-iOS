@@ -8,6 +8,9 @@ import XCTest
 final class ChecklistServiceTests: XCTestCase {
     override func tearDown() {
         ChecklistFixtureURLProtocol.handler = nil
+        if let userDefaults = UserDefaults(suiteName: "heatguard.checklist-tests") {
+            HGSessionStateStore(userDefaults: userDefaults).clearSelectedTeamID()
+        }
         super.tearDown()
     }
 
@@ -27,6 +30,8 @@ final class ChecklistServiceTests: XCTestCase {
         XCTAssertEqual(request.httpMethod, "GET")
         XCTAssertEqual(request.url?.path, HGAPIPath.teamChecklist)
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer checklist-fixture-token")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Team-Id"), "team_01")
+        XCTAssertNil(request.value(forHTTPHeaderField: "X-Site-Id"))
     }
 
     func testUpdateUsesAuthenticatedItemEndpointAndCheckedBody() async throws {
@@ -46,6 +51,7 @@ final class ChecklistServiceTests: XCTestCase {
         XCTAssertEqual(request.httpMethod, "PUT")
         XCTAssertEqual(request.url?.path, HGAPIPath.teamChecklistItem(id: "item-1"))
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer checklist-fixture-token")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Team-Id"), "team_01")
         let body = try XCTUnwrap(requestBody(for: request))
         let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Bool])
         XCTAssertEqual(payload, ["checked": true])
@@ -96,6 +102,7 @@ final class ChecklistServiceTests: XCTestCase {
         XCTAssertEqual(URLComponents(url: try XCTUnwrap(request.url), resolvingAgainstBaseURL: false)?.queryItems,
                        [URLQueryItem(name: "date", value: "2026-10-30")])
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer checklist-fixture-token")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Team-Id"), "team_01")
     }
 
     func testFetchRoundPercentEncodesColonAndDecodesItems() async throws {
@@ -138,6 +145,7 @@ final class ChecklistServiceTests: XCTestCase {
         let request = try XCTUnwrap(harness.requests.requests.first)
         XCTAssertTrue(try XCTUnwrap(request.url?.absoluteString).contains("/rounds/08%3A00?date=2026-10-30"))
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer checklist-fixture-token")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Team-Id"), "team_01")
     }
 
     func testEmptyRoundDoesNotBecomeCompletedAutomatically() async throws {
@@ -266,6 +274,8 @@ final class ChecklistServiceTests: XCTestCase {
         XCTAssertEqual(requests.map(\.httpMethod), ["PUT", "GET", "GET"])
         XCTAssertTrue(try XCTUnwrap(requests[0].url?.absoluteString).contains("/rounds/08%3A00/items/item_01"))
         XCTAssertEqual(requests[0].value(forHTTPHeaderField: "Authorization"), "Bearer checklist-fixture-token")
+        XCTAssertTrue(requests.allSatisfy { $0.value(forHTTPHeaderField: "X-Team-Id") == "team_01" })
+        XCTAssertTrue(requests.allSatisfy { $0.value(forHTTPHeaderField: "X-Site-Id") == nil })
         let body = try XCTUnwrap(requestBody(for: requests[0]))
         XCTAssertEqual(try JSONSerialization.jsonObject(with: body) as? [String: Bool], ["checked": true])
     }
@@ -361,8 +371,14 @@ final class ChecklistServiceTests: XCTestCase {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [ChecklistFixtureURLProtocol.self]
         let session = URLSession(configuration: configuration)
+        let userDefaults = try XCTUnwrap(UserDefaults(suiteName: "heatguard.checklist-tests"))
+        let sessionState = HGSessionStateStore(userDefaults: userDefaults)
+        sessionState.setSelectedTeamID("team_01")
         return ChecklistServiceTestHarness(
-            service: HGChecklistService(client: HGAPIClient(session: session, tokenStore: tokenStore)),
+            service: HGChecklistService(
+                client: HGAPIClient(session: session, tokenStore: tokenStore),
+                sessionState: sessionState
+            ),
             tokenStore: tokenStore,
             requests: requests
         )

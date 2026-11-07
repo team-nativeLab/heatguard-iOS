@@ -85,7 +85,17 @@ struct HGAuthenticationService {
     }
 
     func memberships() async throws -> HGTeamMemberships {
-        try await client.get(path: HGAPIPath.teamMemberships, requiresAuthentication: true)
+        let memberships: HGTeamMemberships = try await client.get(
+            path: HGAPIPath.teamMemberships,
+            requiresAuthentication: true
+        )
+        if let selectedTeamID = memberships.selectedTeamID,
+           memberships.items.contains(where: { $0.teamID == selectedTeamID }) {
+            sessionState.setSelectedTeamID(selectedTeamID)
+        } else {
+            sessionState.clearSelectedTeamID()
+        }
+        return memberships
     }
 
     func selectMembership(teamID: String) async throws {
@@ -94,6 +104,7 @@ struct HGAuthenticationService {
             path: HGAPIPath.teamMembershipSelect(id: teamID),
             requiresAuthentication: true
         )
+        sessionState.setSelectedTeamID(teamID)
     }
 
     func leaveMembership(teamID: String) async throws {
@@ -102,6 +113,9 @@ struct HGAuthenticationService {
             path: HGAPIPath.teamMembershipLeave(id: teamID),
             requiresAuthentication: true
         )
+        if sessionState.selectedTeamID == teamID {
+            sessionState.clearSelectedTeamID()
+        }
     }
 
     func restoreSession() async throws -> TeamSession? {
@@ -507,6 +521,7 @@ final class HGSessionStateStore {
 
     private let signedOutKey = "aa.heatguard-iOS.session-signed-out"
     private let userIDKey = "aa.heatguard-iOS.session-user-id"
+    private let selectedTeamIDKey = "aa.heatguard-iOS.session-selected-team-id"
     private let userDefaults: UserDefaults
 
     init(userDefaults: UserDefaults = .standard) {
@@ -519,6 +534,7 @@ final class HGSessionStateStore {
 
     func markSignedIn() {
         userDefaults.removeObject(forKey: userIDKey)
+        clearSelectedTeamID()
         userDefaults.removeObject(forKey: signedOutKey)
     }
 
@@ -528,8 +544,24 @@ final class HGSessionStateStore {
         userDefaults.set(userID, forKey: userIDKey)
     }
 
+    var selectedTeamID: String? {
+        guard let teamID = userDefaults.string(forKey: selectedTeamIDKey), !teamID.isEmpty else {
+            return nil
+        }
+        return teamID
+    }
+
+    func setSelectedTeamID(_ teamID: String) {
+        userDefaults.set(teamID, forKey: selectedTeamIDKey)
+    }
+
+    func clearSelectedTeamID() {
+        userDefaults.removeObject(forKey: selectedTeamIDKey)
+    }
+
     func markSignedOut() {
         userDefaults.removeObject(forKey: userIDKey)
+        clearSelectedTeamID()
         userDefaults.set(true, forKey: signedOutKey)
     }
 }
