@@ -96,9 +96,12 @@ struct HGManualInputCard: View {
 
     private var footerText: String {
         if isLocked { return "저장이 확정되면 수정할 수 없습니다." }
-        if hasIncompleteInput { return "온도와 습도를 모두 입력해주세요." }
-        if hasInvalidInput { return "온도는 -50~60°C, 습도는 0~100% 범위로 입력해주세요." }
-        return isEnabled ? "체감온도는 입력값으로 자동 계산됩니다." : "미설치 시 자동으로 기록됩니다."
+        if hasIncompleteInput { return "온도는 필수 입력이고 습도는 선택 입력입니다." }
+        if hasInvalidInput { return "온도는 -50~60°C, 습도는 입력 시 0~100% 범위로 입력해주세요." }
+        if !isEnabled { return "미설치 시 자동으로 기록됩니다." }
+        return humidity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? "습도를 입력하면 체감온도를 자동 계산합니다."
+            : "체감온도는 입력값으로 자동 계산됩니다."
     }
 
     private var measurement: HGWeatherMeasurement? {
@@ -106,11 +109,24 @@ struct HGManualInputCard: View {
     }
 
     private var hasIncompleteInput: Bool {
-        isEnabled && (temperature.isEmpty != humidity.isEmpty)
+        isEnabled && temperature.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var hasInvalidInput: Bool {
-        isEnabled && !temperature.isEmpty && !humidity.isEmpty && measurement == nil
+        guard isEnabled else { return false }
+        let temperatureText = temperature.trimmingCharacters(in: .whitespacesAndNewlines)
+        let humidityText = humidity.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !temperatureText.isEmpty {
+            guard let value = Double(temperatureText), value.isFinite, (-50...60).contains(value) else {
+                return true
+            }
+        }
+        if !humidityText.isEmpty {
+            guard let value = Double(humidityText), value.isFinite, (0...100).contains(value) else {
+                return true
+            }
+        }
+        return false
     }
 }
 

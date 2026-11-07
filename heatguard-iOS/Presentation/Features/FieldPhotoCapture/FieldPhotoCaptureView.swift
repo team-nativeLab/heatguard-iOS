@@ -77,7 +77,7 @@ struct FieldPhotoCaptureView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HGPrimaryButton(
                 title: isSaving ? "저장 중..." : "저장",
-                isEnabled: (!photos.isEmpty || draft.type == .thermometer) && !isSaving,
+                isEnabled: validatedMeasurement != nil && (!photos.isEmpty || draft.type == .thermometer) && !isSaving,
                 isLoading: isSaving,
                 action: saveRecord
             )
@@ -91,7 +91,9 @@ struct FieldPhotoCaptureView: View {
         .alert("입력값을 확인해주세요", isPresented: $showInvalidMeasurement) {
             Button("확인", role: .cancel) {}
         } message: {
-            Text("온도는 -50~60°C, 습도는 0~100% 범위의 숫자로 입력해주세요.")
+            Text(draft.type == .thermometer
+                 ? "온도는 -50~60°C 범위로 입력해주세요. 습도는 선택이며, 입력하면 0~100% 범위여야 합니다."
+                 : "온도는 -50~60°C, 습도는 0~100% 범위의 숫자로 입력해주세요.")
         }
     }
 
@@ -171,10 +173,21 @@ struct FieldPhotoCaptureView: View {
     }
 
     private var apparentTemperature: Double? {
+        guard let values = validatedMeasurement, let humidity = values.humidity else { return nil }
+        return HGWeatherMeasurement(temperature: values.temperature, humidity: humidity)?.apparentTemperature
+    }
+
+    private var validatedMeasurement: (temperature: Double, humidity: Double?)? {
+        if draft.type == .thermometer {
+            return HGPhotoWeatherInput.validatedTemperatureAndOptionalHumidity(
+                temperature: temperature,
+                humidity: humidity
+            )
+        }
         guard let values = HGPhotoWeatherInput.validatedValues(temperature: temperature, humidity: humidity) else {
             return nil
         }
-        return HGWeatherMeasurement(temperature: values.temperature, humidity: values.humidity)?.apparentTemperature
+        return (values.temperature, values.humidity)
     }
 
     private func formattedMeasurement(_ value: Double?) -> String {
@@ -183,7 +196,7 @@ struct FieldPhotoCaptureView: View {
     }
 
     private func saveRecord() {
-        guard let values = HGPhotoWeatherInput.validatedValues(temperature: temperature, humidity: humidity) else {
+        guard let values = validatedMeasurement else {
             showInvalidMeasurement = true
             return
         }

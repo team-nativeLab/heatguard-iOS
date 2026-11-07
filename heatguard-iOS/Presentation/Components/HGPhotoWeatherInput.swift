@@ -49,10 +49,25 @@ struct HGPhotoWeatherInput: View {
         temperature: String,
         humidity: String
     ) -> (temperature: Double, humidity: Double)? {
+        guard let values = validatedTemperatureAndOptionalHumidity(temperature: temperature, humidity: humidity),
+              let humidity = values.humidity else {
+            return nil
+        }
+        return (values.temperature, humidity)
+    }
+
+    static func validatedTemperatureAndOptionalHumidity(
+        temperature: String,
+        humidity: String
+    ) -> (temperature: Double, humidity: Double?)? {
         guard let temperature = Double(temperature.trimmingCharacters(in: .whitespacesAndNewlines)),
-              let humidity = Double(humidity.trimmingCharacters(in: .whitespacesAndNewlines)),
-              temperature.isFinite, (-50...60).contains(temperature),
-              humidity.isFinite, (0...100).contains(humidity) else {
+              temperature.isFinite, (-50...60).contains(temperature) else {
+            return nil
+        }
+
+        let humidityText = humidity.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !humidityText.isEmpty else { return (temperature, nil) }
+        guard let humidity = Double(humidityText), humidity.isFinite, (0...100).contains(humidity) else {
             return nil
         }
         return (temperature, humidity)
