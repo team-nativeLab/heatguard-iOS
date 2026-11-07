@@ -203,7 +203,6 @@ struct HomeWeather: Equatable {
     var apparentTemperatureText: String { measurementText(displayedApparentTemperature, suffix: "°C") }
 
     var weatherStatusText: String {
-        if availability == "UNAVAILABLE" { return "기상 정보 없음" }
         if source == "MANUAL", skyStatus == nil { return "정보 없음" }
         return switch skyStatus {
         case "CLEAR": "맑음"
