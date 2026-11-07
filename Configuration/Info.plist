@@ -43,6 +43,8 @@
 	<dict/>
 	<key>NSCameraUsageDescription</key>
 	<string>작업 현장 사진을 촬영하기 위해 카메라 접근 권한이 필요합니다.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>현재 위치의 기상청 날씨를 조회하기 위해 위치 정보 접근 권한이 필요합니다.</string>
 	<key>HeatGuardAPIBaseURL</key>
 	<string>https://d2f845gr2v9cs2.cloudfront.net</string>
 </dict>

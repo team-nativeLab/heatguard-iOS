@@ -157,7 +157,7 @@ struct HGAPIClient {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        let isHomeRequest = path == HGAPIPath.teamHome
+        let isHomeRequest = path == HGAPIPath.teamHome || path == HGAPIPath.teamWeather
         let requestStartedAt = ProcessInfo.processInfo.systemUptime
         let data: Data
         let httpResponse: HTTPURLResponse

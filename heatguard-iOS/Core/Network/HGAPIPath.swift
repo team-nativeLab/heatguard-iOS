@@ -14,6 +14,7 @@ enum HGAPIPath {
     static let teamInvitationAccept = "/api/v1/team/invitations/accept"
     static let teamProfile = "/api/v1/team/profile"
     static let teamHome = "/api/v1/team"
+    static let teamWeather = "/api/v1/team/weather"
     static let teamChecklist = "/api/v1/team/checklist"
     static let teamChecklistRounds = "\(teamChecklist)/rounds"
     static let teamUploads = "/api/v1/team/uploads"
