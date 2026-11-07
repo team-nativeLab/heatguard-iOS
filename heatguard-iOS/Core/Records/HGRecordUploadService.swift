@@ -14,12 +14,11 @@ struct HGRecordUploadService {
     }
 
     func save(_ draft: HGRecordDraft, images: [UIImage]) async throws -> HGRecordSaveResult {
-        let photos = try images.map(HGUploadPhoto.init)
-        guard (1 ... 2).contains(photos.count) else {
+        guard images.count <= 2, !images.isEmpty || draft.type == .thermometer else {
             throw HGRecordUploadError.photoCount
         }
-
-        let destinations = try await prepareAndUpload(photos)
+        let photos = try images.map(HGUploadPhoto.init)
+        let destinations = photos.isEmpty ? [] : try await prepareAndUpload(photos)
 
         let response: HGRecordSaveResponse = try await client.send(
             HGRecordSaveRequest(
@@ -42,13 +41,17 @@ struct HGRecordUploadService {
         )
 
         let photoVerification: HGRecordPhotoVerification
-        do {
-            let detail = try await HGRecordHistoryService(client: client).fetchDetail(id: response.recordID)
-            photoVerification = .checked(photoURLCount: detail.photoURLs.count)
-        } catch {
-            // The record is already saved. Keep it as a partial success so retrying
-            // cannot create a duplicate record just because verification failed.
-            photoVerification = .unavailable(diagnosticCode: Self.diagnosticCode(for: error))
+        if photos.isEmpty {
+            photoVerification = .checked(photoURLCount: 0)
+        } else {
+            do {
+                let detail = try await HGRecordHistoryService(client: client).fetchDetail(id: response.recordID)
+                photoVerification = .checked(photoURLCount: detail.photoURLs.count)
+            } catch {
+                // The record is already saved. Keep it as a partial success so retrying
+                // cannot create a duplicate record just because verification failed.
+                photoVerification = .unavailable(diagnosticCode: Self.diagnosticCode(for: error))
+            }
         }
 
         return HGRecordSaveResult(
