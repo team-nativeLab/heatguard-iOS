@@ -111,31 +111,28 @@ final class HomeWeatherLayoutTests: XCTestCase {
         XCTAssertEqual(coldWave(level: nil, availability: "AVAILABLE").badgeText, "한파 확인 불가")
     }
 
-    func testHomeWeatherDecodesColdWaveWarningFromWeatherDTO() throws {
+    func testWorkerWeatherDecodesColdWaveWarningFromWeatherDTO() throws {
         let payload = Data(
             #"""
             {
-              "temperature": 2.0,
-              "weather": {
-                "coldWaveWarning": {
-                  "level": "ADVISORY",
-                  "availability": "CACHED",
-                  "areaCode": "L1100400",
-                  "areaName": "서울서북권",
-                  "issuedAt": "2026-11-08T10:00:00+09:00",
-                  "effectiveAt": "2026-11-08T11:00:00+09:00",
-                  "fetchedAt": "2026-11-08T12:00:00+09:00",
-                  "isStale": true,
-                  "errorCode": null,
-                  "source": "KMA"
-                }
+              "coldWaveWarning": {
+                "level": "ADVISORY",
+                "availability": "CACHED",
+                "areaCode": "L1100400",
+                "areaName": "서울서북권",
+                "issuedAt": "2026-11-08T10:00:00+09:00",
+                "effectiveAt": "2026-11-08T11:00:00+09:00",
+                "fetchedAt": "2026-11-08T12:00:00+09:00",
+                "isStale": true,
+                "errorCode": null,
+                "source": "KMA"
               }
             }
             """#.utf8
         )
 
-        let response = try JSONDecoder().decode(WorkerHomeDashboardResponse.self, from: payload)
-        let warning = try XCTUnwrap(response.weather?.coldWaveWarning)
+        let response = try JSONDecoder().decode(WorkerHomeWeather.self, from: payload)
+        let warning = try XCTUnwrap(response.homeWeather.coldWaveWarning)
         XCTAssertEqual(warning.level, "ADVISORY")
         XCTAssertEqual(warning.availability, "CACHED")
         XCTAssertTrue(warning.isStale == true)
