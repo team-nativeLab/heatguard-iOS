@@ -25,6 +25,7 @@ struct TeamMembershipFlowView: View {
     @State private var verificationToken: String?
     @State private var verificationErrorMessage: String?
     @State private var registrationNotice: String?
+    @State private var registrationSubmissionError: String?
     @State private var registrationStep = TeamRegistrationStep.email
     @State private var showsVerification = false
     @State private var showsPassword = false
@@ -391,7 +392,16 @@ struct TeamMembershipFlowView: View {
                     .font(HGFont.regular(11, relativeTo: .caption))
                     .foregroundStyle(HGColor.error)
             }
+            if let registrationSubmissionError {
+                Text(registrationSubmissionError)
+                    .font(HGFont.regular(12, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.error)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("signup.registration.error")
+            }
         }
+        .onChange(of: password) { _, _ in registrationSubmissionError = nil }
+        .onChange(of: passwordConfirmation) { _, _ in registrationSubmissionError = nil }
     }
 
     @ViewBuilder
@@ -656,6 +666,7 @@ struct TeamMembershipFlowView: View {
     @MainActor
     private func submitAccess() async {
         error = nil
+        registrationSubmissionError = nil
         let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedVerificationCode = verificationCode.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedEmail.isEmpty else {
@@ -726,6 +737,8 @@ struct TeamMembershipFlowView: View {
                 showsPassword = false
                 verificationErrorMessage = "인증번호가 올바르지 않거나 만료됐어요. 다시 확인해주세요."
                 isVerificationCodeFocused = true
+            } else if isRegistering {
+                registrationSubmissionError = presentation.alertMessage
             } else {
                 self.error = presentation
             }
