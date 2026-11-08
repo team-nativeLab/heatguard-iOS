@@ -108,6 +108,19 @@ struct HGAPIClient {
         guard (200 ... 299).contains(httpResponse.statusCode) else {
             throw responseError(from: data, statusCode: httpResponse.statusCode)
         }
+
+        // Void endpoints may return either an empty success (for example 204)
+        // or the standard API envelope. Do not treat a 2xx `success: false`
+        // envelope as a successful operation.
+        if !data.isEmpty,
+           let envelope = try? JSONDecoder().decode(HGAPIEnvelope<HGEmptyPayload>.self, from: data),
+           !envelope.success {
+            throw HGAPIError.server(
+                message: envelope.error?.message ?? "요청을 처리하지 못했습니다.",
+                statusCode: httpResponse.statusCode,
+                serverCode: envelope.error?.code
+            )
+        }
     }
 
     private func request<Response: Decodable>(

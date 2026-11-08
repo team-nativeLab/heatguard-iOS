@@ -29,6 +29,50 @@ final class SessionExpiryTests: XCTestCase {
         try await check(status: 401, code: "UNAUTHORIZED", switchAccount: true, expectedNotifications: 0)
     }
 
+    func testVoidRequestRejectsFailureEnvelopeWithSuccessfulHTTPStatus() async throws {
+        try await checkVoidResponse(
+            status: 200,
+            body: Data(#"{"success":false,"error":{"code":"INVALID_VERIFICATION_TOKEN","message":"인증 정보가 만료됐습니다."}}"#.utf8),
+            expectedErrorCode: "HTTP 200 · INVALID_VERIFICATION_TOKEN"
+        )
+    }
+
+    func testVoidRequestAcceptsSuccessfulEnvelope() async throws {
+        try await checkVoidResponse(
+            status: 201,
+            body: Data(#"{"success":true,"data":{},"error":null}"#.utf8),
+            expectedErrorCode: nil
+        )
+    }
+
+    func testVoidRequestAcceptsEmptyNoContentResponse() async throws {
+        try await checkVoidResponse(status: 204, body: Data(), expectedErrorCode: nil)
+    }
+
+    private func checkVoidResponse(status: Int, body: Data, expectedErrorCode: String?) async throws {
+        SessionExpiryURLProtocol.handler = { request in
+            let response = try XCTUnwrap(
+                HTTPURLResponse(url: XCTUnwrap(request.url), statusCode: status, httpVersion: nil, headerFields: nil)
+            )
+            return (response, body)
+        }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [SessionExpiryURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer {
+            session.invalidateAndCancel()
+            SessionExpiryURLProtocol.handler = nil
+        }
+
+        let client = HGAPIClient(session: session)
+        do {
+            try await client.sendVoid(method: "POST", path: HGAPIPath.teamRegister)
+            XCTAssertNil(expectedErrorCode)
+        } catch let error as HGAPIError {
+            XCTAssertEqual(error.diagnosticCode, expectedErrorCode)
+        }
+    }
+
     func testLogoutClearsDraftEvenWhenExpiryAlreadyClearedAccountIdentity() async throws {
         let suite = "logout-fixture-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
