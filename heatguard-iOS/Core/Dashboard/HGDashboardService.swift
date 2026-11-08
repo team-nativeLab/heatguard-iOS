@@ -263,15 +263,30 @@ struct HomeWeather: Equatable {
         }
     }
 
+    func skySymbol(at date: Date) -> String {
+        guard skyStatus == "CLEAR", isNight(at: date) else { return skySymbol }
+        return "moon.fill"
+    }
+
     var skyIllustrationAssetName: String? {
         switch skyStatus {
         case "CLEAR": "WeatherSunny"
         case "PARTLY_CLOUDY": "WeatherPartlyCloudy"
         case "CLOUDY": "WeatherCloudy"
         case "RAIN": "WeatherRain"
-        case "SNOW": nil
+        case "SNOW": "WeatherSnow"
         default: "WeatherSunny"
         }
+    }
+
+    func skyIllustrationAssetName(at date: Date) -> String? {
+        guard skyStatus == "CLEAR", isNight(at: date) else { return skyIllustrationAssetName }
+        return "WeatherClearNight"
+    }
+
+    private func isNight(at date: Date) -> Bool {
+        let hour = HGDateFormatting.calendar.component(.hour, from: date)
+        return hour >= 18 || hour < 6
     }
 
     var temperatureDeltaText: String? {
