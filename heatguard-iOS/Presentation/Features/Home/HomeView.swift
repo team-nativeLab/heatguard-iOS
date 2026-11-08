@@ -33,6 +33,7 @@ struct HomeView: View {
     @State private var activeEmergencyCallStatus: HGEmergencyCallStatus?
     @State private var isUpdatingEmergencyCall = false
     @State private var emergencyStatusError: HGErrorPresentation?
+    @State private var hasRequestedTeamSelection = false
     @State private var pendingRecordType: RecordType?
     @State private var flowPath = NavigationPath()
     @State private var dashboard = HomeDashboard.unavailable
@@ -526,6 +527,10 @@ struct HomeView: View {
             activeEmergencyCallStatus = currentCall.status
         } catch {
             guard !Task.isCancelled, !error.hgIsNetworkCancellation else { return }
+            if error.requiresTeamSelection {
+                requestTeamSelectionIfNeeded()
+                return
+            }
             emergencyError = HGErrorPresentation(
                 title: "긴급 호출 상태를 확인하지 못했습니다",
                 message: "네트워크 연결을 확인한 뒤 다시 시도해주세요. 진행 중인 호출은 관리자에게 확인해주세요.",
@@ -882,6 +887,7 @@ extension HomeView {
         for attempt in 0 ... 1 {
             do {
                 let loadedDashboard = try await HGDashboardService().fetchHomeDashboard()
+                hasRequestedTeamSelection = false
                 dashboard = loadedDashboard
                 unreadNotificationCount = loadedDashboard.unreadNotificationCount
                 checklist = loadedDashboard.checklist
@@ -900,6 +906,10 @@ extension HomeView {
                 return
             } catch {
                 guard !error.hgIsNetworkCancellation else { return }
+                if error.requiresTeamSelection {
+                    requestTeamSelectionIfNeeded()
+                    return
+                }
                 guard attempt == 0, HGDashboardRetryPolicy.shouldRetry(error) else {
                     dashboardError = HGErrorPresentation(error: error)
                     return
@@ -912,6 +922,22 @@ extension HomeView {
                 }
             }
         }
+    }
+
+    private func requestTeamSelectionIfNeeded() {
+        guard !hasRequestedTeamSelection else { return }
+        hasRequestedTeamSelection = true
+        dashboardError = nil
+        emergencyError = nil
+        onTeamSelectionRequested()
+    }
+}
+
+private extension Error {
+    var requiresTeamSelection: Bool {
+        guard let apiError = self as? HGAPIError,
+              case let .server(_, statusCode, serverCode) = apiError else { return false }
+        return statusCode == 403 && serverCode == "TEAM_MEMBERSHIP_REQUIRED"
     }
 }
 

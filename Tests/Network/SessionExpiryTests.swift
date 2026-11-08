@@ -49,6 +49,64 @@ final class SessionExpiryTests: XCTestCase {
         try await checkVoidResponse(status: 204, body: Data(), expectedErrorCode: nil)
     }
 
+    func testAuthenticatedTeamRequestsUseSelectedTeamWithoutScopingMembershipFlow() async throws {
+        let suite = "team-scope-fixture-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let state = HGSessionStateStore(userDefaults: defaults)
+        state.setSelectedTeamID("team-selected")
+        let tokenStore = HGAuthTokenStore(account: suite)
+        try tokenStore.save("team-scope-fixture-token")
+        defer { try? tokenStore.clear() }
+        var capturedRequests: [URLRequest] = []
+        SessionExpiryURLProtocol.handler = { request in
+            capturedRequests.append(request)
+            return (
+                try XCTUnwrap(HTTPURLResponse(
+                    url: XCTUnwrap(request.url),
+                    statusCode: 204,
+                    httpVersion: nil,
+                    headerFields: nil
+                )),
+                Data()
+            )
+        }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [SessionExpiryURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer {
+            session.invalidateAndCancel()
+            SessionExpiryURLProtocol.handler = nil
+        }
+        let client = HGAPIClient(
+            session: session,
+            tokenStore: tokenStore,
+            sessionState: state,
+            notificationCenter: NotificationCenter()
+        )
+
+        try await client.sendVoid(method: "GET", path: HGAPIPath.teamCurrentEmergencyCall, requiresAuthentication: true)
+        try await client.sendVoid(method: "GET", path: HGAPIPath.teamMemberships, requiresAuthentication: true)
+        try await client.sendVoid(method: "POST", path: HGAPIPath.teamWeather, requiresAuthentication: true)
+        try await client.sendVoid(method: "POST", path: HGAPIPath.teamInvitationAccept, requiresAuthentication: true)
+        try await client.sendVoid(
+            method: "GET",
+            path: HGAPIPath.teamHome,
+            requiresAuthentication: true,
+            headers: ["X-Team-Id": "team-explicit"]
+        )
+
+        XCTAssertEqual(capturedRequests.count, 5)
+        XCTAssertEqual(capturedRequests[0].value(forHTTPHeaderField: "X-Team-Id"), "team-selected")
+        XCTAssertNil(capturedRequests[1].value(forHTTPHeaderField: "X-Team-Id"))
+        XCTAssertNil(capturedRequests[2].value(forHTTPHeaderField: "X-Team-Id"))
+        XCTAssertNil(capturedRequests[3].value(forHTTPHeaderField: "X-Team-Id"))
+        XCTAssertEqual(capturedRequests[4].value(forHTTPHeaderField: "X-Team-Id"), "team-explicit")
+        XCTAssertTrue(capturedRequests.allSatisfy {
+            $0.value(forHTTPHeaderField: "Authorization") == "Bearer team-scope-fixture-token"
+        })
+    }
+
     private func checkVoidResponse(status: Int, body: Data, expectedErrorCode: String?) async throws {
         SessionExpiryURLProtocol.handler = { request in
             let response = try XCTUnwrap(
