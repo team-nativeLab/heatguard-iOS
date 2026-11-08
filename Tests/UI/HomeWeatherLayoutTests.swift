@@ -90,6 +90,58 @@ final class HomeWeatherLayoutTests: XCTestCase {
         XCTAssertTrue(value.observationStatusIsWarning)
     }
 
+    func testColdWaveWarningBadgePreservesUnknownAndCachedStates() {
+        let advisory = coldWave(level: "ADVISORY")
+        XCTAssertEqual(advisory.badgeText, "한파 주의보")
+        XCTAssertTrue(advisory.isActive)
+
+        let warning = coldWave(level: "WARNING")
+        XCTAssertEqual(warning.badgeText, "한파 경보")
+
+        XCTAssertNil(coldWave(level: "NONE").badgeText)
+        XCTAssertEqual(coldWave(level: nil, availability: "UNAVAILABLE").badgeText, "한파 확인 불가")
+        XCTAssertTrue(
+            coldWave(level: "ADVISORY", availability: "CACHED", isStale: true)
+                .badgeText?.hasPrefix("한파 주의보 · 이전 정보") == true
+        )
+        XCTAssertTrue(
+            coldWave(level: "NONE", availability: "CACHED", isStale: true)
+                .badgeText?.hasPrefix("한파 특보 없음 · 이전 정보") == true
+        )
+        XCTAssertEqual(coldWave(level: nil, availability: "AVAILABLE").badgeText, "한파 확인 불가")
+    }
+
+    func testHomeWeatherDecodesColdWaveWarningFromWeatherDTO() throws {
+        let payload = Data(
+            #"""
+            {
+              "temperature": 2.0,
+              "weather": {
+                "coldWaveWarning": {
+                  "level": "ADVISORY",
+                  "availability": "CACHED",
+                  "areaCode": "L1100400",
+                  "areaName": "서울서북권",
+                  "issuedAt": "2026-11-08T10:00:00+09:00",
+                  "effectiveAt": "2026-11-08T11:00:00+09:00",
+                  "fetchedAt": "2026-11-08T12:00:00+09:00",
+                  "isStale": true,
+                  "errorCode": null,
+                  "source": "KMA"
+                }
+              }
+            }
+            """#.utf8
+        )
+
+        let response = try JSONDecoder().decode(WorkerHomeDashboardResponse.self, from: payload)
+        let warning = try XCTUnwrap(response.weather?.coldWaveWarning)
+        XCTAssertEqual(warning.level, "ADVISORY")
+        XCTAssertEqual(warning.availability, "CACHED")
+        XCTAssertTrue(warning.isStale == true)
+        XCTAssertTrue(warning.badgeText?.hasPrefix("한파 주의보 · 이전 정보 · ") == true)
+    }
+
     func testHomeFitsDesignAndSmallScreensWithoutScrollContainer() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let dashboard = HomeDashboard(
@@ -135,6 +187,14 @@ final class HomeWeatherLayoutTests: XCTestCase {
             observedAt: "2026-10-14T05:56:00+09:00", skyStatus: skyStatus,
             comparisonObservedAt: "2026-10-14T05:26:00+09:00", comparisonBasis: "PREVIOUS",
             availability: availability
+        )
+    }
+
+    private func coldWave(level: String?, availability: String = "AVAILABLE", isStale: Bool? = false) -> HGColdWaveWarning {
+        HGColdWaveWarning(
+            level: level, availability: availability, areaCode: "L1100400", areaName: "서울서북권",
+            issuedAt: "2026-11-08T10:00:00+09:00", effectiveAt: "2026-11-08T11:00:00+09:00",
+            fetchedAt: "2026-11-08T12:00:00+09:00", isStale: isStale, errorCode: nil, source: "KMA"
         )
     }
 
