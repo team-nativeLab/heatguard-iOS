@@ -75,9 +75,9 @@ struct HGAuthenticationService {
         )
     }
 
-    func acceptInvitation(token: String) async throws {
+    func acceptInvitation(token: String, managerPhone: String) async throws {
         let _: TeamInvitationAcceptance = try await client.send(
-            TeamInvitationAcceptRequest(token: token),
+            TeamInvitationAcceptRequest(token: token, managerPhone: managerPhone),
             method: "POST",
             path: HGAPIPath.teamInvitationAccept,
             requiresAuthentication: true
@@ -239,7 +239,10 @@ private struct TeamRegisterRequest: Encodable {
     let verificationToken: String
 }
 
-private struct TeamInvitationAcceptRequest: Encodable { let token: String }
+private struct TeamInvitationAcceptRequest: Encodable {
+    let token: String
+    let managerPhone: String
+}
 
 private struct TeamInvitationAcceptance: Decodable {
     let userID: String?
