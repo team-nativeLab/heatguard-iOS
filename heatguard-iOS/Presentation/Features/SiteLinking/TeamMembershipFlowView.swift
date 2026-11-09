@@ -34,6 +34,7 @@ struct TeamMembershipFlowView: View {
     @State private var memberships: [HGTeamMembership] = []
     @State private var selectedTeamID: String?
     @State private var selectingTeamID: String?
+    @State private var managerPhone = ""
     @State private var busy = false
     @State private var error: HGErrorPresentation?
 
@@ -80,6 +81,8 @@ struct TeamMembershipFlowView: View {
         }
         .onChange(of: linkToken) { _, newToken in
             hasAcceptedInvitation = false
+            managerPhone = ""
+            error = nil
             if newToken?.isEmpty != false, isAuthenticated { Task { await loadMemberships() } }
         }
         .onChange(of: showsPassword) { _, isShowing in
@@ -103,46 +106,55 @@ struct TeamMembershipFlowView: View {
     private var invitationConfirmation: some View {
         VStack(spacing: 0) {
             flowHeader(title: "현장 연동")
-
-            Spacer(minLength: 24)
-
-            VStack(spacing: 16) {
-                Image(systemName: "building.2.crop.circle")
-                    .font(.system(size: 48, weight: .regular))
-                    .foregroundStyle(HGColor.primary)
-                    .accessibilityHidden(true)
-                Text("초대받은 현장에 참여할까요?")
-                    .font(HGFont.bold(22, relativeTo: .title2))
-                    .foregroundStyle(HGColor.primaryText)
-                    .multilineTextAlignment(.center)
-                Text("참여하기를 누르면 이 계정으로 현장 연동을 진행합니다.")
-                    .font(HGFont.regular(15, relativeTo: .body))
-                    .foregroundStyle(HGColor.secondaryText)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(28)
-            .frame(maxWidth: .infinity)
-            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 20))
-            .padding(.horizontal, 24)
-
-            Spacer(minLength: 24)
-
-            VStack(spacing: 12) {
-                HGPrimaryButton(
-                    title: busy ? "처리 중..." : "현장 참여하기",
-                    isEnabled: !busy,
-                    isLoading: busy
-                ) {
-                    Task { await acceptInvitationIfNeeded() }
+            ScrollView {
+                VStack(spacing: 16) {
+                    Image(systemName: "building.2.crop.circle")
+                        .font(.system(size: 48, weight: .regular))
+                        .foregroundStyle(HGColor.primary)
+                        .accessibilityHidden(true)
+                    Text("초대받은 현장에 참여할까요?")
+                        .font(HGFont.bold(22, relativeTo: .title2))
+                        .foregroundStyle(HGColor.primaryText)
+                        .multilineTextAlignment(.center)
+                    Text("웹에 등록된 현장 담당자 전화번호를 입력해 주세요.")
+                        .font(HGFont.regular(15, relativeTo: .body))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .multilineTextAlignment(.center)
+                    HGTextField(
+                        title: "현장 담당자 전화번호",
+                        placeholder: "010-1234-5678",
+                        text: $managerPhone,
+                        inputType: .phone
+                    )
+                    .accessibilityIdentifier("invitation.managerPhone")
                 }
-                Button("취소", action: onClose)
-                    .font(HGFont.semiBold(16, relativeTo: .headline))
-                    .foregroundStyle(HGColor.secondaryText)
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .disabled(busy)
+                .padding(24)
+                .frame(maxWidth: .infinity)
+                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 20))
+                .padding(.horizontal, 24)
+                .padding(.vertical, 24)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 20)
+            .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 12) {
+                    HGPrimaryButton(
+                        title: busy ? "처리 중..." : "현장 참여하기",
+                        isEnabled: !busy && !managerPhone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                        isLoading: busy
+                    ) {
+                        Task { await acceptInvitationIfNeeded() }
+                    }
+                    Button("취소", action: onClose)
+                        .font(HGFont.semiBold(16, relativeTo: .headline))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .disabled(busy)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
+                .background(HGColor.appBackground)
+            }
         }
         .background(HGColor.appBackground.ignoresSafeArea())
         .overlay {
@@ -763,10 +775,15 @@ struct TeamMembershipFlowView: View {
     @MainActor
     private func acceptInvitationIfNeeded() async {
         guard let linkToken, !linkToken.isEmpty, !hasAcceptedInvitation else { return }
+        let normalizedManagerPhone = managerPhone.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedManagerPhone.isEmpty else {
+            showInputError("현장 담당자 전화번호를 입력해주세요.")
+            return
+        }
         busy = true
         defer { busy = false }
         do {
-            try await service.acceptInvitation(token: linkToken)
+            try await service.acceptInvitation(token: linkToken, managerPhone: normalizedManagerPhone)
             hasAcceptedInvitation = true
             await loadMemberships()
             if let selectedTeamID {
@@ -775,7 +792,22 @@ struct TeamMembershipFlowView: View {
                 }
             }
         } catch {
-            self.error = HGErrorPresentation(error: error)
+            let presentation = HGErrorPresentation(error: error)
+            if presentation.diagnosticCode.contains("PHONE_MISMATCH") {
+                self.error = HGErrorPresentation(
+                    title: "전화번호를 확인해주세요",
+                    message: "웹에 등록된 현장 담당자 전화번호와 일치하는 번호를 입력해주세요.",
+                    diagnosticCode: presentation.diagnosticCode
+                )
+            } else if presentation.diagnosticCode.contains("MANAGER_PHONE_NOT_CONFIGURED") {
+                self.error = HGErrorPresentation(
+                    title: "현장 전화번호가 등록되지 않았어요",
+                    message: "현장 관리자에게 담당자 전화번호 등록을 요청해주세요.",
+                    diagnosticCode: presentation.diagnosticCode
+                )
+            } else {
+                self.error = presentation
+            }
         }
     }
 
