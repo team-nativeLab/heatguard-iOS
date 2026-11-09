@@ -103,65 +103,6 @@ struct TeamMembershipFlowView: View {
         linkToken?.isEmpty == false
     }
 
-    private var invitationConfirmation: some View {
-        VStack(spacing: 0) {
-            flowHeader(title: "현장 연동")
-            ScrollView {
-                VStack(spacing: 16) {
-                    Image(systemName: "building.2.crop.circle")
-                        .font(.system(size: 48, weight: .regular))
-                        .foregroundStyle(HGColor.primary)
-                        .accessibilityHidden(true)
-                    Text("초대받은 현장에 참여할까요?")
-                        .font(HGFont.bold(22, relativeTo: .title2))
-                        .foregroundStyle(HGColor.primaryText)
-                        .multilineTextAlignment(.center)
-                    Text("웹에 등록된 현장 담당자 전화번호를 입력해 주세요.")
-                        .font(HGFont.regular(15, relativeTo: .body))
-                        .foregroundStyle(HGColor.secondaryText)
-                        .multilineTextAlignment(.center)
-                    HGTextField(
-                        title: "현장 담당자 전화번호",
-                        placeholder: "010-1234-5678",
-                        text: $managerPhone,
-                        inputType: .phone
-                    )
-                    .accessibilityIdentifier("invitation.managerPhone")
-                }
-                .padding(24)
-                .frame(maxWidth: .infinity)
-                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 20))
-                .padding(.horizontal, 24)
-                .padding(.vertical, 24)
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                VStack(spacing: 12) {
-                    HGPrimaryButton(
-                        title: busy ? "처리 중..." : "현장 참여하기",
-                        isEnabled: !busy && !managerPhone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                        isLoading: busy
-                    ) {
-                        Task { await acceptInvitationIfNeeded() }
-                    }
-                    Button("취소", action: onClose)
-                        .font(HGFont.semiBold(16, relativeTo: .headline))
-                        .foregroundStyle(HGColor.secondaryText)
-                        .frame(maxWidth: .infinity, minHeight: 48)
-                        .disabled(busy)
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 12)
-                .padding(.bottom, 20)
-                .background(HGColor.appBackground)
-            }
-        }
-        .background(HGColor.appBackground.ignoresSafeArea())
-        .overlay {
-            if busy { ProgressView().tint(HGColor.primary) }
-        }
-    }
-
     private func accessForm(step: TeamRegistrationStep? = nil) -> some View {
         let visibleStep = step ?? .email
         return VStack(spacing: 0) {
@@ -850,6 +791,67 @@ struct TeamMembershipFlowView: View {
             await loadMemberships()
         } catch {
             self.error = HGErrorPresentation(error: error)
+        }
+    }
+}
+
+private extension TeamMembershipFlowView {
+    var invitationConfirmation: some View {
+        VStack(spacing: 0) {
+            flowHeader(title: "현장 연동")
+            ScrollView {
+                VStack(spacing: 16) {
+                    Image(systemName: "building.2.crop.circle")
+                        .font(.system(size: 48, weight: .regular))
+                        .foregroundStyle(HGColor.primary)
+                        .accessibilityHidden(true)
+                    Text("초대받은 현장에 참여할까요?")
+                        .font(HGFont.bold(22, relativeTo: .title2))
+                        .foregroundStyle(HGColor.primaryText)
+                        .multilineTextAlignment(.center)
+                    Text("웹에 등록된 현장 담당자 전화번호를 입력해 주세요.")
+                        .font(HGFont.regular(15, relativeTo: .body))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .multilineTextAlignment(.center)
+                    HGTextField(
+                        title: "현장 담당자 전화번호",
+                        placeholder: "010-1234-5678",
+                        text: $managerPhone,
+                        inputType: .phone
+                    )
+                    .accessibilityIdentifier("invitation.managerPhone")
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity)
+                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 20))
+                .padding(.horizontal, 24)
+                .padding(.vertical, 24)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 12) {
+                    HGPrimaryButton(
+                        title: busy ? "처리 중..." : "현장 참여하기",
+                        isEnabled: !busy && !managerPhone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                        isLoading: busy
+                    ) {
+                        Task { await acceptInvitationIfNeeded() }
+                    }
+                    Button("취소", action: onClose)
+                        .font(HGFont.semiBold(16, relativeTo: .headline))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .disabled(busy)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
+                .background(HGColor.appBackground)
+            }
+        }
+        .background(HGColor.appBackground.ignoresSafeArea())
+        .overlay {
+            if busy { ProgressView().tint(HGColor.primary) }
         }
     }
 }
