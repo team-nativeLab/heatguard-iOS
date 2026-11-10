@@ -25,6 +25,7 @@ struct TeamMembershipFlowView: View {
     @State private var verificationToken: String?
     @State private var verificationErrorMessage: String?
     @State private var registrationNotice: String?
+    @State private var registrationSubmissionError: String?
     @State private var registrationStep = TeamRegistrationStep.email
     @State private var showsVerification = false
     @State private var showsPassword = false
@@ -33,6 +34,9 @@ struct TeamMembershipFlowView: View {
     @State private var memberships: [HGTeamMembership] = []
     @State private var selectedTeamID: String?
     @State private var selectingTeamID: String?
+    @State private var pendingLeaveMembership: HGTeamMembership?
+    @State private var showsLeaveConfirmation = false
+    @State private var managerPhone = ""
     @State private var busy = false
     @State private var error: HGErrorPresentation?
 
@@ -79,6 +83,8 @@ struct TeamMembershipFlowView: View {
         }
         .onChange(of: linkToken) { _, newToken in
             hasAcceptedInvitation = false
+            managerPhone = ""
+            error = nil
             if newToken?.isEmpty != false, isAuthenticated { Task { await loadMemberships() } }
         }
         .onChange(of: showsPassword) { _, isShowing in
@@ -97,56 +103,6 @@ struct TeamMembershipFlowView: View {
 
     private var hasPendingInvitation: Bool {
         linkToken?.isEmpty == false
-    }
-
-    private var invitationConfirmation: some View {
-        VStack(spacing: 0) {
-            flowHeader(title: "현장 연동")
-
-            Spacer(minLength: 24)
-
-            VStack(spacing: 16) {
-                Image(systemName: "building.2.crop.circle")
-                    .font(.system(size: 48, weight: .regular))
-                    .foregroundStyle(HGColor.primary)
-                    .accessibilityHidden(true)
-                Text("초대받은 현장에 참여할까요?")
-                    .font(HGFont.bold(22, relativeTo: .title2))
-                    .foregroundStyle(HGColor.primaryText)
-                    .multilineTextAlignment(.center)
-                Text("참여하기를 누르면 이 계정으로 현장 연동을 진행합니다.")
-                    .font(HGFont.regular(15, relativeTo: .body))
-                    .foregroundStyle(HGColor.secondaryText)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(28)
-            .frame(maxWidth: .infinity)
-            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 20))
-            .padding(.horizontal, 24)
-
-            Spacer(minLength: 24)
-
-            VStack(spacing: 12) {
-                HGPrimaryButton(
-                    title: busy ? "처리 중..." : "현장 참여하기",
-                    isEnabled: !busy,
-                    isLoading: busy
-                ) {
-                    Task { await acceptInvitationIfNeeded() }
-                }
-                Button("취소", action: onClose)
-                    .font(HGFont.semiBold(16, relativeTo: .headline))
-                    .foregroundStyle(HGColor.secondaryText)
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .disabled(busy)
-            }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 20)
-        }
-        .background(HGColor.appBackground.ignoresSafeArea())
-        .overlay {
-            if busy { ProgressView().tint(HGColor.primary) }
-        }
     }
 
     private func accessForm(step: TeamRegistrationStep? = nil) -> some View {
@@ -391,7 +347,16 @@ struct TeamMembershipFlowView: View {
                     .font(HGFont.regular(11, relativeTo: .caption))
                     .foregroundStyle(HGColor.error)
             }
+            if let registrationSubmissionError {
+                Text(registrationSubmissionError)
+                    .font(HGFont.regular(12, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.error)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("signup.registration.error")
+            }
         }
+        .onChange(of: password) { _, _ in registrationSubmissionError = nil }
+        .onChange(of: passwordConfirmation) { _, _ in registrationSubmissionError = nil }
     }
 
     @ViewBuilder
@@ -524,6 +489,15 @@ struct TeamMembershipFlowView: View {
             }
         }
         .background(HGColor.appBackground.ignoresSafeArea())
+        .alert("팀에서 나가시겠어요?", isPresented: $showsLeaveConfirmation) {
+            Button("취소", role: .cancel) { pendingLeaveMembership = nil }
+            Button("팀 나가기", role: .destructive) {
+                guard let pendingLeaveMembership else { return }
+                Task { await leave(pendingLeaveMembership) }
+            }
+        } message: {
+            Text("\(pendingLeaveMembership?.displayName ?? "선택한 팀") 연결을 해제합니다.")
+        }
         .overlay {
             if busy { ProgressView().tint(HGColor.primary) }
         }
@@ -531,48 +505,57 @@ struct TeamMembershipFlowView: View {
 
     private func membershipCard(_ membership: HGTeamMembership) -> some View {
         let isSelected = selectedTeamID == membership.teamID
-        return Button {
-            Task { await select(membership) }
-        } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    if isSelected {
-                        Circle().fill(HGColor.primary)
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(.white)
+        return HStack(spacing: 12) {
+            Button {
+                Task { await select(membership) }
+            } label: {
+                HStack(spacing: 12) {
+                    ZStack {
+                        if isSelected {
+                            Circle().fill(HGColor.primary)
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
                     }
+                    .frame(width: 32, height: 32)
+                    Text(membership.displayName)
+                        .font(HGFont.semiBold(16, relativeTo: .headline))
+                        .foregroundStyle(isSelected ? HGColor.primaryText : HGColor.photoSelectionText)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    Text(isSelected ? "선택됨" : "선택 안됨")
+                        .font(HGFont.semiBold(13, relativeTo: .subheadline))
+                        .foregroundStyle(isSelected ? HGColor.primary : HGColor.photoSelectionText)
                 }
-                .frame(width: 32, height: 32)
-                Text(membership.displayName)
-                    .font(HGFont.semiBold(16, relativeTo: .headline))
-                    .foregroundStyle(isSelected ? HGColor.primaryText : HGColor.photoSelectionText)
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-                Text(isSelected ? "선택됨" : "선택 안됨")
-                    .font(HGFont.semiBold(13, relativeTo: .subheadline))
-                    .foregroundStyle(isSelected ? HGColor.primary : HGColor.photoSelectionText)
+                .padding(.leading, 18)
+                .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
             }
-            .padding(.horizontal, 18)
-            .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
-            .background(
-                isSelected ? HGColor.photoSelectionBackground : HGColor.readOnlyField,
-                in: RoundedRectangle(cornerRadius: 14)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(isSelected ? HGColor.primary : HGColor.homeTimelineBorder, lineWidth: isSelected ? 1.5 : 1)
+            .buttonStyle(.plain)
+            .disabled(selectingTeamID != nil || busy)
+
+            Button {
+                pendingLeaveMembership = membership
+                showsLeaveConfirmation = true
+            } label: {
+                Text("나가기")
+                    .font(HGFont.medium(13, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.error)
+                    .frame(minWidth: 52, minHeight: 44)
             }
+            .buttonStyle(.plain)
+            .disabled(busy)
         }
-        .buttonStyle(.plain)
-        .disabled(selectingTeamID != nil)
-        .contextMenu {
-            Button("현장 참여 해제", role: .destructive) {
-                Task { await leave(membership) }
-            }
+        .padding(.trailing, 12)
+        .background(
+            isSelected ? HGColor.photoSelectionBackground : HGColor.readOnlyField,
+            in: RoundedRectangle(cornerRadius: 14)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(isSelected ? HGColor.primary : HGColor.homeTimelineBorder, lineWidth: isSelected ? 1.5 : 1)
         }
-        .accessibilityLabel("\(membership.displayName), \(isSelected ? "선택됨" : "선택 안됨")")
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityElement(children: .contain)
     }
 
     private func flowHeader(title: String) -> some View {
@@ -656,6 +639,7 @@ struct TeamMembershipFlowView: View {
     @MainActor
     private func submitAccess() async {
         error = nil
+        registrationSubmissionError = nil
         let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalizedVerificationCode = verificationCode.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedEmail.isEmpty else {
@@ -726,6 +710,8 @@ struct TeamMembershipFlowView: View {
                 showsPassword = false
                 verificationErrorMessage = "인증번호가 올바르지 않거나 만료됐어요. 다시 확인해주세요."
                 isVerificationCodeFocused = true
+            } else if isRegistering {
+                registrationSubmissionError = presentation.alertMessage
             } else {
                 self.error = presentation
             }
@@ -750,10 +736,15 @@ struct TeamMembershipFlowView: View {
     @MainActor
     private func acceptInvitationIfNeeded() async {
         guard let linkToken, !linkToken.isEmpty, !hasAcceptedInvitation else { return }
+        let normalizedManagerPhone = managerPhone.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedManagerPhone.isEmpty else {
+            showInputError("현장 담당자 전화번호를 입력해주세요.")
+            return
+        }
         busy = true
         defer { busy = false }
         do {
-            try await service.acceptInvitation(token: linkToken)
+            try await service.acceptInvitation(token: linkToken, managerPhone: normalizedManagerPhone)
             hasAcceptedInvitation = true
             await loadMemberships()
             if let selectedTeamID {
@@ -762,7 +753,22 @@ struct TeamMembershipFlowView: View {
                 }
             }
         } catch {
-            self.error = HGErrorPresentation(error: error)
+            let presentation = HGErrorPresentation(error: error)
+            if presentation.diagnosticCode.contains("PHONE_MISMATCH") {
+                self.error = HGErrorPresentation(
+                    title: "전화번호를 확인해주세요",
+                    message: "웹에 등록된 현장 담당자 전화번호와 일치하는 번호를 입력해주세요.",
+                    diagnosticCode: presentation.diagnosticCode
+                )
+            } else if presentation.diagnosticCode.contains("MANAGER_PHONE_NOT_CONFIGURED") {
+                self.error = HGErrorPresentation(
+                    title: "현장 전화번호가 등록되지 않았어요",
+                    message: "현장 관리자에게 담당자 전화번호 등록을 요청해주세요.",
+                    diagnosticCode: presentation.diagnosticCode
+                )
+            } else {
+                self.error = presentation
+            }
         }
     }
 
@@ -799,12 +805,78 @@ struct TeamMembershipFlowView: View {
 
     @MainActor
     private func leave(_ membership: HGTeamMembership) async {
+        guard !busy else { return }
+        busy = true
+        defer { busy = false }
         do {
             try await service.leaveMembership(teamID: membership.teamID)
             if selectedTeamID == membership.teamID { selectedTeamID = nil }
             await loadMemberships()
+            pendingLeaveMembership = nil
         } catch {
+            pendingLeaveMembership = nil
             self.error = HGErrorPresentation(error: error)
+        }
+    }
+}
+
+private extension TeamMembershipFlowView {
+    var invitationConfirmation: some View {
+        VStack(spacing: 0) {
+            flowHeader(title: "현장 연동")
+            ScrollView {
+                VStack(spacing: 16) {
+                    Image(systemName: "building.2.crop.circle")
+                        .font(.system(size: 48, weight: .regular))
+                        .foregroundStyle(HGColor.primary)
+                        .accessibilityHidden(true)
+                    Text("초대받은 현장에 참여할까요?")
+                        .font(HGFont.bold(22, relativeTo: .title2))
+                        .foregroundStyle(HGColor.primaryText)
+                        .multilineTextAlignment(.center)
+                    Text("웹에 등록된 현장 담당자 전화번호를 입력해 주세요.")
+                        .font(HGFont.regular(15, relativeTo: .body))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .multilineTextAlignment(.center)
+                    HGTextField(
+                        title: "현장 담당자 전화번호",
+                        placeholder: "010-1234-5678",
+                        text: $managerPhone,
+                        inputType: .phone
+                    )
+                    .accessibilityIdentifier("invitation.managerPhone")
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity)
+                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 20))
+                .padding(.horizontal, 24)
+                .padding(.vertical, 24)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 12) {
+                    HGPrimaryButton(
+                        title: busy ? "처리 중..." : "현장 참여하기",
+                        isEnabled: !busy && !managerPhone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                        isLoading: busy
+                    ) {
+                        Task { await acceptInvitationIfNeeded() }
+                    }
+                    Button("취소", action: onClose)
+                        .font(HGFont.semiBold(16, relativeTo: .headline))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .disabled(busy)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
+                .background(HGColor.appBackground)
+            }
+        }
+        .background(HGColor.appBackground.ignoresSafeArea())
+        .overlay {
+            if busy { ProgressView().tint(HGColor.primary) }
         }
     }
 }

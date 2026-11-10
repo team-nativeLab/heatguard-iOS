@@ -41,7 +41,7 @@ struct HGMenuDrawer: View {
     }
 
     @GestureState private var dragOffset: CGFloat = 0
-    @State private var profileImage: UIImage?
+    @State private var profileImage = HGProfilePhotoCache.shared.cachedImage()
 
     let profile: HGMenuProfile
     let isPresented: Bool
@@ -75,7 +75,7 @@ struct HGMenuDrawer: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .ignoresSafeArea()
         .task(id: isPresented) {
-            guard isPresented else { return }
+            guard isPresented, profileImage == nil else { return }
             do {
                 profileImage = try await HGProfilePhotoService().loadPhoto()
             } catch is CancellationError {

@@ -27,15 +27,18 @@ struct HGAPIClient {
 
     private let session: URLSession
     private let tokenStore: HGAuthTokenStore
+    private let sessionState: HGSessionStateStore
     private let notificationCenter: NotificationCenter
 
     init(
         session: URLSession = .shared,
         tokenStore: HGAuthTokenStore = .shared,
+        sessionState: HGSessionStateStore = .shared,
         notificationCenter: NotificationCenter = .default
     ) {
         self.session = session
         self.tokenStore = tokenStore
+        self.sessionState = sessionState
         self.notificationCenter = notificationCenter
     }
 
@@ -45,7 +48,8 @@ struct HGAPIClient {
         path: String,
         requiresAuthentication: Bool = false,
         headers: [String: String] = [:],
-        pathIsPercentEncoded: Bool = false
+        pathIsPercentEncoded: Bool = false,
+        timeoutInterval: TimeInterval? = nil
     ) async throws -> Response {
         let body = try JSONEncoder().encode(requestBody)
         return try await request(
@@ -54,7 +58,8 @@ struct HGAPIClient {
             body: body,
             requiresAuthentication: requiresAuthentication,
             headers: headers,
-            pathIsPercentEncoded: pathIsPercentEncoded
+            pathIsPercentEncoded: pathIsPercentEncoded,
+            timeoutInterval: timeoutInterval
         )
     }
 
@@ -63,7 +68,8 @@ struct HGAPIClient {
         requiresAuthentication: Bool = false,
         headers: [String: String] = [:],
         queryItems: [URLQueryItem] = [],
-        pathIsPercentEncoded: Bool = false
+        pathIsPercentEncoded: Bool = false,
+        timeoutInterval: TimeInterval? = nil
     ) async throws -> Response {
         try await request(
             method: "GET",
@@ -71,42 +77,77 @@ struct HGAPIClient {
             requiresAuthentication: requiresAuthentication,
             headers: headers,
             queryItems: queryItems,
-            pathIsPercentEncoded: pathIsPercentEncoded
+            pathIsPercentEncoded: pathIsPercentEncoded,
+            timeoutInterval: timeoutInterval
         )
     }
 
-    func sendVoid(method: String, path: String, requiresAuthentication: Bool = false) async throws {
-        try await sendVoid(method: method, path: path, body: nil, requiresAuthentication: requiresAuthentication)
+    func sendVoid(
+        method: String,
+        path: String,
+        requiresAuthentication: Bool = false,
+        headers: [String: String] = [:]
+    ) async throws {
+        try await sendVoid(
+            method: method,
+            path: path,
+            body: nil,
+            requiresAuthentication: requiresAuthentication,
+            headers: headers
+        )
     }
 
     func sendVoid<Request: Encodable>(
         _ requestBody: Request,
         method: String,
         path: String,
-        requiresAuthentication: Bool = false
+        requiresAuthentication: Bool = false,
+        headers: [String: String] = [:]
     ) async throws {
         let body = try JSONEncoder().encode(requestBody)
         try await sendVoid(
             method: method,
             path: path,
             body: body,
-            requiresAuthentication: requiresAuthentication
+            requiresAuthentication: requiresAuthentication,
+            headers: headers
         )
     }
 
-    private func sendVoid(method: String, path: String, body: Data?, requiresAuthentication: Bool) async throws {
+    private func sendVoid(
+        method: String,
+        path: String,
+        body: Data?,
+        requiresAuthentication: Bool,
+        headers: [String: String] = [:]
+    ) async throws {
         let baseURL = try HGAPIConfiguration.baseURL()
         var request = URLRequest(url: baseURL.appending(path: path))
         request.httpMethod = method
         request.httpBody = body
+        headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
         if body != nil { request.setValue("application/json", forHTTPHeaderField: "Content-Type") }
         if requiresAuthentication {
             guard let token = try tokenStore.load() else { throw HGAPIError.authenticationRequired }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
+        applySelectedTeamHeader(to: &request, path: path, requiresAuthentication: requiresAuthentication)
         let (data, httpResponse) = try await authenticatedData(for: request, requiresAuthentication: requiresAuthentication)
         guard (200 ... 299).contains(httpResponse.statusCode) else {
             throw responseError(from: data, statusCode: httpResponse.statusCode)
+        }
+
+        // Void endpoints may return either an empty success (for example 204)
+        // or the standard API envelope. Do not treat a 2xx `success: false`
+        // envelope as a successful operation.
+        if !data.isEmpty,
+           let envelope = try? JSONDecoder().decode(HGAPIEnvelope<HGEmptyPayload>.self, from: data),
+           !envelope.success {
+            throw HGAPIError.server(
+                message: envelope.error?.message ?? "요청을 처리하지 못했습니다.",
+                statusCode: httpResponse.statusCode,
+                serverCode: envelope.error?.code
+            )
         }
     }
 
@@ -117,7 +158,8 @@ struct HGAPIClient {
         requiresAuthentication: Bool,
         headers: [String: String] = [:],
         queryItems: [URLQueryItem] = [],
-        pathIsPercentEncoded: Bool = false
+        pathIsPercentEncoded: Bool = false,
+        timeoutInterval: TimeInterval? = nil
     ) async throws -> Response {
         let baseURL = try HGAPIConfiguration.baseURL()
         let requestBaseURL: URL
@@ -142,6 +184,9 @@ struct HGAPIClient {
         }
         var request = URLRequest(url: url)
         request.httpMethod = method
+        if let timeoutInterval {
+            request.timeoutInterval = timeoutInterval
+        }
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.httpBody = body
         headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
@@ -156,6 +201,7 @@ struct HGAPIClient {
             }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
+        applySelectedTeamHeader(to: &request, path: path, requiresAuthentication: requiresAuthentication)
 
         let isHomeRequest = path == HGAPIPath.teamHome || path == HGAPIPath.teamWeather
         let requestStartedAt = ProcessInfo.processInfo.systemUptime
@@ -221,6 +267,27 @@ struct HGAPIClient {
             }
             throw HGAPIError.responseDecoding
         }
+    }
+
+    private func applySelectedTeamHeader(
+        to request: inout URLRequest,
+        path: String,
+        requiresAuthentication: Bool
+    ) {
+        guard requiresAuthentication,
+              Self.isSelectedTeamScopedPath(path),
+              request.value(forHTTPHeaderField: "X-Team-Id") == nil,
+              let teamID = sessionState.selectedTeamID else { return }
+        request.setValue(teamID, forHTTPHeaderField: "X-Team-Id")
+    }
+
+    private static func isSelectedTeamScopedPath(_ path: String) -> Bool {
+        guard path == HGAPIPath.teamHome || path.hasPrefix("/api/v1/team/") else { return false }
+        if path == HGAPIPath.teamWeather { return false }
+        if path == HGAPIPath.teamMemberships || path.hasPrefix("\(HGAPIPath.teamMemberships)/") {
+            return false
+        }
+        return !path.hasPrefix("/api/v1/team/invitations/")
     }
 
     private static func requestID(from data: Data) -> String? {

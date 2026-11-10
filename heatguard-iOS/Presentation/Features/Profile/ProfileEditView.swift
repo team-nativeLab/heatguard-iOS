@@ -22,6 +22,7 @@ struct ProfileEditView: View {
 
     private enum ProfileField: Hashable {
         case name
+        case phone
     }
 
     init(profile: HGTeamProfile? = nil, onProfileUpdated: @escaping (HGTeamProfile) -> Void = { _ in }) {
@@ -47,7 +48,13 @@ struct ProfileEditView: View {
                         placeholder: "이름을 입력해주세요",
                         field: .name
                     )
-                    profileValue(title: "전화번호", value: phone)
+                    editableProfileField(
+                        title: "전화번호",
+                        text: $phone,
+                        placeholder: "전화번호를 입력해주세요",
+                        field: .phone,
+                        keyboardType: .phonePad
+                    )
                     emailValue
                     NavigationLink {
                         PasswordChangeView()
@@ -128,18 +135,11 @@ struct ProfileEditView: View {
                                 .font(HGFont.bold(26, relativeTo: .title))
                                 .foregroundStyle(HGColor.primary)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                .background(HGColor.homeMetricIconBackground)
+                                .background(HGColor.photoSelectionBackground)
                         }
                     }
                     .frame(width: 72, height: 72)
                     .clipShape(Circle())
-
-                    Image(systemName: "camera.fill")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 26, height: 26)
-                        .background(HGColor.primary, in: Circle())
-                        .overlay(Circle().stroke(HGColor.appBackground, lineWidth: 2))
 
                     if isLoadingPhoto || isUpdatingPhoto {
                         ProgressView()
@@ -154,7 +154,7 @@ struct ProfileEditView: View {
             .disabled(isLoadingPhoto || isUpdatingPhoto)
             .accessibilityLabel("프로필 사진 변경")
 
-            Text("사진을 눌러 프로필 사진을 바꿀 수 있어요")
+            Text(profile?.role == "TEAM_MEMBER" ? "현장작업자" : profile?.role ?? "현장작업자")
                 .font(HGFont.regular(12, relativeTo: .caption))
                 .foregroundStyle(HGColor.secondaryText)
         }
@@ -328,11 +328,7 @@ struct ProfileEditView: View {
                 .foregroundStyle(HGColor.primaryText)
                 .padding(.horizontal, 16)
                 .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(HGColor.inputBorder, lineWidth: 1)
-                }
+                .background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: 12))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -383,10 +379,10 @@ struct ProfileEditView: View {
             .padding(.leading, 16)
             .padding(.trailing, 8)
             .frame(height: 48)
-            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
+            .background(HGColor.fieldBackground, in: RoundedRectangle(cornerRadius: 12))
             .overlay {
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(focusedField == field ? HGColor.primary : HGColor.textInputBorder, lineWidth: focusedField == field ? 1.5 : 1)
+                    .stroke(focusedField == field ? HGColor.primary : .clear, lineWidth: 1.5)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -394,26 +390,20 @@ struct ProfileEditView: View {
 
     private var emailValue: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("로그인 이메일")
+            Text("이메일")
                 .font(HGFont.bold(13, relativeTo: .caption))
                 .foregroundStyle(HGColor.primaryText)
 
             HStack(spacing: 8) {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(HGColor.secondaryText)
                 Text(email)
                     .font(HGFont.regular(14, relativeTo: .body))
-                    .foregroundStyle(HGColor.secondaryText)
+                    .foregroundStyle(HGColor.placeholder)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                 Text("변경 불가")
-                    .font(HGFont.medium(11, relativeTo: .caption2))
-                    .foregroundStyle(HGColor.secondaryText)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(HGColor.readOnlyField, in: Capsule())
+                    .font(HGFont.regular(12, relativeTo: .caption))
+                    .foregroundStyle(HGColor.placeholder)
             }
             .padding(.horizontal, 16)
             .frame(height: 48)

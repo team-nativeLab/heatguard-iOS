@@ -285,8 +285,11 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 0) {
-                        HomeWeatherAlertBadges(weather: dashboard.weather)
-                            .padding(.leading, 23)
+                        HomeWeatherLevelBadges(
+                            heatLevelTitle: dashboard.weather.heatLevelTitle,
+                            coldWaveWarning: dashboard.weather.coldWaveWarning
+                        )
+                        .padding(.leading, 23)
 
                         Text(dashboard.weather.measurementTitle)
                             .font(HGFont.medium(12, relativeTo: .caption))
@@ -1175,38 +1178,6 @@ private enum RecordResultSheet: Identifiable {
         switch self {
         case .success: "success"
         case .failure: "failure"
-        }
-    }
-}
-
-private struct HomeWeatherAlertBadges: View {
-    let weather: HomeWeather
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Text(weather.heatLevelTitle)
-                .font(HGFont.bold(10, relativeTo: .caption2))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .foregroundStyle(HGColor.homeHeatLevelText)
-                .padding(.horizontal, 10)
-                .frame(width: 80, height: 24)
-                .background(HGColor.homeHeatLevelBackground, in: Capsule())
-
-            if let coldWave = weather.coldWaveWarning, let title = coldWave.badgeText {
-                Text(title)
-                    .font(HGFont.bold(10, relativeTo: .caption2))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .foregroundStyle(coldWave.isActive ? HGColor.primary : HGColor.secondaryText)
-                    .padding(.horizontal, 9)
-                    .frame(height: 24)
-                    .background(
-                        coldWave.isActive ? HGColor.primary.opacity(0.12) : HGColor.secondaryText.opacity(0.10),
-                        in: Capsule()
-                    )
-                    .accessibilityIdentifier("home.weather.cold-wave-warning")
-            }
         }
     }
 }

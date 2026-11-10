@@ -173,6 +173,11 @@ final class HGProfilePhotoCache: @unchecked Sendable {
         return imageData
     }
 
+    func cachedImage() -> UIImage? {
+        guard let data = cachedData() else { return nil }
+        return UIImage(data: data)
+    }
+
     func store(_ data: Data) {
         lock.lock()
         defer { lock.unlock() }
