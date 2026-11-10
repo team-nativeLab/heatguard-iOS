@@ -36,7 +36,15 @@ struct HGDashboardService {
 
     private static func logWeatherResponse(_ weather: WorkerHomeWeather, source: String) {
         weatherLogger.info(
-            "Weather decoded source=\(source, privacy: .public) availability=\(weather.availability ?? "nil", privacy: .public) errorCode=\(weather.errorCode ?? "none", privacy: .public) temperaturePresent=\(weather.temperature != nil) humidityPresent=\(weather.humidity != nil) skyStatus=\(weather.skyStatus ?? "nil", privacy: .public) weatherSource=\(weather.source ?? "nil", privacy: .public)"
+            "Weather decoded source=\(source, privacy: .public) "
+                + "availability=\(weather.availability ?? "nil", privacy: .public) "
+                + "errorCode=\(weather.errorCode ?? "none", privacy: .public)"
+        )
+        weatherLogger.info(
+            "Weather values temperaturePresent=\(weather.temperature != nil) "
+                + "humidityPresent=\(weather.humidity != nil) "
+                + "skyStatus=\(weather.skyStatus ?? "nil", privacy: .public) "
+                + "weatherSource=\(weather.source ?? "nil", privacy: .public)"
         )
     }
 }
