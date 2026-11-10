@@ -1,6 +1,12 @@
 import Foundation
+import OSLog
 
 struct HGDashboardService {
+    private static let weatherLogger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "HeatGuard",
+        category: "WeatherResponse"
+    )
+
     private let client: HGAPIClient
 
     init(client: HGAPIClient = HGAPIClient()) { self.client = client }
@@ -10,6 +16,9 @@ struct HGDashboardService {
             path: HGAPIPath.teamHome,
             requiresAuthentication: true
         )
+        if let weather = response.weather {
+            Self.logWeatherResponse(weather, source: "team-dashboard")
+        }
         return HomeDashboard(response: response)
     }
 
@@ -18,9 +27,25 @@ struct HGDashboardService {
             HGCurrentWeatherRequest(latitude: latitude, longitude: longitude),
             method: "POST",
             path: HGAPIPath.teamWeather,
-            requiresAuthentication: true
+            requiresAuthentication: true,
+            timeoutInterval: 90
         )
+        Self.logWeatherResponse(response, source: "location")
         return response.homeWeather
+    }
+
+    private static func logWeatherResponse(_ weather: WorkerHomeWeather, source: String) {
+        weatherLogger.info("""
+            Weather decoded source=\(source, privacy: .public)
+            availability=\(weather.availability ?? "nil", privacy: .public)
+            errorCode=\(weather.errorCode ?? "none", privacy: .public)
+            """)
+        weatherLogger.info("""
+            Weather values temperaturePresent=\(weather.temperature != nil)
+            humidityPresent=\(weather.humidity != nil)
+            skyStatus=\(weather.skyStatus ?? "nil", privacy: .public)
+            weatherSource=\(weather.source ?? "nil", privacy: .public)
+            """)
     }
 }
 
@@ -52,6 +77,7 @@ struct WorkerHomeWeather: Decodable {
     let comparisonTemperature: Double?
     let observedAt: String?
     let fetchedAt: String?
+    let coldWaveWarning: HGColdWaveWarning?
     let skyStatus: String?
     let comparisonObservedAt: String?
     let comparisonBasis: String?
@@ -210,7 +236,6 @@ struct HomeWeather: Equatable {
     let skySource: String?
     let skyForecastAt: String?
     let fetchedAt: String?
-    let coldWaveWarning: HGColdWaveWarning?
 
     init(
         temperature: Double?, humidity: Double?, apparentTemperature: Double?, heatLevel: Double?,
@@ -297,15 +322,30 @@ struct HomeWeather: Equatable {
         }
     }
 
+    func skySymbol(at date: Date) -> String {
+        guard skyStatus == "CLEAR", isNight(at: date) else { return skySymbol }
+        return "moon.fill"
+    }
+
     var skyIllustrationAssetName: String? {
         switch skyStatus {
         case "CLEAR": "WeatherSunny"
         case "PARTLY_CLOUDY": "WeatherPartlyCloudy"
         case "CLOUDY": "WeatherCloudy"
         case "RAIN": "WeatherRain"
-        case "SNOW": nil
+        case "SNOW": "WeatherSnow"
         default: "WeatherSunny"
         }
+    }
+
+    func skyIllustrationAssetName(at date: Date) -> String? {
+        guard skyStatus == "CLEAR", isNight(at: date) else { return skyIllustrationAssetName }
+        return "WeatherClearNight"
+    }
+
+    private func isNight(at date: Date) -> Bool {
+        let hour = HGDateFormatting.calendar.component(.hour, from: date)
+        return hour >= 18 || hour < 6
     }
 
     var temperatureDeltaText: String? {
