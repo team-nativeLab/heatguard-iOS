@@ -362,6 +362,17 @@ struct HomeWeather: Equatable {
             || observationStatusText == "이전 날짜의 수동 측정값"
     }
 
+    func isFreshForRecord(asOf now: Date) -> Bool {
+        guard availability != "UNAVAILABLE",
+              availability != "CACHED",
+              isStale != true,
+              let measurementDate = (observedAt ?? fetchedAt)?.hgISO8601Date else {
+            return false
+        }
+        let age = now.timeIntervalSince(measurementDate)
+        return age >= 0 && age <= HGCurrentLocationWeatherCacheEntry.maximumAge
+    }
+
     static let unavailable = HomeWeather(
         temperature: nil, humidity: nil, apparentTemperature: nil, heatLevel: nil,
         temperatureDelta: nil, comparisonTemperature: nil, observedAt: nil,

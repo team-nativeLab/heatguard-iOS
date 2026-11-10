@@ -1,3 +1,4 @@
+import CoreLocation
 import SwiftUI
 import UIKit
 import XCTest
@@ -90,7 +91,41 @@ final class HomeWeatherLayoutTests: XCTestCase {
         XCTAssertTrue(value.observationStatusIsWarning)
     }
 
-    func testHomeFitsDesignAndSmallScreensWithoutScrollContainer() async throws {
+    func testLocationWeatherCacheExpiresAfterOneHourAndRequiresNearbyCoordinate() {
+        let storedAt = Date(timeIntervalSince1970: 1_800_000_000)
+        let origin = CLLocationCoordinate2D(latitude: 37.5665, longitude: 126.978)
+        let nearby = CLLocationCoordinate2D(latitude: 37.57, longitude: 126.978)
+        let farAway = CLLocationCoordinate2D(latitude: 37.59, longitude: 126.978)
+        let entry = HGCurrentLocationWeatherCacheEntry(
+            coordinate: origin,
+            storedAt: storedAt,
+            weather: weather(delta: nil, availability: "AVAILABLE")
+        )
+
+        XCTAssertTrue(entry.isFresh(asOf: storedAt.addingTimeInterval(3_600)))
+        XCTAssertFalse(entry.isFresh(asOf: storedAt.addingTimeInterval(3_601)))
+        XCTAssertTrue(entry.isWithinReuseDistance(of: nearby))
+        XCTAssertFalse(entry.isWithinReuseDistance(of: farAway))
+    }
+
+    func testRecordWeatherRejectsStaleServerWeatherAndUsesObservationTime() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let formatter = ISO8601DateFormatter()
+        let recentObservation = formatter.string(from: now.addingTimeInterval(-3_599))
+        let oldObservation = formatter.string(from: now.addingTimeInterval(-3_601))
+
+        XCTAssertTrue(
+            weather(delta: nil, availability: "AVAILABLE", observedAt: recentObservation).isFreshForRecord(asOf: now)
+        )
+        XCTAssertFalse(
+            weather(delta: nil, availability: "AVAILABLE", observedAt: oldObservation).isFreshForRecord(asOf: now)
+        )
+        XCTAssertFalse(
+            weather(delta: nil, availability: "CACHED", observedAt: recentObservation).isFreshForRecord(asOf: now)
+        )
+    }
+
+    func testHomeSupportsScrollingOnDesignAndSmallScreens() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let dashboard = HomeDashboard(
             companyName: "테스트 본사", companyPhone: nil, managerPhone: nil,
@@ -113,7 +148,7 @@ final class HomeWeatherLayoutTests: XCTestCase {
             try await Task.sleep(for: .milliseconds(300))
             host.view.layoutIfNeeded()
             let scrollViews = descendants(of: host.view).compactMap { $0 as? UIScrollView }
-            XCTAssertTrue(scrollViews.isEmpty, "홈은 스크롤 없이 전체 화면을 표시해야 합니다")
+            XCTAssertFalse(scrollViews.isEmpty, "홈은 작은 화면에서도 스크롤할 수 있어야 합니다")
             let image = UIGraphicsImageRenderer(size: size).image { _ in
                 host.view.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
             }
@@ -127,12 +162,13 @@ final class HomeWeatherLayoutTests: XCTestCase {
     private func weather(
         delta: Double?,
         availability: String? = nil,
-        skyStatus: String? = "PARTLY_CLOUDY"
+        skyStatus: String? = "PARTLY_CLOUDY",
+        observedAt: String? = "2026-10-14T05:56:00+09:00"
     ) -> HomeWeather {
         HomeWeather(
             temperature: 47.5, humidity: 55, apparentTemperature: 40.5, heatLevel: 2,
             temperatureDelta: delta, comparisonTemperature: 44.3,
-            observedAt: "2026-10-14T05:56:00+09:00", skyStatus: skyStatus,
+            observedAt: observedAt, skyStatus: skyStatus,
             comparisonObservedAt: "2026-10-14T05:26:00+09:00", comparisonBasis: "PREVIOUS",
             availability: availability
         )
