@@ -182,7 +182,6 @@ struct HomeView: View {
             } else {
                 _ = await (dashboardLoad, emergencyLoad)
             }
-            await refreshCurrentLocationWeatherIfNeeded()
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active, loadsRemoteData else { return }
@@ -903,6 +902,7 @@ extension HomeView {
                 unreadNotificationCount = loadedDashboard.unreadNotificationCount
                 checklist = loadedDashboard.checklist
                 dashboardError = nil
+                await refreshCurrentLocationWeatherIfNeeded()
 
                 do {
                     let items = try await HGChecklistService().fetchItems()
