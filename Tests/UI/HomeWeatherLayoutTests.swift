@@ -95,7 +95,7 @@ final class HomeWeatherLayoutTests: XCTestCase {
         XCTAssertEqual(coldWave(level: "WARNING").badgeText, "한파경보")
         XCTAssertTrue(coldWave(level: "WARNING").isActive)
         XCTAssertNil(coldWave(level: "NONE").badgeText)
-        XCTAssertEqual(coldWave(level: "ADVISORY", availability: "CACHED").badgeText?.hasPrefix("한파주의보 · 이전 정보") , true)
+        XCTAssertEqual(coldWave(level: "ADVISORY", availability: "CACHED").badgeText?.hasPrefix("한파주의보 · 이전 정보"), true)
         XCTAssertEqual(coldWave(level: "WARNING", availability: "UNAVAILABLE").badgeText, "한파 정보 확인 불가")
         XCTAssertEqual(coldWave(level: nil, availability: "LOCATION_REQUIRED").badgeText, "한파 위치 정보 없음")
         XCTAssertEqual(coldWave(level: nil, availability: "AVAILABLE").badgeText, "한파 정보 확인 불가")
