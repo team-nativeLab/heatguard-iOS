@@ -45,7 +45,8 @@ struct HGAPIClient {
         path: String,
         requiresAuthentication: Bool = false,
         headers: [String: String] = [:],
-        pathIsPercentEncoded: Bool = false
+        pathIsPercentEncoded: Bool = false,
+        timeoutInterval: TimeInterval? = nil
     ) async throws -> Response {
         let body = try JSONEncoder().encode(requestBody)
         return try await request(
@@ -54,7 +55,8 @@ struct HGAPIClient {
             body: body,
             requiresAuthentication: requiresAuthentication,
             headers: headers,
-            pathIsPercentEncoded: pathIsPercentEncoded
+            pathIsPercentEncoded: pathIsPercentEncoded,
+            timeoutInterval: timeoutInterval
         )
     }
 
@@ -63,7 +65,8 @@ struct HGAPIClient {
         requiresAuthentication: Bool = false,
         headers: [String: String] = [:],
         queryItems: [URLQueryItem] = [],
-        pathIsPercentEncoded: Bool = false
+        pathIsPercentEncoded: Bool = false,
+        timeoutInterval: TimeInterval? = nil
     ) async throws -> Response {
         try await request(
             method: "GET",
@@ -71,7 +74,8 @@ struct HGAPIClient {
             requiresAuthentication: requiresAuthentication,
             headers: headers,
             queryItems: queryItems,
-            pathIsPercentEncoded: pathIsPercentEncoded
+            pathIsPercentEncoded: pathIsPercentEncoded,
+            timeoutInterval: timeoutInterval
         )
     }
 
@@ -130,7 +134,8 @@ struct HGAPIClient {
         requiresAuthentication: Bool,
         headers: [String: String] = [:],
         queryItems: [URLQueryItem] = [],
-        pathIsPercentEncoded: Bool = false
+        pathIsPercentEncoded: Bool = false,
+        timeoutInterval: TimeInterval? = nil
     ) async throws -> Response {
         let baseURL = try HGAPIConfiguration.baseURL()
         let requestBaseURL: URL
@@ -155,6 +160,9 @@ struct HGAPIClient {
         }
         var request = URLRequest(url: url)
         request.httpMethod = method
+        if let timeoutInterval {
+            request.timeoutInterval = timeoutInterval
+        }
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.httpBody = body
         headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
