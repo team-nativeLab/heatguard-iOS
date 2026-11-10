@@ -34,6 +34,8 @@ struct TeamMembershipFlowView: View {
     @State private var memberships: [HGTeamMembership] = []
     @State private var selectedTeamID: String?
     @State private var selectingTeamID: String?
+    @State private var pendingLeaveMembership: HGTeamMembership?
+    @State private var showsLeaveConfirmation = false
     @State private var managerPhone = ""
     @State private var busy = false
     @State private var error: HGErrorPresentation?
@@ -487,6 +489,15 @@ struct TeamMembershipFlowView: View {
             }
         }
         .background(HGColor.appBackground.ignoresSafeArea())
+        .alert("팀에서 나가시겠어요?", isPresented: $showsLeaveConfirmation) {
+            Button("취소", role: .cancel) { pendingLeaveMembership = nil }
+            Button("팀 나가기", role: .destructive) {
+                guard let pendingLeaveMembership else { return }
+                Task { await leave(pendingLeaveMembership) }
+            }
+        } message: {
+            Text("\(pendingLeaveMembership?.displayName ?? "선택한 팀") 연결을 해제합니다.")
+        }
         .overlay {
             if busy { ProgressView().tint(HGColor.primary) }
         }
@@ -494,48 +505,57 @@ struct TeamMembershipFlowView: View {
 
     private func membershipCard(_ membership: HGTeamMembership) -> some View {
         let isSelected = selectedTeamID == membership.teamID
-        return Button {
-            Task { await select(membership) }
-        } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    if isSelected {
-                        Circle().fill(HGColor.primary)
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundStyle(.white)
+        return HStack(spacing: 12) {
+            Button {
+                Task { await select(membership) }
+            } label: {
+                HStack(spacing: 12) {
+                    ZStack {
+                        if isSelected {
+                            Circle().fill(HGColor.primary)
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
                     }
+                    .frame(width: 32, height: 32)
+                    Text(membership.displayName)
+                        .font(HGFont.semiBold(16, relativeTo: .headline))
+                        .foregroundStyle(isSelected ? HGColor.primaryText : HGColor.photoSelectionText)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    Text(isSelected ? "선택됨" : "선택 안됨")
+                        .font(HGFont.semiBold(13, relativeTo: .subheadline))
+                        .foregroundStyle(isSelected ? HGColor.primary : HGColor.photoSelectionText)
                 }
-                .frame(width: 32, height: 32)
-                Text(membership.displayName)
-                    .font(HGFont.semiBold(16, relativeTo: .headline))
-                    .foregroundStyle(isSelected ? HGColor.primaryText : HGColor.photoSelectionText)
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-                Text(isSelected ? "선택됨" : "선택 안됨")
-                    .font(HGFont.semiBold(13, relativeTo: .subheadline))
-                    .foregroundStyle(isSelected ? HGColor.primary : HGColor.photoSelectionText)
+                .padding(.leading, 18)
+                .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
             }
-            .padding(.horizontal, 18)
-            .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
-            .background(
-                isSelected ? HGColor.photoSelectionBackground : HGColor.readOnlyField,
-                in: RoundedRectangle(cornerRadius: 14)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(isSelected ? HGColor.primary : HGColor.homeTimelineBorder, lineWidth: isSelected ? 1.5 : 1)
+            .buttonStyle(.plain)
+            .disabled(selectingTeamID != nil || busy)
+
+            Button {
+                pendingLeaveMembership = membership
+                showsLeaveConfirmation = true
+            } label: {
+                Text("나가기")
+                    .font(HGFont.medium(13, relativeTo: .subheadline))
+                    .foregroundStyle(HGColor.error)
+                    .frame(minWidth: 52, minHeight: 44)
             }
+            .buttonStyle(.plain)
+            .disabled(busy)
         }
-        .buttonStyle(.plain)
-        .disabled(selectingTeamID != nil)
-        .contextMenu {
-            Button("현장 참여 해제", role: .destructive) {
-                Task { await leave(membership) }
-            }
+        .padding(.trailing, 12)
+        .background(
+            isSelected ? HGColor.photoSelectionBackground : HGColor.readOnlyField,
+            in: RoundedRectangle(cornerRadius: 14)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(isSelected ? HGColor.primary : HGColor.homeTimelineBorder, lineWidth: isSelected ? 1.5 : 1)
         }
-        .accessibilityLabel("\(membership.displayName), \(isSelected ? "선택됨" : "선택 안됨")")
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityElement(children: .contain)
     }
 
     private func flowHeader(title: String) -> some View {
@@ -785,11 +805,16 @@ struct TeamMembershipFlowView: View {
 
     @MainActor
     private func leave(_ membership: HGTeamMembership) async {
+        guard !busy else { return }
+        busy = true
+        defer { busy = false }
         do {
             try await service.leaveMembership(teamID: membership.teamID)
             if selectedTeamID == membership.teamID { selectedTeamID = nil }
             await loadMemberships()
+            pendingLeaveMembership = nil
         } catch {
+            pendingLeaveMembership = nil
             self.error = HGErrorPresentation(error: error)
         }
     }
