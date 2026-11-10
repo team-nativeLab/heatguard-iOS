@@ -1,7 +1,13 @@
+import OSLog
 import SwiftUI
 import UIKit
 
 struct HomeView: View {
+    private static let weatherLogger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "HeatGuard",
+        category: "WeatherRefresh"
+    )
+
     @Environment(\.scenePhase) private var scenePhase
     let onSessionEnded: () -> Void
     private let onTeamSelectionRequested: () -> Void
@@ -52,6 +58,7 @@ struct HomeView: View {
     @State private var showsStoredDraft = false
     @State private var storedDraftError: String?
     @State private var isRefreshingCurrentLocationWeather = false
+    @State private var lastCurrentLocationWeatherAttemptAt: Date?
     @State private var lastCurrentLocationWeatherRefreshAt: Date?
 
     var body: some View {
@@ -176,7 +183,6 @@ struct HomeView: View {
             } else {
                 _ = await (dashboardLoad, emergencyLoad)
             }
-            await refreshCurrentLocationWeatherIfNeeded()
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active, loadsRemoteData else { return }
@@ -863,6 +869,10 @@ extension HomeView {
         guard !isRefreshingCurrentLocationWeather else { return }
         let locationProvider = HGCurrentLocationProvider.shared
         let now = Date()
+        if let lastCurrentLocationWeatherAttemptAt,
+           now.timeIntervalSince(lastCurrentLocationWeatherAttemptAt) < 60 {
+            return
+        }
         if locationProvider.canUseCachedWeatherRefresh,
            let lastCurrentLocationWeatherRefreshAt,
            now.timeIntervalSince(lastCurrentLocationWeatherRefreshAt) < 10 * 60 {
@@ -870,7 +880,7 @@ extension HomeView {
         }
 
         isRefreshingCurrentLocationWeather = true
-        lastCurrentLocationWeatherRefreshAt = now
+        lastCurrentLocationWeatherAttemptAt = now
         defer { isRefreshingCurrentLocationWeather = false }
 
         do {
@@ -880,7 +890,11 @@ extension HomeView {
                 longitude: coordinate.longitude
             )
             dashboard = dashboard.replacingWeather(weather)
+            lastCurrentLocationWeatherRefreshAt = Date()
         } catch {
+            Self.weatherLogger.error(
+                "Current location weather refresh failed errorType=\(String(describing: type(of: error)), privacy: .public)"
+            )
             // Keep the existing team dashboard weather when location or its refresh is unavailable.
         }
     }
@@ -894,6 +908,7 @@ extension HomeView {
                 unreadNotificationCount = loadedDashboard.unreadNotificationCount
                 checklist = loadedDashboard.checklist
                 dashboardError = nil
+                await refreshCurrentLocationWeatherIfNeeded()
 
                 do {
                     let items = try await HGChecklistService().fetchItems()

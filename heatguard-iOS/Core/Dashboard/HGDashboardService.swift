@@ -1,6 +1,12 @@
 import Foundation
+import OSLog
 
 struct HGDashboardService {
+    private static let weatherLogger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "HeatGuard",
+        category: "WeatherResponse"
+    )
+
     private let client: HGAPIClient
 
     init(client: HGAPIClient = HGAPIClient()) { self.client = client }
@@ -10,6 +16,9 @@ struct HGDashboardService {
             path: HGAPIPath.teamHome,
             requiresAuthentication: true
         )
+        if let weather = response.weather {
+            Self.logWeatherResponse(weather, source: "team-dashboard")
+        }
         return HomeDashboard(response: response)
     }
 
@@ -18,9 +27,25 @@ struct HGDashboardService {
             HGCurrentWeatherRequest(latitude: latitude, longitude: longitude),
             method: "POST",
             path: HGAPIPath.teamWeather,
-            requiresAuthentication: true
+            requiresAuthentication: true,
+            timeoutInterval: 90
         )
+        Self.logWeatherResponse(response, source: "location")
         return response.homeWeather
+    }
+
+    private static func logWeatherResponse(_ weather: WorkerHomeWeather, source: String) {
+        weatherLogger.info("""
+            Weather decoded source=\(source, privacy: .public)
+            availability=\(weather.availability ?? "nil", privacy: .public)
+            errorCode=\(weather.errorCode ?? "none", privacy: .public)
+            """)
+        weatherLogger.info("""
+            Weather values temperaturePresent=\(weather.temperature != nil)
+            humidityPresent=\(weather.humidity != nil)
+            skyStatus=\(weather.skyStatus ?? "nil", privacy: .public)
+            weatherSource=\(weather.source ?? "nil", privacy: .public)
+            """)
     }
 }
 
