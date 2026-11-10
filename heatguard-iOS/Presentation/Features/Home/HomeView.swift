@@ -1,7 +1,13 @@
+import OSLog
 import SwiftUI
 import UIKit
 
 struct HomeView: View {
+    private static let weatherLogger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "HeatGuard",
+        category: "WeatherRefresh"
+    )
+
     @Environment(\.scenePhase) private var scenePhase
     let onSessionEnded: () -> Void
     private let onTeamSelectionRequested: () -> Void
@@ -33,6 +39,7 @@ struct HomeView: View {
     @State private var activeEmergencyCallStatus: HGEmergencyCallStatus?
     @State private var isUpdatingEmergencyCall = false
     @State private var emergencyStatusError: HGErrorPresentation?
+    @State private var hasRequestedTeamSelection = false
     @State private var pendingRecordType: RecordType?
     @State private var flowPath = NavigationPath()
     @State private var dashboard = HomeDashboard.unavailable
@@ -51,6 +58,7 @@ struct HomeView: View {
     @State private var showsStoredDraft = false
     @State private var storedDraftError: String?
     @State private var isRefreshingCurrentLocationWeather = false
+    @State private var lastCurrentLocationWeatherAttemptAt: Date?
     @State private var lastCurrentLocationWeatherRefreshAt: Date?
 
     var body: some View {
@@ -175,7 +183,6 @@ struct HomeView: View {
             } else {
                 _ = await (dashboardLoad, emergencyLoad)
             }
-            await refreshCurrentLocationWeatherIfNeeded()
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active, loadsRemoteData else { return }
@@ -274,96 +281,98 @@ struct HomeView: View {
     }
 
     private func weatherSummary(isCompact: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 0) {
-                    HomeWeatherAlertBadges(weather: dashboard.weather)
-                        .padding(.leading, 23)
+        TimelineView(.periodic(from: .now, by: 60)) { timeline in
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HomeWeatherAlertBadges(weather: dashboard.weather)
+                            .padding(.leading, 23)
 
-                    Text(dashboard.weather.measurementTitle)
-                        .font(HGFont.medium(12, relativeTo: .caption))
-                        .padding(.leading, 20)
-                        .padding(.top, 16)
+                        Text(dashboard.weather.measurementTitle)
+                            .font(HGFont.medium(12, relativeTo: .caption))
+                            .padding(.leading, 20)
+                            .padding(.top, 16)
 
-                    HStack(alignment: .center, spacing: 8) {
-                        Text(dashboard.weather.temperatureText)
-                            .font(HGFont.bold(40, relativeTo: .largeTitle))
-                            .fixedSize(horizontal: true, vertical: false)
-                        if let deltaText = dashboard.weather.temperatureDeltaBadgeText {
-                            Text(deltaText)
-                                .font(HGFont.bold(9, relativeTo: .caption2))
-                                .foregroundStyle(HGColor.error)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                                .frame(width: 54, height: 20)
-                                .background(HGColor.homeBaselineBackground, in: Capsule())
-                                .accessibilityLabel(dashboard.weather.temperatureDeltaText ?? deltaText)
+                        HStack(alignment: .center, spacing: 8) {
+                            Text(dashboard.weather.temperatureText)
+                                .font(HGFont.bold(40, relativeTo: .largeTitle))
+                                .fixedSize(horizontal: true, vertical: false)
+                            if let deltaText = dashboard.weather.temperatureDeltaBadgeText {
+                                Text(deltaText)
+                                    .font(HGFont.bold(9, relativeTo: .caption2))
+                                    .foregroundStyle(HGColor.error)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                                    .frame(width: 54, height: 20)
+                                    .background(HGColor.homeBaselineBackground, in: Capsule())
+                                    .accessibilityLabel(dashboard.weather.temperatureDeltaText ?? deltaText)
+                            }
+                        }
+                        .padding(.leading, 21)
+
+                        Text("습도 \(dashboard.weather.humidityText) · 체감온도 \(dashboard.weather.apparentTemperatureText)")
+                            .font(HGFont.regular(12, relativeTo: .caption))
+                            .padding(.leading, 20)
+                            .padding(.top, 8)
+                    }
+                    Spacer(minLength: 0)
+                    Group {
+                        if let assetName = dashboard.weather.skyIllustrationAssetName(at: timeline.date) {
+                            Image(assetName)
+                                .resizable()
+                                .scaledToFit()
+                                .brightness(assetName == "WeatherCloudy" ? -0.07 : 0)
+                                .contrast(assetName == "WeatherCloudy" ? 1.04 : 1)
+                        } else {
+                            Image(systemName: dashboard.weather.skySymbol(at: timeline.date))
+                                .resizable()
+                                .scaledToFit()
+                                .foregroundStyle(weatherSymbolColor(for: dashboard.weather.skyStatus))
                         }
                     }
-                    .padding(.leading, 21)
+                    .frame(width: isCompact ? 120 : 159, height: 121)
+                    .offset(y: -2)
+                }
 
-                    Text("습도 \(dashboard.weather.humidityText) · 체감온도 \(dashboard.weather.apparentTemperatureText)")
-                        .font(HGFont.regular(12, relativeTo: .caption))
+                if dashboard.weather.observationTimeText != nil || dashboard.weather.observationStatusText != nil {
+                    let observationDescription = [
+                        dashboard.weather.observationStatusText,
+                        dashboard.weather.observationTimeText
+                    ]
+                    .compactMap { $0 }
+                    .joined(separator: " · ")
+                    Text(observationDescription)
+                        .font(HGFont.regular(10, relativeTo: .caption2))
+                        .foregroundStyle(dashboard.weather.observationStatusIsWarning ? Color.orange : HGColor.secondaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                         .padding(.leading, 20)
-                        .padding(.top, 8)
+                        .padding(.top, isCompact ? 2 : 4)
+                        .accessibilityLabel("날씨 측정 상태: \(observationDescription)")
                 }
-                Spacer(minLength: 0)
-                Group {
-                    if let assetName = dashboard.weather.skyIllustrationAssetName {
-                        Image(assetName)
-                            .resizable()
-                            .scaledToFit()
-                            .brightness(assetName == "WeatherCloudy" ? -0.07 : 0)
-                            .contrast(assetName == "WeatherCloudy" ? 1.04 : 1)
-                    } else {
-                        Image(systemName: dashboard.weather.skySymbol)
-                            .resizable()
-                            .scaledToFit()
-                            .foregroundStyle(weatherSymbolColor(for: dashboard.weather.skyStatus))
-                    }
+
+                HStack(spacing: 0) {
+                    HomeMetric(icon: "HomeHumidity", title: "습도", value: dashboard.weather.humidityText)
+                    Divider().frame(height: 24).padding(.horizontal, 8)
+                    HomeMetric(icon: "HomeFeelsLike", title: "체감온도", value: dashboard.weather.apparentTemperatureText)
+                    Divider().frame(height: 24).padding(.horizontal, 8)
+                    HomeMetric(
+                        symbol: dashboard.weather.skySymbol(at: timeline.date),
+                        symbolColor: weatherSymbolColor(for: dashboard.weather.skyStatus),
+                        title: nil,
+                        value: dashboard.weather.weatherStatusText
+                    )
                 }
-                .frame(width: isCompact ? 120 : 159, height: 121)
-                .offset(y: -2)
+                .padding(.horizontal, 18)
+                .frame(height: 78)
+                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
+                .padding(.horizontal, 26)
+                .padding(.top, isCompact ? 10 : 17)
             }
-
-            if dashboard.weather.observationTimeText != nil || dashboard.weather.observationStatusText != nil {
-                let observationDescription = [
-                    dashboard.weather.observationStatusText,
-                    dashboard.weather.observationTimeText
-                ]
-                .compactMap { $0 }
-                .joined(separator: " · ")
-                Text(observationDescription)
-                    .font(HGFont.regular(10, relativeTo: .caption2))
-                    .foregroundStyle(dashboard.weather.observationStatusIsWarning ? Color.orange : HGColor.secondaryText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .padding(.leading, 20)
-                    .padding(.top, isCompact ? 2 : 4)
-                    .accessibilityLabel("날씨 측정 상태: \(observationDescription)")
-            }
-
-            HStack(spacing: 0) {
-                HomeMetric(icon: "HomeHumidity", title: "습도", value: dashboard.weather.humidityText)
-                Divider().frame(height: 24).padding(.horizontal, 8)
-                HomeMetric(icon: "HomeFeelsLike", title: "체감온도", value: dashboard.weather.apparentTemperatureText)
-                Divider().frame(height: 24).padding(.horizontal, 8)
-                HomeMetric(
-                    symbol: dashboard.weather.skySymbol,
-                    symbolColor: weatherSymbolColor(for: dashboard.weather.skyStatus),
-                    title: nil,
-                    value: dashboard.weather.weatherStatusText
-                )
-            }
-            .padding(.horizontal, 18)
-            .frame(height: 78)
-            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
-            .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
-            .padding(.horizontal, 26)
-            .padding(.top, isCompact ? 10 : 17)
+            .padding(.horizontal, -12)
+            .foregroundStyle(HGColor.primaryText)
         }
-        .padding(.horizontal, -12)
-        .foregroundStyle(HGColor.primaryText)
     }
 
     private func weatherSymbolColor(for skyStatus: String?) -> Color {
@@ -519,6 +528,10 @@ struct HomeView: View {
             activeEmergencyCallStatus = currentCall.status
         } catch {
             guard !Task.isCancelled, !error.hgIsNetworkCancellation else { return }
+            if error.requiresTeamSelection {
+                requestTeamSelectionIfNeeded()
+                return
+            }
             emergencyError = HGErrorPresentation(
                 title: "긴급 호출 상태를 확인하지 못했습니다",
                 message: "네트워크 연결을 확인한 뒤 다시 시도해주세요. 진행 중인 호출은 관리자에게 확인해주세요.",
@@ -849,6 +862,10 @@ extension HomeView {
         guard !isRefreshingCurrentLocationWeather else { return }
         let locationProvider = HGCurrentLocationProvider.shared
         let now = Date()
+        if let lastCurrentLocationWeatherAttemptAt,
+           now.timeIntervalSince(lastCurrentLocationWeatherAttemptAt) < 60 {
+            return
+        }
         if locationProvider.canUseCachedWeatherRefresh,
            let lastCurrentLocationWeatherRefreshAt,
            now.timeIntervalSince(lastCurrentLocationWeatherRefreshAt) < 10 * 60 {
@@ -856,7 +873,7 @@ extension HomeView {
         }
 
         isRefreshingCurrentLocationWeather = true
-        lastCurrentLocationWeatherRefreshAt = now
+        lastCurrentLocationWeatherAttemptAt = now
         defer { isRefreshingCurrentLocationWeather = false }
 
         do {
@@ -866,7 +883,11 @@ extension HomeView {
                 longitude: coordinate.longitude
             )
             dashboard = dashboard.replacingWeather(weather)
+            lastCurrentLocationWeatherRefreshAt = Date()
         } catch {
+            Self.weatherLogger.error(
+                "Current location weather refresh failed errorType=\(String(describing: type(of: error)), privacy: .public)"
+            )
             // Keep the existing team dashboard weather when location or its refresh is unavailable.
         }
     }
@@ -875,10 +896,12 @@ extension HomeView {
         for attempt in 0 ... 1 {
             do {
                 let loadedDashboard = try await HGDashboardService().fetchHomeDashboard()
+                hasRequestedTeamSelection = false
                 dashboard = loadedDashboard
                 unreadNotificationCount = loadedDashboard.unreadNotificationCount
                 checklist = loadedDashboard.checklist
                 dashboardError = nil
+                await refreshCurrentLocationWeatherIfNeeded()
 
                 do {
                     let items = try await HGChecklistService().fetchItems()
@@ -893,6 +916,10 @@ extension HomeView {
                 return
             } catch {
                 guard !error.hgIsNetworkCancellation else { return }
+                if error.requiresTeamSelection {
+                    requestTeamSelectionIfNeeded()
+                    return
+                }
                 guard attempt == 0, HGDashboardRetryPolicy.shouldRetry(error) else {
                     dashboardError = HGErrorPresentation(error: error)
                     return
@@ -905,6 +932,22 @@ extension HomeView {
                 }
             }
         }
+    }
+
+    private func requestTeamSelectionIfNeeded() {
+        guard !hasRequestedTeamSelection else { return }
+        hasRequestedTeamSelection = true
+        dashboardError = nil
+        emergencyError = nil
+        onTeamSelectionRequested()
+    }
+}
+
+private extension Error {
+    var requiresTeamSelection: Bool {
+        guard let apiError = self as? HGAPIError,
+              case let .server(_, statusCode, serverCode) = apiError else { return false }
+        return statusCode == 403 && serverCode == "TEAM_MEMBERSHIP_REQUIRED"
     }
 }
 
