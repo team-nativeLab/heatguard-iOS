@@ -310,18 +310,59 @@ final class ChecklistServiceTests: XCTestCase {
     }
 
     func testChecklistScreenRendersAtFigmaCanvasSize() async throws {
-        let harness = try makeService { _ in
-            (
+        let harness = try makeService { request in
+            let path = request.url?.path ?? ""
+            if path == HGAPIPath.teamChecklistRounds {
+                return (
+                    200,
+                    #"""
+                    {"success":true,"data":{
+                      "date":"2026-11-12","teamId":"team_01",
+                      "summary":{
+                        "totalRounds":3,"completedRounds":1,"missedRounds":1,
+                        "remainingRounds":1,"progressPercent":33
+                      },
+                      "items":[
+                        {
+                          "roundId":"08:00","startsAt":"2026-11-12T08:00:00+09:00",
+                          "endsAt":"2026-11-12T10:00:00+09:00","status":"COMPLETED",
+                          "totalItems":6,"checkedItems":6,"progressPercent":100,
+                          "completedAt":"2026-11-12T08:12:00+09:00"
+                        },
+                        {
+                          "roundId":"10:00","startsAt":"2026-11-12T10:00:00+09:00",
+                          "endsAt":"2026-11-12T12:00:00+09:00","status":"MISSED",
+                          "totalItems":6,"checkedItems":2,"progressPercent":33,
+                          "completedAt":null
+                        },
+                        {
+                          "roundId":"12:00","startsAt":"2026-11-12T12:00:00+09:00",
+                          "endsAt":"2026-11-12T14:00:00+09:00","status":"IN_PROGRESS",
+                          "totalItems":6,"checkedItems":3,"progressPercent":50,
+                          "completedAt":null
+                        }
+                      ]
+                    }}
+                    """#
+                )
+            }
+
+            return (
                 200,
                 #"""
-                {"success":true,"data":{"items":[
-                  {"itemId":"item-1","text":"식수(음용수) 비치 확인","checked":true},
-                  {"itemId":"item-2","text":"그늘막·휴게시설 설치 확인","checked":true},
-                  {"itemId":"item-3","text":"근로자 건강상태(온열질환 증상) 확인","checked":false},
-                  {"itemId":"item-4","text":"무더위 시간대(14~17시) 옥외작업 자제","checked":false},
-                  {"itemId":"item-5","text":"2시간마다 20분 이상 휴식 실시","checked":true},
-                  {"itemId":"item-6","text":"응급처치 키트 위치 확인","checked":false}
-                ]}}
+                {"success":true,"data":{
+                  "date":"2026-11-12","teamId":"team_01","roundId":"12:00",
+                  "startsAt":"2026-11-12T12:00:00+09:00","endsAt":"2026-11-12T14:00:00+09:00",
+                  "status":"IN_PROGRESS","totalItems":6,"checkedItems":3,"progressPercent":50,"completedAt":null,
+                  "items":[
+                    {"itemId":"item-1","text":"식수(음용수) 비치 확인","sortOrder":1,"checked":true,"checkedAt":null},
+                    {"itemId":"item-2","text":"그늘막·휴게시설 설치 확인","sortOrder":2,"checked":true,"checkedAt":null},
+                    {"itemId":"item-3","text":"근로자 건강상태(온열질환 증상) 확인","sortOrder":3,"checked":false,"checkedAt":null},
+                    {"itemId":"item-4","text":"무더위 시간대(14~17시) 옥외작업 자제","sortOrder":4,"checked":false,"checkedAt":null},
+                    {"itemId":"item-5","text":"2시간마다 20분 이상 휴식 실시","sortOrder":5,"checked":true,"checkedAt":null},
+                    {"itemId":"item-6","text":"응급처치 키트 위치 확인","sortOrder":6,"checked":false,"checkedAt":null}
+                  ]
+                }}
                 """#
             )
         }
