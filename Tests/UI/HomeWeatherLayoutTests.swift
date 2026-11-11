@@ -100,6 +100,10 @@ final class HomeWeatherLayoutTests: XCTestCase {
         XCTAssertEqual(coldWave(level: nil, availability: "LOCATION_REQUIRED").badgeText, "한파 위치 정보 없음")
         XCTAssertEqual(coldWave(level: nil, availability: "AVAILABLE").badgeText, "한파 정보 확인 불가")
         XCTAssertEqual(coldWave(level: "ADVISORY", availability: nil).badgeText, "한파 정보 확인 불가")
+        XCTAssertTrue(coldWave(level: "WARNING", availability: "UNAVAILABLE").shouldShowUnavailableMessage)
+        XCTAssertTrue(coldWave(level: nil, availability: "AVAILABLE").shouldShowUnavailableMessage)
+        XCTAssertFalse(coldWave(level: "NONE").shouldShowUnavailableMessage)
+        XCTAssertFalse(coldWave(level: nil, availability: "LOCATION_REQUIRED").shouldShowUnavailableMessage)
     }
 
     func testWorkerWeatherDecodesColdWaveWarningFromWeatherDTO() throws {
