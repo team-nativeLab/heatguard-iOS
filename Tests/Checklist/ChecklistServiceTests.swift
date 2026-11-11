@@ -318,11 +318,29 @@ final class ChecklistServiceTests: XCTestCase {
                     #"""
                     {"success":true,"data":{
                       "date":"2026-11-12","teamId":"team_01",
-                      "summary":{"totalRounds":3,"completedRounds":1,"missedRounds":1,"remainingRounds":1,"progressPercent":33},
+                      "summary":{
+                        "totalRounds":3,"completedRounds":1,"missedRounds":1,
+                        "remainingRounds":1,"progressPercent":33
+                      },
                       "items":[
-                        {"roundId":"08:00","startsAt":"2026-11-12T08:00:00+09:00","endsAt":"2026-11-12T10:00:00+09:00","status":"COMPLETED","totalItems":6,"checkedItems":6,"progressPercent":100,"completedAt":"2026-11-12T08:12:00+09:00"},
-                        {"roundId":"10:00","startsAt":"2026-11-12T10:00:00+09:00","endsAt":"2026-11-12T12:00:00+09:00","status":"MISSED","totalItems":6,"checkedItems":2,"progressPercent":33,"completedAt":null},
-                        {"roundId":"12:00","startsAt":"2026-11-12T12:00:00+09:00","endsAt":"2026-11-12T14:00:00+09:00","status":"IN_PROGRESS","totalItems":6,"checkedItems":3,"progressPercent":50,"completedAt":null}
+                        {
+                          "roundId":"08:00","startsAt":"2026-11-12T08:00:00+09:00",
+                          "endsAt":"2026-11-12T10:00:00+09:00","status":"COMPLETED",
+                          "totalItems":6,"checkedItems":6,"progressPercent":100,
+                          "completedAt":"2026-11-12T08:12:00+09:00"
+                        },
+                        {
+                          "roundId":"10:00","startsAt":"2026-11-12T10:00:00+09:00",
+                          "endsAt":"2026-11-12T12:00:00+09:00","status":"MISSED",
+                          "totalItems":6,"checkedItems":2,"progressPercent":33,
+                          "completedAt":null
+                        },
+                        {
+                          "roundId":"12:00","startsAt":"2026-11-12T12:00:00+09:00",
+                          "endsAt":"2026-11-12T14:00:00+09:00","status":"IN_PROGRESS",
+                          "totalItems":6,"checkedItems":3,"progressPercent":50,
+                          "completedAt":null
+                        }
                       ]
                     }}
                     """#
