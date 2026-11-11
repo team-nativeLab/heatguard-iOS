@@ -7,6 +7,10 @@ struct ChecklistView: View {
     let siteName: String?
     let teamName: String?
     @State private var selectedTime: String?
+    @State private var rounds: [HGChecklistRoundSummary] = []
+    @State private var selectedRound: HGChecklistRound?
+    @State private var selectedRoundIndex = 0
+    @State private var now = Date()
     private let service: HGChecklistService
     private let onProgressChanged: (Int, Int) -> Void
 
@@ -74,7 +78,13 @@ struct ChecklistView: View {
         }
         .background(HGColor.appBackground)
         .hgRouteNavigationHeader(title: "체크리스트")
-        .task { await loadItems() }
+        .task { await loadRounds() }
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(30))
+                now = Date()
+            }
+        }
         .alert(
             error?.title ?? "체크리스트 오류",
             isPresented: Binding(
@@ -84,7 +94,7 @@ struct ChecklistView: View {
         ) {
             if loadFailed {
                 Button("다시 시도") {
-                    Task { await loadItems() }
+                    Task { await loadRounds() }
                 }
             }
             Button("확인", role: .cancel) {}
@@ -94,17 +104,17 @@ struct ChecklistView: View {
     }
 
     private var checkedCount: Int {
-        items.filter(\.checked).count
+        selectedRound?.items.filter(\.checked).count ?? 0
     }
 
     private var isComplete: Bool {
-        !items.isEmpty && checkedCount == items.count
+        selectedRound?.isComplete ?? false
     }
 
     private var buttonTitle: String {
         if isLoading { return "체크 항목 불러오는 중..." }
-        guard !items.isEmpty else { return "체크 항목 없음" }
-        return isComplete ? "체크 완료" : "체크 완료 (\(checkedCount)/\(items.count))"
+        guard let selectedRound, !selectedRound.items.isEmpty else { return "체크 항목 없음" }
+        return isComplete ? "체크 완료" : "체크 완료 (\(checkedCount)/\(selectedRound.totalItems))"
     }
 
     private var locationSubtitle: String {
@@ -114,25 +124,63 @@ struct ChecklistView: View {
         return names.isEmpty ? "오늘 확인할 체크 항목" : names.joined(separator: " · ")
     }
 
-    private var activeMinute: Int? {
-        let scheduled = times.compactMap(minuteValue).sorted()
+    private var currentMinute: Int {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
-        let now = calendar.dateComponents([.hour, .minute], from: Date())
-        let currentMinute = (now.hour ?? 0) * 60 + (now.minute ?? 0)
-        return scheduled.first(where: { $0 >= currentMinute }) ?? scheduled.last
+        let components = calendar.dateComponents([.hour, .minute], from: now)
+        return (components.hour ?? 0) * 60 + (components.minute ?? 0)
     }
 
-    private var activeTime: String? {
-        guard let activeMinute else { return nil }
-        return String(format: "%02d:%02d", activeMinute / 60, activeMinute % 60)
+    private var today: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Asia/Seoul")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: now)
     }
 
-    private var currentSelection: String? {
-        guard let selectedTime, times.contains(where: { formatTime($0) == selectedTime }) else {
-            return activeTime.map(formatTime)
+    private var preferredRoundIndex: Int {
+        guard !rounds.isEmpty else { return 0 }
+        if let inProgress = rounds.firstIndex(where: { $0.status == .inProgress }) { return inProgress }
+        if let upcoming = rounds.firstIndex(where: {
+            $0.status == .scheduled && (roundDate($0.startsAt)?.timeIntervalSince(now) ?? -.infinity) >= 0
+        }) { return upcoming }
+        return rounds.indices.last ?? 0
+    }
+
+    private var selectedRoundStatusColor: Color {
+        guard let selectedRound else { return HGColor.secondaryText }
+        return statusColor(selectedRound.status)
+    }
+
+    private var selectedTimeCaption: String {
+        guard let selectedRound else { return "오늘 체크 항목" }
+        return "\(displayRoundTime(selectedRound.startsAt)) · \(selectedRound.checkedItems)/\(selectedRound.totalItems) 완료"
+    }
+
+    private func statusColor(_ status: HGChecklistRoundStatus) -> Color {
+        switch status {
+        case .completed, .inProgress: HGColor.primary
+        case .missed: HGColor.error
+        case .scheduled: HGColor.secondaryText
         }
-        return selectedTime
+    }
+
+    private func roundDate(_ value: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: value) { return date }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: value)
+    }
+
+    private func displayRoundTime(_ value: String) -> String {
+        guard let date = roundDate(value) else { return formatTime(value) }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.timeZone = TimeZone(identifier: "Asia/Seoul")
+        formatter.dateFormat = "HH시"
+        return formatter.string(from: date)
     }
 
     private func formatTime(_ rawTime: String) -> String {
@@ -159,21 +207,18 @@ struct ChecklistView: View {
     private func summaryCard() -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center) {
-                Text(currentSelection.map { "\($0) 체크" } ?? "오늘 체크")
+                Text(selectedTimeCaption)
                     .font(HGFont.bold(18, relativeTo: .headline))
                     .foregroundStyle(HGColor.primaryText)
 
                 Spacer(minLength: 8)
 
-                Text(isComplete ? "완료" : "진행 중")
+                Text(selectedRound?.status == .missed ? "미완료" : (isComplete ? "완료" : "진행 중"))
                     .font(HGFont.medium(11, relativeTo: .caption))
-                    .foregroundStyle(isComplete ? HGColor.checklistSuccess : HGColor.primary)
+                    .foregroundStyle(selectedRoundStatusColor)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(
-                        isComplete ? HGColor.successBackground : HGColor.photoSelectionBackground,
-                        in: Capsule()
-                    )
+                    .background(HGColor.photoSelectionBackground, in: Capsule())
             }
 
             Text(locationSubtitle)
@@ -186,7 +231,7 @@ struct ChecklistView: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(HGColor.homeTimelineLine)
                     Capsule()
-                        .fill(isComplete ? HGColor.checklistSuccess : HGColor.primary)
+                        .fill(HGColor.primary)
                         .frame(width: geometry.size.width * progress)
                 }
             }
@@ -194,10 +239,10 @@ struct ChecklistView: View {
             .animation(.easeInOut(duration: 0.2), value: checkedCount)
 
             HStack {
-                Text(isLoading ? "체크 항목 불러오는 중" : "체크리스트 \(checkedCount) / \(items.count) 완료")
+                Text(isLoading ? "체크 항목 불러오는 중" : "체크리스트 \(checkedCount) / \(selectedRound?.totalItems ?? 0) 완료")
             }
             .font(HGFont.medium(12, relativeTo: .caption))
-            .foregroundStyle(isComplete ? HGColor.checklistSuccess : HGColor.primary)
+            .foregroundStyle(HGColor.primary)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 18)
@@ -205,52 +250,79 @@ struct ChecklistView: View {
     }
 
     private var progress: CGFloat {
-        guard !items.isEmpty else { return 0 }
-        return CGFloat(checkedCount) / CGFloat(items.count)
+        guard let selectedRound, selectedRound.totalItems > 0 else { return 0 }
+        return CGFloat(selectedRound.checkedItems) / CGFloat(selectedRound.totalItems)
     }
 
-    @ViewBuilder
     private func schedule() -> some View {
-        if times.isEmpty {
-            Text("체크 시간이 설정되지 않았어요.")
+        if rounds.isEmpty {
+            Text("오늘 체크 회차가 설정되지 않았어요.")
                 .font(HGFont.regular(11, relativeTo: .caption2))
                 .foregroundStyle(HGColor.secondaryText)
                 .frame(maxWidth: .infinity, minHeight: 34)
         } else {
-            HGChecklistFlowLayout(spacing: 6) {
-                ForEach(Array(times.enumerated()), id: \.offset) { _, rawTime in
-                    let time = rawTime.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let displayTime = formatTime(time)
-                    let isActive = formatTime(time) == currentSelection
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        ForEach(Array(rounds.enumerated()), id: \.element.id) { index, round in
+                            let isSelected = selectedRoundIndex == index
+                            let color = statusColor(round.status)
 
-                    Button {
-                        selectedTime = displayTime
-                    } label: {
-                        HStack(spacing: 4) {
-                            if isActive {
-                                Text("●")
-                                    .font(HGFont.bold(8, relativeTo: .caption2))
+                            Button {
+                                selectedRoundIndex = index
+                                selectedTime = displayRoundTime(round.startsAt)
+                                Task { await selectRound(at: index) }
+                            } label: {
+                                VStack(spacing: 7) {
+                                    ZStack {
+                                        if isSelected {
+                                            Circle().fill(color.opacity(0.16)).frame(width: 28, height: 28)
+                                        }
+                                        Circle()
+                                            .fill(round.status == .scheduled ? HGColor.surface : color)
+                                            .frame(width: isSelected ? 16 : 12, height: isSelected ? 16 : 12)
+                                        if round.status == .scheduled {
+                                            Circle()
+                                                .stroke(color, lineWidth: 1.5)
+                                                .frame(width: isSelected ? 16 : 12, height: isSelected ? 16 : 12)
+                                        } else if round.status == .completed {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 7, weight: .bold))
+                                                .foregroundStyle(.white)
+                                        }
+                                    }
+                                    Text(displayRoundTime(round.startsAt))
+                                        .font(isSelected ? HGFont.bold(13, relativeTo: .caption) : HGFont.medium(12, relativeTo: .caption))
+                                        .foregroundStyle(color)
+                                }
+                                .frame(width: 58)
+                                .contentShape(Rectangle())
                             }
-                            Text(displayTime)
-                                .font(HGFont.medium(12, relativeTo: .caption))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.75)
-                        }
-                        .foregroundStyle(isActive ? Color.white : HGColor.primaryText)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(
-                            isActive ? HGColor.primary : HGColor.surface,
-                            in: RoundedRectangle(cornerRadius: 14)
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(isActive ? Color.clear : HGColor.homeTimelineLine, lineWidth: 1)
+                            .buttonStyle(.plain)
+                            .id(round.id)
+                            .accessibilityLabel("\(displayRoundTime(round.startsAt)) \(round.status.rawValue) \(round.checkedItems)/\(round.totalItems)")
+                            .accessibilityAddTraits(isSelected ? .isSelected : [])
+
+                            if index < rounds.count - 1 {
+                                Rectangle()
+                                    .fill(round.status == .completed ? HGColor.primary : (round.status == .missed ? HGColor.error : HGColor.homeTimelineLine))
+                                    .frame(width: 28, height: 2)
+                                    .offset(y: -10)
+                            }
                         }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(displayTime) 시간 선택")
-                    .accessibilityAddTraits(isActive ? .isSelected : [])
+                    .padding(.horizontal, 12)
+                }
+                .frame(height: 52)
+                .onAppear {
+                    guard rounds.indices.contains(selectedRoundIndex) else { return }
+                    proxy.scrollTo(rounds[selectedRoundIndex].id, anchor: .center)
+                }
+                .onChange(of: selectedRoundIndex) { _, newValue in
+                    guard rounds.indices.contains(newValue) else { return }
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        proxy.scrollTo(rounds[newValue].id, anchor: .center)
+                    }
                 }
             }
         }
@@ -269,7 +341,7 @@ struct ChecklistView: View {
                     .font(HGFont.regular(13, relativeTo: .subheadline))
                     .foregroundStyle(HGColor.secondaryText)
                 if loadFailed {
-                    Button("다시 시도") { Task { await loadItems() } }
+                    Button("다시 시도") { Task { await loadRounds() } }
                         .font(HGFont.semiBold(13, relativeTo: .caption))
                         .foregroundStyle(HGColor.primary)
                 }
@@ -277,16 +349,16 @@ struct ChecklistView: View {
             .frame(maxWidth: .infinity, minHeight: min(rowHeight * 3, 150))
         } else {
             VStack(spacing: 0) {
-                ForEach(items) { item in
+                ForEach(selectedRound?.items ?? []) { item in
                     HGChecklistItemRow(
                         item: item,
                         isSaving: updatingItemIDs.contains(item.id),
                         height: rowHeight
                     ) {
-                        Task { await toggle(item) }
+                        Task { await toggleRoundItem(item) }
                     }
 
-                    if item.id != items.last?.id {
+                    if item.id != selectedRound?.items.last?.id {
                         Divider()
                             .overlay(HGColor.inputBorder)
                     }
@@ -303,66 +375,85 @@ struct ChecklistView: View {
     }
 
     @MainActor
-    private func loadItems() async {
+    private func loadRounds() async {
         isLoading = true
         loadFailed = false
         error = nil
         defer { isLoading = false }
 
         do {
-            items = try await service.fetchItems()
+            let response = try await service.fetchRounds(date: today)
+            rounds = response.items
+            selectedRoundIndex = preferredRoundIndex
+            await loadSelectedRound()
             publishProgress()
         } catch is CancellationError {
             return
         } catch {
             loadFailed = true
-            self.error = HGErrorPresentation(error: error)
+            self.error = HGChecklistAPIErrorPresentation.make(from: error)
         }
     }
 
     @MainActor
-    private func toggle(_ item: HGChecklistItem) async {
-        guard !updatingItemIDs.contains(item.id),
-              let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-
-        let previousValue = items[index].checked
-        items[index] = HGChecklistItem(id: item.id, text: item.text, checked: !previousValue)
-        updatingItemIDs.insert(item.id)
-        publishProgress()
-
-        do {
-            let response = try await service.update(itemID: item.id, isChecked: !previousValue)
-            if let updatedIndex = items.firstIndex(where: { $0.id == item.id }) {
-                items[updatedIndex] = HGChecklistItem(
-                    id: item.id,
-                    text: item.text,
-                    checked: response.checked
-                )
-            }
-        } catch is CancellationError {
-            restore(item, checked: previousValue)
-        } catch {
-            restore(item, checked: previousValue)
-            loadFailed = false
-            self.error = HGErrorPresentation(error: error)
+    private func loadSelectedRound() async {
+        guard rounds.indices.contains(selectedRoundIndex) else {
+            selectedRound = nil
+            return
         }
+        do {
+            selectedRound = try await service.fetchRound(id: rounds[selectedRoundIndex].id, date: today)
+            publishProgress()
+        } catch {
+            loadFailed = true
+            self.error = HGChecklistAPIErrorPresentation.make(from: error)
+        }
+    }
 
+    @MainActor
+    private func selectRound(at index: Int) async {
+        guard rounds.indices.contains(index) else { return }
+        selectedRoundIndex = index
+        isLoading = true
+        defer { isLoading = false }
+        await loadSelectedRound()
+    }
+
+    @MainActor
+    private func toggleRoundItem(_ item: HGChecklistRound.Item) async {
+        guard let round = selectedRound,
+              !updatingItemIDs.contains(item.id),
+              let currentItem = round.items.first(where: { $0.id == item.id }) else { return }
+        updatingItemIDs.insert(item.id)
+        do {
+            let refreshed = try await service.updateRoundItem(
+                roundID: round.id,
+                itemID: item.id,
+                isChecked: !currentItem.checked,
+                date: round.date
+            )
+            selectedRound = refreshed.round
+            rounds = refreshed.rounds.items
+            if let updatedIndex = rounds.firstIndex(where: { $0.id == refreshed.round.id }) {
+                selectedRoundIndex = updatedIndex
+            }
+        } catch {
+            self.error = HGChecklistAPIErrorPresentation.make(from: error)
+        }
         updatingItemIDs.remove(item.id)
         publishProgress()
     }
 
-    private func restore(_ item: HGChecklistItem, checked: Bool) {
-        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[index] = HGChecklistItem(id: item.id, text: item.text, checked: checked)
-    }
-
     private func publishProgress() {
-        onProgressChanged(checkedCount, items.count)
+        onProgressChanged(
+            rounds.reduce(0) { $0 + $1.checkedItems },
+            rounds.reduce(0) { $0 + $1.totalItems }
+        )
     }
 }
 
 private struct HGChecklistItemRow: View {
-    let item: HGChecklistItem
+    let item: HGChecklistRound.Item
     let isSaving: Bool
     let height: CGFloat
     let action: () -> Void
