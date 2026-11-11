@@ -59,7 +59,8 @@ struct HomeView: View {
     @State private var storedDraftError: String?
     @State private var isRefreshingCurrentLocationWeather = false
     @State private var lastCurrentLocationWeatherAttemptAt: Date?
-    @State private var lastCurrentLocationWeatherRefreshAt: Date?
+    @State private var staleLocationWeatherFallback: HGCurrentLocationWeatherCacheEntry?
+    @State private var currentLocationWeatherRefreshFailed = false
 
     var body: some View {
         ZStack {
@@ -74,31 +75,35 @@ struct HomeView: View {
     }
 
     private var homeContent: some View {
-        HGFixedContent(compactHeightThreshold: HGLayout.homeCompactHeightThreshold) { isCompactFixedLayout in
+        ScrollView {
             VStack(spacing: 0) {
                 header
-                weatherSummary(isCompact: isCompactFixedLayout)
-                    .padding(.top, isCompactFixedLayout ? 8 : 15)
+                HGHomeWeatherSummary(
+                    weather: displayedWeather,
+                    isCompact: false,
+                    refreshWarningText: weatherRefreshWarningText
+                )
+                    .padding(.top, 15)
                 sectionLabel("데이터 기록")
-                    .padding(.top, isCompactFixedLayout ? 8 : 20)
-                checkCard(isCompact: isCompactFixedLayout)
-                    .padding(.top, isCompactFixedLayout ? 4 : 8)
-                contactCard(isCompact: isCompactFixedLayout)
-                    .padding(.top, isCompactFixedLayout ? 8 : 16)
+                    .padding(.top, 20)
+                checkCard(isCompact: false)
+                    .padding(.top, 8)
+                contactCard(isCompact: false)
+                    .padding(.top, 16)
                 sectionLabel("추가 기록")
-                    .padding(.top, isCompactFixedLayout ? 8 : 16)
-                VStack(spacing: isCompactFixedLayout ? 6 : 8) {
+                    .padding(.top, 16)
+                VStack(spacing: 8) {
                     HomeActionRow(
                         icon: "HomeCamera",
                         title: "현장 사진",
                         subtitle: "사진 촬영 또는 앨범에서 선택",
-                        rowHeight: isCompactFixedLayout ? 58 : 69
+                        rowHeight: 69
                     ) {
                         flowPath.append(HomeFlowRoute.fieldPhoto(HGRecordDraft(
                             type: .thermometer,
                             memo: "",
-                            temperature: dashboard.weather.temperature,
-                            humidity: dashboard.weather.humidity,
+                            temperature: recordWeather.temperature,
+                            humidity: recordWeather.humidity,
                             teamName: dashboard.teamName,
                             workplace: dashboard.workplace,
                             siteName: dashboard.siteName
@@ -109,18 +114,19 @@ struct HomeView: View {
                         icon: "HomeHistory",
                         title: "기록 내역",
                         subtitle: "지금까지의 기록을 확인하세요",
-                        rowHeight: isCompactFixedLayout ? 58 : 69
+                        rowHeight: 69
                     ) {
                         flowPath.append(HomeFlowRoute.recordHistory)
                     }
                     .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
                 }
-                .padding(.top, isCompactFixedLayout ? 6 : 8)
-                Spacer(minLength: 0)
+                .padding(.top, 8)
             }
             .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
-            .padding(.top, isCompactFixedLayout ? 8 : HGLayout.screenTopPadding)
+            .padding(.top, HGLayout.screenTopPadding)
         }
+        .scrollIndicators(.hidden)
+        .refreshable { await loadDashboard(forceLocationWeatherRefresh: true) }
         .background(HGColor.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -229,6 +235,22 @@ struct HomeView: View {
         }
     }
 
+    private var displayedWeather: HomeWeather {
+        staleLocationWeatherFallback?.weather ?? dashboard.weather
+    }
+
+    private var recordWeather: HomeWeather {
+        dashboard.weather.isFreshForRecord(asOf: .now) ? dashboard.weather : .unavailable
+    }
+
+    private var weatherRefreshWarningText: String? {
+        guard currentLocationWeatherRefreshFailed else { return nil }
+        if let staleLocationWeatherFallback {
+            return "한파특보 정보를 불러오지 못했습니다 · \(staleLocationWeatherFallback.ageDescription)"
+        }
+        return "한파특보 정보를 불러오지 못했습니다"
+    }
+
     @ViewBuilder
     private var menuDrawerOverlay: some View {
         Color.black.opacity(isMenuDrawerVisible ? 0.4 : 0)
@@ -278,120 +300,6 @@ struct HomeView: View {
 
     private func showNotifications() {
         flowPath.append(HomeFlowRoute.notifications)
-    }
-
-    private func weatherSummary(isCompact: Bool) -> some View {
-        TimelineView(.periodic(from: .now, by: 60)) { timeline in
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        HomeWeatherLevelBadges(
-                            heatLevelTitle: dashboard.weather.heatLevelTitle,
-                            coldWaveWarning: dashboard.weather.coldWaveWarning
-                        )
-                        .padding(.leading, 23)
-
-                        Text(dashboard.weather.measurementTitle)
-                            .font(HGFont.medium(12, relativeTo: .caption))
-                            .padding(.leading, 20)
-                            .padding(.top, 16)
-
-                        HStack(alignment: .center, spacing: 8) {
-                            Text(dashboard.weather.temperatureText)
-                                .font(HGFont.bold(40, relativeTo: .largeTitle))
-                                .fixedSize(horizontal: true, vertical: false)
-                            if let deltaText = dashboard.weather.temperatureDeltaBadgeText {
-                                Text(deltaText)
-                                    .font(HGFont.bold(9, relativeTo: .caption2))
-                                    .foregroundStyle(HGColor.error)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.8)
-                                    .frame(width: 54, height: 20)
-                                    .background(HGColor.homeBaselineBackground, in: Capsule())
-                                    .accessibilityLabel(dashboard.weather.temperatureDeltaText ?? deltaText)
-                            }
-                        }
-                        .padding(.leading, 21)
-
-                        Text("습도 \(dashboard.weather.humidityText) · 체감온도 \(dashboard.weather.apparentTemperatureText)")
-                            .font(HGFont.regular(12, relativeTo: .caption))
-                            .padding(.leading, 20)
-                            .padding(.top, 8)
-                    }
-                    Spacer(minLength: 0)
-                    Group {
-                        if let assetName = dashboard.weather.skyIllustrationAssetName(at: timeline.date) {
-                            Image(assetName)
-                                .resizable()
-                                .scaledToFit()
-                                .brightness(assetName == "WeatherCloudy" ? -0.07 : 0)
-                                .contrast(assetName == "WeatherCloudy" ? 1.04 : 1)
-                        } else {
-                            Image(systemName: dashboard.weather.skySymbol(at: timeline.date))
-                                .resizable()
-                                .scaledToFit()
-                                .foregroundStyle(weatherSymbolColor(for: dashboard.weather.skyStatus))
-                        }
-                    }
-                    .frame(width: isCompact ? 120 : 159, height: 121)
-                    .offset(y: -2)
-                }
-
-                if dashboard.weather.observationTimeText != nil || dashboard.weather.observationStatusText != nil {
-                    let observationDescription = [
-                        dashboard.weather.observationStatusText,
-                        dashboard.weather.observationTimeText
-                    ]
-                    .compactMap { $0 }
-                    .joined(separator: " · ")
-                    Text(observationDescription)
-                        .font(HGFont.regular(10, relativeTo: .caption2))
-                        .foregroundStyle(dashboard.weather.observationStatusIsWarning ? Color.orange : HGColor.secondaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .padding(.leading, 20)
-                        .padding(.top, isCompact ? 2 : 4)
-                        .accessibilityLabel("날씨 측정 상태: \(observationDescription)")
-                }
-
-                HStack(spacing: 0) {
-                    HomeMetric(icon: "HomeHumidity", title: "습도", value: dashboard.weather.humidityText)
-                    Divider().frame(height: 24).padding(.horizontal, 8)
-                    HomeMetric(icon: "HomeFeelsLike", title: "체감온도", value: dashboard.weather.apparentTemperatureText)
-                    Divider().frame(height: 24).padding(.horizontal, 8)
-                    HomeMetric(
-                        symbol: dashboard.weather.skySymbol(at: timeline.date),
-                        symbolColor: weatherSymbolColor(for: dashboard.weather.skyStatus),
-                        title: nil,
-                        value: dashboard.weather.weatherStatusText
-                    )
-                }
-                .padding(.horizontal, 18)
-                .frame(height: 78)
-                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
-                .padding(.horizontal, 26)
-                .padding(.top, isCompact ? 10 : 17)
-
-                HomeColdWaveUnavailableMessage(
-                    warning: dashboard.weather.coldWaveWarning,
-                    isCompact: isCompact
-                )
-            }
-            .padding(.horizontal, -12)
-            .foregroundStyle(HGColor.primaryText)
-        }
-    }
-
-    private func weatherSymbolColor(for skyStatus: String?) -> Color {
-        switch skyStatus {
-        case "CLEAR": Color(red: 1, green: 0.67, blue: 0.12)
-        case "PARTLY_CLOUDY": Color(red: 0.96, green: 0.65, blue: 0.20)
-        case "CLOUDY": Color(red: 0.48, green: 0.55, blue: 0.66)
-        case "RAIN": Color(red: 0.20, green: 0.52, blue: 0.88)
-        case "SNOW": Color(red: 0.36, green: 0.69, blue: 0.91)
-        default: Color(red: 1, green: 0.67, blue: 0.12)
-        }
     }
 
     private func checkCard(isCompact: Bool) -> some View {
@@ -602,7 +510,7 @@ struct HomeView: View {
         case let .checklistRound(roundID, date):
             ChecklistRoundDetailView(roundID: roundID, date: date)
         case .thermometer:
-            ThermometerRecordView(weather: dashboard.weather,
+            ThermometerRecordView(weather: recordWeather,
                 teamName: dashboard.teamName,
                 workplace: dashboard.workplace,
                 siteName: dashboard.siteName,
@@ -621,7 +529,7 @@ struct HomeView: View {
                 initialPhotos: resumedImages(for: .work),
                 initialTemperature: resumedDraft(for: .work)?.temperature,
                 initialHumidity: resumedDraft(for: .work)?.humidity,
-                weather: dashboard.weather,
+                weather: recordWeather,
                 teamName: dashboard.teamName,
                 workplace: dashboard.workplace,
                 siteName: dashboard.siteName,
@@ -637,7 +545,7 @@ struct HomeView: View {
                 initialPhotos: resumedImages(for: .rest),
                 initialTemperature: resumedDraft(for: .rest)?.temperature,
                 initialHumidity: resumedDraft(for: .rest)?.humidity,
-                weather: dashboard.weather,
+                weather: recordWeather,
                 initialRestStartedAt: resumedDraft(for: .rest)?.restStartedAt,
                 initialRestEndedAt: resumedDraft(for: .rest)?.restEndedAt,
                 teamName: dashboard.teamName,
@@ -717,6 +625,7 @@ struct HomeView: View {
         isLoggingOut = true
         Task {
             defer { isLoggingOut = false }
+            HGCurrentLocationWeatherCache.shared.clear()
             let authentication = HGAuthenticationService()
             do {
                 try await authentication.logout()
@@ -867,16 +776,17 @@ struct HomeView: View {
 extension HomeView {
     @MainActor
     fileprivate func refreshCurrentLocationWeatherIfNeeded() async {
+        await refreshCurrentLocationWeather(forceRefresh: false)
+    }
+
+    @MainActor
+    private func refreshCurrentLocationWeather(forceRefresh: Bool) async {
         guard !isRefreshingCurrentLocationWeather else { return }
         let locationProvider = HGCurrentLocationProvider.shared
         let now = Date()
-        if let lastCurrentLocationWeatherAttemptAt,
+        if !forceRefresh,
+           let lastCurrentLocationWeatherAttemptAt,
            now.timeIntervalSince(lastCurrentLocationWeatherAttemptAt) < 60 {
-            return
-        }
-        if locationProvider.canUseCachedWeatherRefresh,
-           let lastCurrentLocationWeatherRefreshAt,
-           now.timeIntervalSince(lastCurrentLocationWeatherRefreshAt) < 10 * 60 {
             return
         }
 
@@ -886,21 +796,44 @@ extension HomeView {
 
         do {
             let coordinate = try await locationProvider.currentCoordinate()
+            let cachedEntry = HGCurrentLocationWeatherCache.shared.entry(near: coordinate)
+            if let cachedEntry, cachedEntry.isFresh(asOf: now) {
+                dashboard = dashboard.replacingWeather(cachedEntry.weather)
+                staleLocationWeatherFallback = forceRefresh ? cachedEntry : nil
+                currentLocationWeatherRefreshFailed = false
+                guard forceRefresh else { return }
+            } else {
+                staleLocationWeatherFallback = cachedEntry
+            }
+
+            guard forceRefresh || cachedEntry?.isFresh(asOf: now) != true else { return }
             let weather = try await HGDashboardService().fetchCurrentLocationWeather(
                 latitude: coordinate.latitude,
                 longitude: coordinate.longitude
             )
+            guard weather.availability != "UNAVAILABLE" else {
+                currentLocationWeatherRefreshFailed = true
+                return
+            }
             dashboard = dashboard.replacingWeather(weather)
-            lastCurrentLocationWeatherRefreshAt = Date()
+            HGCurrentLocationWeatherCache.shared.store(weather, at: coordinate)
+            staleLocationWeatherFallback = nil
+            currentLocationWeatherRefreshFailed = false
         } catch {
+            if error is CancellationError { return }
             Self.weatherLogger.error(
                 "Current location weather refresh failed errorType=\(String(describing: type(of: error)), privacy: .public)"
             )
-            // Keep the existing team dashboard weather when location or its refresh is unavailable.
+            if locationProvider.canUseCachedWeatherRefresh {
+                currentLocationWeatherRefreshFailed = true
+            } else {
+                staleLocationWeatherFallback = nil
+                currentLocationWeatherRefreshFailed = false
+            }
         }
     }
 
-    fileprivate func loadDashboard() async {
+    fileprivate func loadDashboard(forceLocationWeatherRefresh: Bool = false) async {
         for attempt in 0 ... 1 {
             do {
                 let loadedDashboard = try await HGDashboardService().fetchHomeDashboard()
@@ -909,7 +842,7 @@ extension HomeView {
                 unreadNotificationCount = loadedDashboard.unreadNotificationCount
                 checklist = loadedDashboard.checklist
                 dashboardError = nil
-                await refreshCurrentLocationWeatherIfNeeded()
+                await refreshCurrentLocationWeather(forceRefresh: forceLocationWeatherRefresh)
 
                 do {
                     let items = try await HGChecklistService().fetchItems()
@@ -1012,62 +945,6 @@ private enum HomeFlowRoute: Hashable {
         }
     }
 
-}
-
-private struct HomeMetric: View {
-    var icon: String?
-    var symbol: String?
-    var symbolColor: Color?
-    let title: String?
-    let value: String
-
-    init(
-        icon: String? = nil,
-        symbol: String? = nil,
-        symbolColor: Color? = nil,
-        title: String?,
-        value: String
-    ) {
-        self.icon = icon
-        self.symbol = symbol
-        self.symbolColor = symbolColor
-        self.title = title
-        self.value = value
-    }
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Group {
-                if let symbol {
-                    Image(systemName: symbol)
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundStyle(symbolColor ?? HGColor.secondaryText)
-                } else if let icon {
-                    Image(icon)
-                        .resizable()
-                        .scaledToFit()
-                }
-            }
-            .frame(width: 20, height: 20)
-            .frame(width: 36, height: 36)
-            .background(HGColor.homeMetricIconBackground, in: Circle())
-
-            VStack(alignment: .leading, spacing: 2) {
-                if let title {
-                    Text(title)
-                        .font(HGFont.regular(10, relativeTo: .caption2))
-                        .foregroundStyle(HGColor.secondaryText)
-                }
-
-                Text(value)
-                    .font(HGFont.bold(14, relativeTo: .caption))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
 }
 
 private struct HomeActionRow: View {
