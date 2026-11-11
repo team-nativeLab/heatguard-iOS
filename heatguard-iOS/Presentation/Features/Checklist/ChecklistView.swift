@@ -166,6 +166,14 @@ struct ChecklistView: View {
         }
     }
 
+    private func connectorColor(for status: HGChecklistRoundStatus) -> Color {
+        switch status {
+        case .completed: HGColor.primary
+        case .missed: HGColor.error
+        case .inProgress, .scheduled: HGColor.homeTimelineLine
+        }
+    }
+
     private func roundDate(_ value: String) -> Date? {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -305,7 +313,7 @@ struct ChecklistView: View {
 
                             if index < rounds.count - 1 {
                                 Rectangle()
-                                    .fill(round.status == .completed ? HGColor.primary : (round.status == .missed ? HGColor.error : HGColor.homeTimelineLine))
+                                    .fill(connectorColor(for: round.status))
                                     .frame(width: 28, height: 2)
                                     .offset(y: -10)
                             }
