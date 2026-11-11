@@ -108,7 +108,8 @@ struct HGHomeWeatherSummary: View {
                         .foregroundStyle(HGColor.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 26)
-                        .padding(.top, 8)
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
                         .accessibilityIdentifier("home.weatherRefreshWarning")
                 }
             }
