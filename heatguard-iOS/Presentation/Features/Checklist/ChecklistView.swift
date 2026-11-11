@@ -166,6 +166,11 @@ struct ChecklistView: View {
         }
     }
 
+    private func roundAccessibilityLabel(for round: HGChecklistRoundSummary) -> String {
+        let time = displayRoundTime(round.startsAt)
+        return "\(time) \(round.status.rawValue) \(round.checkedItems)/\(round.totalItems)"
+    }
+
     private func connectorColor(for status: HGChecklistRoundStatus) -> Color {
         switch status {
         case .completed: HGColor.primary
@@ -308,7 +313,7 @@ struct ChecklistView: View {
                             }
                             .buttonStyle(.plain)
                             .id(round.id)
-                            .accessibilityLabel("\(displayRoundTime(round.startsAt)) \(round.status.rawValue) \(round.checkedItems)/\(round.totalItems)")
+                            .accessibilityLabel(roundAccessibilityLabel(for: round))
                             .accessibilityAddTraits(isSelected ? .isSelected : [])
 
                             if index < rounds.count - 1 {
