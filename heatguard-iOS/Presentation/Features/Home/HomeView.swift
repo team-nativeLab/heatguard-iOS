@@ -372,6 +372,17 @@ struct HomeView: View {
                 .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
                 .padding(.horizontal, 26)
                 .padding(.top, isCompact ? 10 : 17)
+
+                if dashboard.weather.coldWaveWarning?.shouldShowUnavailableMessage == true {
+                    Text("한파특보 정보를 불러오지 못했습니다.")
+                        .font(HGFont.regular(11, relativeTo: .caption))
+                        .foregroundStyle(HGColor.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 26)
+                        .padding(.top, isCompact ? 8 : 12)
+                        .padding(.bottom, isCompact ? 4 : 8)
+                        .accessibilityIdentifier("home.coldWaveUnavailable")
+                }
             }
             .padding(.horizontal, -12)
             .foregroundStyle(HGColor.primaryText)
