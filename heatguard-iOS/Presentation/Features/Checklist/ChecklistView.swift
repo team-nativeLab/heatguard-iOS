@@ -448,7 +448,7 @@ struct ChecklistView: View {
             )
             selectedRound = refreshed.round
             rounds = refreshed.rounds.items
-            if let updatedIndex = rounds.firstIndex(where: { $0.id == refreshed.round.id }) {
+            if let updatedIndex = rounds.firstIndex(where: { $0.id == refreshed.round.roundId }) {
                 selectedRoundIndex = updatedIndex
             }
         } catch {
