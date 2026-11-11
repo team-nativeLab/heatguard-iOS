@@ -149,6 +149,12 @@ struct HGColdWaveWarning: Decodable, Equatable {
         return "\(title) · 이전 정보" + (time.map { " · \($0)" } ?? "")
     }
 
+    var shouldShowUnavailableMessage: Bool {
+        guard availability != "LOCATION_REQUIRED" else { return false }
+        guard availability == "AVAILABLE" || availability == "CACHED" else { return true }
+        return !["ADVISORY", "WARNING", "NONE"].contains(level)
+    }
+
     var isActive: Bool { level == "ADVISORY" || level == "WARNING" }
 }
 
