@@ -267,6 +267,7 @@ struct ChecklistView: View {
         return CGFloat(selectedRound.checkedItems) / CGFloat(selectedRound.totalItems)
     }
 
+    @ViewBuilder
     private func schedule() -> some View {
         if rounds.isEmpty {
             Text("오늘 체크 회차가 설정되지 않았어요.")
@@ -440,7 +441,7 @@ struct ChecklistView: View {
         updatingItemIDs.insert(item.id)
         do {
             let refreshed = try await service.updateRoundItem(
-                roundID: round.id,
+                roundID: round.roundId,
                 itemID: item.id,
                 isChecked: !currentItem.checked,
                 date: round.date
