@@ -285,15 +285,11 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(dashboard.weather.heatLevelTitle)
-                            .font(HGFont.bold(10, relativeTo: .caption2))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                            .foregroundStyle(HGColor.homeHeatLevelText)
-                            .padding(.horizontal, 10)
-                            .frame(width: 80, height: 24)
-                            .background(HGColor.homeHeatLevelBackground, in: Capsule())
-                            .padding(.leading, 23)
+                        HomeWeatherLevelBadges(
+                            heatLevelTitle: dashboard.weather.heatLevelTitle,
+                            coldWaveWarning: dashboard.weather.coldWaveWarning
+                        )
+                        .padding(.leading, 23)
 
                         Text(dashboard.weather.measurementTitle)
                             .font(HGFont.medium(12, relativeTo: .caption))
@@ -376,6 +372,11 @@ struct HomeView: View {
                 .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
                 .padding(.horizontal, 26)
                 .padding(.top, isCompact ? 10 : 17)
+
+                HomeColdWaveUnavailableMessage(
+                    warning: dashboard.weather.coldWaveWarning,
+                    isCompact: isCompact
+                )
             }
             .padding(.horizontal, -12)
             .foregroundStyle(HGColor.primaryText)

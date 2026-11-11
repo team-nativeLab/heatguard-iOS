@@ -77,6 +77,7 @@ struct WorkerHomeWeather: Decodable {
     let comparisonTemperature: Double?
     let observedAt: String?
     let fetchedAt: String?
+    let coldWaveWarning: HGColdWaveWarning?
     let skyStatus: String?
     let comparisonObservedAt: String?
     let comparisonBasis: String?
@@ -107,9 +108,54 @@ struct WorkerHomeWeather: Decodable {
             sourceName: sourceName,
             skySource: skySource,
             skyForecastAt: skyForecastAt,
-            fetchedAt: fetchedAt
+            fetchedAt: fetchedAt,
+            coldWaveWarning: coldWaveWarning
         )
     }
+}
+
+struct HGColdWaveWarning: Decodable, Equatable {
+    let level: String?
+    let availability: String?
+    let areaCode: String?
+    let areaName: String?
+    let issuedAt: String?
+    let effectiveAt: String?
+    let fetchedAt: String?
+    let isStale: Bool?
+    let errorCode: String?
+    let source: String?
+
+    var badgeText: String? {
+        if availability == "LOCATION_REQUIRED" { return "한파 위치 정보 없음" }
+        guard availability == "AVAILABLE" || availability == "CACHED" else {
+            return "한파 정보 확인 불가"
+        }
+
+        let title: String
+        switch level {
+        case "ADVISORY": title = "한파주의보"
+        case "WARNING": title = "한파경보"
+        case "NONE":
+            guard availability == "CACHED" || isStale == true else { return nil }
+            title = "한파 특보 없음"
+        default: title = "한파 정보 확인 불가"
+        }
+
+        guard availability == "CACHED" || isStale == true else { return title }
+        let time = fetchedAt?.hgISO8601Date.map {
+            HGDateFormatting.string(from: $0, format: "HH:mm")
+        }
+        return "\(title) · 이전 정보" + (time.map { " · \($0)" } ?? "")
+    }
+
+    var shouldShowUnavailableMessage: Bool {
+        guard availability != "LOCATION_REQUIRED" else { return false }
+        guard availability == "AVAILABLE" || availability == "CACHED" else { return true }
+        return !["ADVISORY", "WARNING", "NONE"].contains(level)
+    }
+
+    var isActive: Bool { level == "ADVISORY" || level == "WARNING" }
 }
 
 private struct WorkerChecklistSummary: Decodable { let total: Int?; let completed: Int? }
@@ -203,6 +249,7 @@ struct HomeWeather: Equatable {
     let skySource: String?
     let skyForecastAt: String?
     let fetchedAt: String?
+    let coldWaveWarning: HGColdWaveWarning?
 
     init(
         temperature: Double?, humidity: Double?, apparentTemperature: Double?, heatLevel: Double?,
@@ -210,7 +257,7 @@ struct HomeWeather: Equatable {
         comparisonObservedAt: String?, comparisonBasis: String?, availability: String? = nil,
         errorCode: String? = nil, isStale: Bool? = nil, source: String? = nil,
         sourceName: String? = nil, skySource: String? = nil, skyForecastAt: String? = nil,
-        fetchedAt: String? = nil
+        fetchedAt: String? = nil, coldWaveWarning: HGColdWaveWarning? = nil
     ) {
         self.temperature = availability == "UNAVAILABLE" ? nil : temperature
         self.humidity = availability == "UNAVAILABLE" ? nil : humidity
@@ -230,6 +277,7 @@ struct HomeWeather: Equatable {
         self.skySource = skySource
         self.skyForecastAt = skyForecastAt
         self.fetchedAt = fetchedAt
+        self.coldWaveWarning = coldWaveWarning
     }
 
     var measurementTitle: String { source == "MANUAL" ? "최근 측정 온도" : "현재 온도" }
