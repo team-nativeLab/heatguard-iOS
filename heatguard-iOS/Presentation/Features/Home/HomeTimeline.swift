@@ -55,15 +55,18 @@ struct HomeTimeline: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 0) {
                             ForEach(Array(rounds.items.enumerated()), id: \.element.roundId) { index, round in
-                                roundNode(round, date: rounds.date)
-                                    .id(round.roundId)
-
-                                if index < rounds.items.count - 1 {
-                                    Capsule()
-                                        .fill(connectorColor(for: round.status))
-                                        .frame(width: 20, height: 2)
-                                        .offset(y: -9)
+                                ZStack(alignment: .leading) {
+                                    if index < rounds.items.count - 1 {
+                                        Capsule()
+                                            .fill(connectorColor(for: round.status))
+                                            .frame(width: 66, height: 2)
+                                            .offset(x: 23, y: -9)
+                                    }
+                                    roundNode(round, date: rounds.date)
+                                        .frame(width: 46, alignment: .leading)
                                 }
+                                .frame(width: 66, height: 50, alignment: .leading)
+                                .id(round.roundId)
                             }
                         }
                         .padding(.horizontal, 4)
@@ -89,22 +92,27 @@ struct HomeTimeline: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 0) {
                 ForEach(Array(fallbackTimes.enumerated()), id: \.offset) { index, time in
-                    VStack(spacing: 7) {
-                        Circle()
-                            .fill(HGColor.surface)
-                            .overlay {
-                                Circle().stroke(HGColor.homeTimelineBorder, lineWidth: 1.5)
-                            }
-                            .frame(width: 12, height: 12)
-                        Text(time)
-                            .font(HGFont.regular(9, relativeTo: .caption2))
-                            .foregroundStyle(HGColor.secondaryText)
+                    ZStack(alignment: .leading) {
+                        if index < fallbackTimes.count - 1 {
+                            Capsule()
+                                .fill(HGColor.homeTimelineLine)
+                                .frame(width: 66, height: 2)
+                                .offset(x: 23, y: -9)
+                        }
+                        VStack(spacing: 7) {
+                            Circle()
+                                .fill(HGColor.surface)
+                                .overlay {
+                                    Circle().stroke(HGColor.homeTimelineBorder, lineWidth: 1.5)
+                                }
+                                .frame(width: 12, height: 12)
+                            Text(time)
+                                .font(HGFont.regular(9, relativeTo: .caption2))
+                                .foregroundStyle(HGColor.secondaryText)
+                        }
+                        .frame(width: 46, alignment: .leading)
                     }
-                    .frame(width: 46)
-
-                    if index < fallbackTimes.count - 1 {
-                        Capsule().fill(HGColor.homeTimelineLine).frame(width: 20, height: 2).offset(y: -9)
-                    }
+                    .frame(width: 66, height: 50, alignment: .leading)
                 }
             }
             .padding(.horizontal, 4)
