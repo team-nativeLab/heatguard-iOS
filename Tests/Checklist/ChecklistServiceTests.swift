@@ -148,6 +148,38 @@ final class ChecklistServiceTests: XCTestCase {
         XCTAssertEqual(request.value(forHTTPHeaderField: "X-Team-Id"), "team_01")
     }
 
+    func testClosedChecklistRoundAdvancesToNextLiveOrScheduledRound() {
+        func round(_ id: String, _ status: HGChecklistRoundStatus) -> HGChecklistRoundSummary {
+            HGChecklistRoundSummary(
+                roundId: id,
+                startsAt: "2026-11-12T\(id):00+09:00",
+                endsAt: "2026-11-12T10:00:00+09:00",
+                status: status,
+                totalItems: 2,
+                checkedItems: 0,
+                progressPercent: 0,
+                completedAt: nil
+            )
+        }
+
+        let scheduledRounds = [
+            round("08", .completed),
+            round("10", .missed),
+            round("12", .scheduled),
+            round("14", .scheduled)
+        ]
+        XCTAssertEqual(HGChecklistRoundAutoAdvance.nextIndex(after: 1, in: scheduledRounds), 2)
+
+        let liveRounds = [
+            round("08", .completed),
+            round("10", .missed),
+            round("12", .scheduled),
+            round("14", .inProgress)
+        ]
+        XCTAssertEqual(HGChecklistRoundAutoAdvance.nextIndex(after: 1, in: liveRounds), 3)
+        XCTAssertNil(HGChecklistRoundAutoAdvance.nextIndex(after: 3, in: liveRounds))
+    }
+
     func testEmptyRoundDoesNotBecomeCompletedAutomatically() async throws {
         let harness = try makeService { _ in
             (

@@ -107,6 +107,17 @@ final class HomeWeatherLayoutTests: XCTestCase {
         XCTAssertFalse(coldWave(level: nil, availability: "LOCATION_REQUIRED").shouldShowUnavailableMessage)
     }
 
+    func testWeatherRefreshFailureHasVisibleMessageWithoutLocationOrCache() {
+        XCTAssertEqual(
+            HGHomeWeatherRefreshWarning.text(staleAgeDescription: nil),
+            "한파특보 정보를 불러오지 못했습니다"
+        )
+        XCTAssertEqual(
+            HGHomeWeatherRefreshWarning.text(staleAgeDescription: "2시간 전 정보"),
+            "한파특보 정보를 불러오지 못했습니다 · 2시간 전 정보"
+        )
+    }
+
     func testWorkerWeatherDecodesColdWaveWarningFromWeatherDTO() throws {
         let payload = Data(
             #"""

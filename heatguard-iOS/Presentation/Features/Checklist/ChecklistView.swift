@@ -82,7 +82,9 @@ struct ChecklistView: View {
         .task {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(30))
+                guard !Task.isCancelled else { break }
                 now = Date()
+                await refreshRoundStatuses()
             }
         }
         .alert(
@@ -410,6 +412,55 @@ struct ChecklistView: View {
     }
 
     @MainActor
+    private func refreshRoundStatuses() async {
+        guard !rounds.isEmpty, !isLoading, updatingItemIDs.isEmpty else { return }
+
+        do {
+            let response = try await service.fetchRounds(date: today)
+            let previouslySelectedID = selectedRound?.roundId
+            let previousStatus = selectedRound?.status
+            rounds = response.items
+            guard !rounds.isEmpty else {
+                selectedRoundIndex = 0
+                selectedRound = nil
+                publishProgress()
+                return
+            }
+
+            guard let previouslySelectedID,
+                  let refreshedIndex = rounds.firstIndex(where: { $0.id == previouslySelectedID }) else {
+                selectedRoundIndex = preferredRoundIndex
+                selectedRound = try await service.fetchRound(
+                    id: rounds[selectedRoundIndex].id,
+                    date: today
+                )
+                publishProgress()
+                return
+            }
+
+            let refreshedStatus = rounds[refreshedIndex].status
+            if refreshedStatus == .missed || refreshedStatus == .completed {
+                selectedRoundIndex = HGChecklistRoundAutoAdvance.nextIndex(
+                    after: refreshedIndex,
+                    in: rounds
+                ) ?? preferredRoundIndex
+            } else {
+                selectedRoundIndex = refreshedIndex
+            }
+
+            let targetRound = rounds[selectedRoundIndex]
+            if targetRound.id != previouslySelectedID || refreshedStatus != previousStatus {
+                selectedRound = try await service.fetchRound(id: targetRound.id, date: today)
+            }
+            publishProgress()
+        } catch is CancellationError {
+            return
+        } catch {
+            // Keep the last successful timeline visible; the next poll retries the server.
+        }
+    }
+
+    @MainActor
     private func loadSelectedRound() async {
         guard rounds.indices.contains(selectedRoundIndex) else {
             selectedRound = nil
@@ -463,6 +514,14 @@ struct ChecklistView: View {
             rounds.reduce(0) { $0 + $1.checkedItems },
             rounds.reduce(0) { $0 + $1.totalItems }
         )
+    }
+}
+
+enum HGChecklistRoundAutoAdvance {
+    static func nextIndex(after index: Int, in rounds: [HGChecklistRoundSummary]) -> Int? {
+        let followingIndices = rounds.indices.filter { $0 > index }
+        return followingIndices.first(where: { rounds[$0].status == .inProgress })
+            ?? followingIndices.first(where: { rounds[$0].status == .scheduled })
     }
 }
 

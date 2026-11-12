@@ -245,10 +245,9 @@ struct HomeView: View {
 
     private var weatherRefreshWarningText: String? {
         guard currentLocationWeatherRefreshFailed else { return nil }
-        if let staleLocationWeatherFallback {
-            return "한파특보 정보를 불러오지 못했습니다 · \(staleLocationWeatherFallback.ageDescription)"
-        }
-        return "한파특보 정보를 불러오지 못했습니다"
+        return HGHomeWeatherRefreshWarning.text(
+            staleAgeDescription: staleLocationWeatherFallback?.ageDescription
+        )
     }
 
     @ViewBuilder
@@ -824,12 +823,7 @@ extension HomeView {
             Self.weatherLogger.error(
                 "Current location weather refresh failed errorType=\(String(describing: type(of: error)), privacy: .public)"
             )
-            if locationProvider.canUseCachedWeatherRefresh {
-                currentLocationWeatherRefreshFailed = true
-            } else {
-                staleLocationWeatherFallback = nil
-                currentLocationWeatherRefreshFailed = false
-            }
+            currentLocationWeatherRefreshFailed = true
         }
     }
 
@@ -881,6 +875,15 @@ extension HomeView {
         dashboardError = nil
         emergencyError = nil
         onTeamSelectionRequested()
+    }
+}
+
+enum HGHomeWeatherRefreshWarning {
+    static func text(staleAgeDescription: String?) -> String {
+        guard let staleAgeDescription else {
+            return "한파특보 정보를 불러오지 못했습니다"
+        }
+        return "한파특보 정보를 불러오지 못했습니다 · \(staleAgeDescription)"
     }
 }
 
