@@ -420,6 +420,12 @@ struct ChecklistView: View {
             let previouslySelectedID = selectedRound?.roundId
             let previousStatus = selectedRound?.status
             rounds = response.items
+            guard !rounds.isEmpty else {
+                selectedRoundIndex = 0
+                selectedRound = nil
+                publishProgress()
+                return
+            }
 
             guard let previouslySelectedID,
                   let refreshedIndex = rounds.firstIndex(where: { $0.id == previouslySelectedID }) else {
@@ -434,13 +440,10 @@ struct ChecklistView: View {
 
             let refreshedStatus = rounds[refreshedIndex].status
             if refreshedStatus == .missed || refreshedStatus == .completed {
-                let nextInProgress = rounds.indices.first {
-                    $0 > refreshedIndex && rounds[$0].status == .inProgress
-                }
-                let nextScheduled = rounds.indices.first {
-                    $0 > refreshedIndex && rounds[$0].status == .scheduled
-                }
-                selectedRoundIndex = nextInProgress ?? nextScheduled ?? preferredRoundIndex
+                selectedRoundIndex = HGChecklistRoundAutoAdvance.nextIndex(
+                    after: refreshedIndex,
+                    in: rounds
+                ) ?? preferredRoundIndex
             } else {
                 selectedRoundIndex = refreshedIndex
             }
@@ -511,6 +514,14 @@ struct ChecklistView: View {
             rounds.reduce(0) { $0 + $1.checkedItems },
             rounds.reduce(0) { $0 + $1.totalItems }
         )
+    }
+}
+
+enum HGChecklistRoundAutoAdvance {
+    static func nextIndex(after index: Int, in rounds: [HGChecklistRoundSummary]) -> Int? {
+        let followingIndices = rounds.indices.filter { $0 > index }
+        return followingIndices.first(where: { rounds[$0].status == .inProgress })
+            ?? followingIndices.first(where: { rounds[$0].status == .scheduled })
     }
 }
 
