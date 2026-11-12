@@ -395,7 +395,7 @@ struct ChecklistOverviewView: View {
                 return
             }
 
-            if (previousStatus == .inProgress || previousStatus == .scheduled),
+            if previousStatus == .inProgress || previousStatus == .scheduled,
                refreshedRound.status == .missed || refreshedRound.status == .completed {
                 let laterRounds = refreshedRounds.items.filter {
                     (roundDate($0.startsAt) ?? .distantPast) > (roundDate(refreshedRound.startsAt) ?? .distantPast)
