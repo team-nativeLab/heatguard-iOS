@@ -51,6 +51,8 @@ struct HomeView: View {
     @State private var withdrawalError: HGErrorPresentation?
     @State private var isLoggingOut = false
     @State private var checklist = HGChecklistSummary(times: [], checkedCount: nil, totalCount: nil)
+    @State private var checklistRounds: HGChecklistRounds?
+    @State private var now = Date()
     @State private var storedDraft: HGStoredRecordDraft?
     @State private var failedDraft: HGRecordDraft?
     @State private var failedImages: [UIImage] = []
@@ -190,9 +192,22 @@ struct HomeView: View {
                 _ = await (dashboardLoad, emergencyLoad)
             }
         }
+        .task {
+            guard loadsRemoteData else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(30))
+                guard !Task.isCancelled else { break }
+                now = Date()
+                await refreshChecklistRounds()
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active, loadsRemoteData else { return }
-            Task { await refreshCurrentLocationWeatherIfNeeded() }
+            Task {
+                now = Date()
+                await refreshChecklistRounds()
+                await refreshCurrentLocationWeatherIfNeeded()
+            }
         }
         .alert("홈 데이터를 불러오지 못했습니다.", isPresented: dashboardErrorAlert) {
             Button("다시 시도") {
@@ -302,26 +317,35 @@ struct HomeView: View {
     }
 
     private func checkCard(isCompact: Bool) -> some View {
-        Button {
-            flowPath.append(HomeFlowRoute.checklistOverview)
-        } label: {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("오늘 체크 시간")
-                    .font(HGFont.bold(14, relativeTo: .subheadline))
-                Text(checklist.statusText)
-                    .font(HGFont.regular(11, relativeTo: .caption2))
-                    .foregroundStyle(HGColor.secondaryText)
-                    .padding(.top, isCompact ? 4 : 7)
-                HomeTimeline(times: checklist.times)
-                    .padding(.top, isCompact ? 12 : 19)
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                flowPath.append(HomeFlowRoute.checklistOverview)
+            } label: {
+                HStack {
+                    Text("오늘 체크 시간")
+                        .font(HGFont.bold(14, relativeTo: .subheadline))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(HGColor.homeChevron)
+                }
             }
-            .foregroundStyle(HGColor.primaryText)
-            .padding(.horizontal, 20)
-            .padding(.vertical, isCompact ? 16 : 20)
-            .frame(maxWidth: .infinity, minHeight: isCompact ? 120 : 136, alignment: .leading)
-            .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+            .buttonStyle(.plain)
+
+            HomeTimeline(
+                rounds: checklistRounds,
+                fallbackTimes: checklist.times,
+                now: now
+            ) { roundID, date in
+                flowPath.append(HomeFlowRoute.checklistRound(id: roundID, date: date))
+            }
+            .padding(.top, isCompact ? 12 : 17)
         }
-        .buttonStyle(.plain)
+        .foregroundStyle(HGColor.primaryText)
+        .padding(.horizontal, 20)
+        .padding(.vertical, isCompact ? 16 : 20)
+        .frame(maxWidth: .infinity, minHeight: isCompact ? 120 : 136, alignment: .leading)
+        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
         .accessibilityHint("체크리스트 항목을 확인하고 체크합니다")
     }
 
@@ -839,13 +863,15 @@ extension HomeView {
                 await refreshCurrentLocationWeather(forceRefresh: forceLocationWeatherRefresh)
 
                 do {
-                    let items = try await HGChecklistService().fetchItems()
+                    let rounds = try await HGChecklistService().fetchRounds()
+                    checklistRounds = rounds
                     checklist = HGChecklistSummary(
                         times: loadedDashboard.checklist.times,
-                        checkedCount: items.filter(\.checked).count,
-                        totalCount: items.count
+                        checkedCount: rounds.items.reduce(0) { $0 + $1.checkedItems },
+                        totalCount: rounds.items.reduce(0) { $0 + $1.totalItems }
                     )
                 } catch {
+                    checklistRounds = nil
                     checklist = loadedDashboard.checklist
                 }
                 return
@@ -866,6 +892,23 @@ extension HomeView {
                     return
                 }
             }
+        }
+    }
+
+    @MainActor
+    private func refreshChecklistRounds() async {
+        do {
+            let refreshedRounds = try await HGChecklistService().fetchRounds(date: checklistRounds?.date)
+            checklistRounds = refreshedRounds
+            checklist = HGChecklistSummary(
+                times: checklist.times,
+                checkedCount: refreshedRounds.items.reduce(0) { $0 + $1.checkedItems },
+                totalCount: refreshedRounds.items.reduce(0) { $0 + $1.totalItems }
+            )
+        } catch is CancellationError {
+            return
+        } catch {
+            // Keep the last successful timeline until the next refresh succeeds.
         }
     }
 
@@ -994,58 +1037,6 @@ private struct HomeActionRow: View {
         .disabled(!isEnabled)
         .opacity(isEnabled ? 1 : 0.5)
         .foregroundStyle(HGColor.primaryText)
-    }
-}
-
-private struct HomeTimeline: View {
-    let times: [String]
-
-    var body: some View {
-        VStack(spacing: 7) {
-            GeometryReader { _ in
-                ZStack {
-                    Capsule()
-                        .fill(HGColor.homeTimelineLine)
-                        .frame(height: 2)
-
-                    HStack {
-                        ForEach(times.indices, id: \.self) { index in
-                            timelinePoint()
-
-                            if index != times.indices.last {
-                                Spacer()
-                            }
-                        }
-                    }
-                }
-            }
-            .frame(height: 12)
-
-            HStack {
-                ForEach(times, id: \.self) { time in
-                    Text(time)
-                        .font(HGFont.regular(9, relativeTo: .caption2))
-                        .foregroundStyle(HGColor.secondaryText)
-
-                    if time != times.last {
-                        Spacer()
-                    }
-                }
-            }
-        }
-    }
-
-    private func timelinePoint() -> some View {
-        return Circle()
-            .fill(HGColor.surface)
-            .overlay {
-                Circle()
-                    .stroke(
-                        HGColor.homeTimelineBorder,
-                        lineWidth: 1
-                    )
-            }
-            .frame(width: 8, height: 8)
     }
 }
 
