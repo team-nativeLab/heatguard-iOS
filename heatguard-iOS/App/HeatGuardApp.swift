@@ -10,6 +10,7 @@ import SwiftUI
 @main
 struct HeatGuardApp: App {
     @State private var isRestoringSession = true
+    @State private var sessionRestoreError: HGErrorPresentation?
     @State private var hasFinishedIntro = false
     @State private var isAuthenticated = false
     @State private var showsTeamFlow = false
@@ -24,6 +25,15 @@ struct HeatGuardApp: App {
                 .onOpenURL(perform: handleIncomingURL)
                 .onReceive(NotificationCenter.default.publisher(for: .hgSessionExpired)) { notification in
                     handleSessionExpired(notification.object as? String)
+                }
+                .alert(sessionRestoreError?.title ?? "로그인 상태를 확인하지 못했습니다", isPresented: sessionRestoreErrorAlert) {
+                    Button("다시 시도") {
+                        sessionRestoreError = nil
+                        Task { await restoreSession() }
+                    }
+                    Button("로그인하기", role: .cancel) { sessionRestoreError = nil }
+                } message: {
+                    Text(sessionRestoreError?.alertMessage ?? "")
                 }
         }
     }
@@ -74,6 +84,9 @@ struct HeatGuardApp: App {
 
     @MainActor
     private func restoreSession() async {
+        isRestoringSession = true
+        sessionRestoreError = nil
+        defer { isRestoringSession = false }
         try? HGAuthTokenStore(account: "app-session-access-token").clear()
         UserDefaults.standard.removeObject(forKey: "selected-app-site-id")
         do {
@@ -81,8 +94,8 @@ struct HeatGuardApp: App {
             if isAuthenticated { await routeToSelectedTeamIfNeeded() }
         } catch {
             isAuthenticated = false
+            sessionRestoreError = HGErrorPresentation(error: error)
         }
-        isRestoringSession = false
     }
 
     @MainActor
@@ -135,6 +148,7 @@ struct HeatGuardApp: App {
         HGAuthenticationService().endLocalSession()
         isAuthenticated = false
         showsTeamFlow = false
+        sessionRestoreError = nil
     }
 
     @MainActor
@@ -145,15 +159,33 @@ struct HeatGuardApp: App {
         showsTeamFlow = false
     }
 
+    @MainActor
     private func handleIncomingURL(_ url: URL) {
-        guard url.scheme == "heatguard",
+        guard ["heatguard", "heartguard"].contains(url.scheme?.lowercased() ?? ""),
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
-        let token = components.queryItems?.first(where: { $0.name == "token" })?.value
-            ?? url.pathComponents.dropFirst().first
+
+        let token: String?
+        if url.host == "team" {
+            let path = url.pathComponents.dropFirst()
+            guard path.count == 2, path.first == "invitations" else { return }
+            token = path.last
+        } else if ["link", "team-invite"].contains(url.host ?? "") {
+            token = components.queryItems?.first(where: { $0.name == "token" })?.value
+                ?? url.pathComponents.dropFirst().first
+        } else {
+            return
+        }
+
         guard let token, !token.isEmpty else { return }
-        guard ["link", "team-invite"].contains(url.host ?? "") else { return }
         pendingInvitationToken = token
         startsAccountRegistration = false
         showsTeamFlow = true
+    }
+
+    private var sessionRestoreErrorAlert: Binding<Bool> {
+        Binding(
+            get: { sessionRestoreError != nil },
+            set: { if !$0 { sessionRestoreError = nil } }
+        )
     }
 }

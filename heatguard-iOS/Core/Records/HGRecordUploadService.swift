@@ -19,26 +19,12 @@ struct HGRecordUploadService {
             throw HGRecordUploadError.photoCount
         }
 
-        let uploadResponse: HGUploadURLResponse = try await client.send(
-            HGUploadURLRequest(
-                files: photos.enumerated().map {
-                    HGUploadFileRequest(photo: $0.element, index: $0.offset)
-                }
-            ),
-            method: "POST",
-            path: HGAPIPath.teamUploads,
-            requiresAuthentication: true
-        )
-        guard uploadResponse.uploads.count == photos.count else {
-            throw HGRecordUploadError.uploadPreparation
-        }
-
-        try await upload(photos, to: uploadResponse.uploads)
+        let destinations = try await prepareAndUpload(photos)
 
         let response: HGRecordSaveResponse = try await client.send(
             HGRecordSaveRequest(
                 type: draft.type.rawValue,
-                photoKeys: uploadResponse.uploads.map(\.objectKey),
+                photoKeys: destinations.map(\.objectKey),
                 memo: draft.memo.nilIfEmpty,
                 measuredAt: ISO8601DateFormatter.heatGuard.string(from: draft.measuredAt),
                 temperature: draft.temperature,
@@ -74,6 +60,12 @@ struct HGRecordUploadService {
         )
     }
 
+    static func validatePhotoSize(_ byteCount: Int) throws {
+        guard (1 ... 5 * 1_024 * 1_024).contains(byteCount) else {
+            throw HGRecordUploadError.photoTooLarge
+        }
+    }
+
     private static func diagnosticCode(for error: Error) -> String {
         if let apiError = error as? HGAPIError {
             return apiError.diagnosticCode
@@ -96,9 +88,36 @@ struct HGRecordUploadService {
         return formatter.string(from: minutePrecisionDate)
     }
 
+    private func prepareAndUpload(_ photos: [HGUploadPhoto]) async throws -> [HGUploadDestination] {
+        // Renew the entire batch once so record creation never mixes old and new keys.
+        for attempt in 0 ... 1 {
+            try Task.checkCancellation()
+            let response: HGUploadURLResponse = try await client.send(
+                HGUploadURLRequest(files: photos.map(HGUploadFileRequest.init)),
+                method: "POST",
+                path: HGAPIPath.teamUploads,
+                requiresAuthentication: true
+            )
+            guard response.uploads.count == photos.count else {
+                throw HGRecordUploadError.uploadPreparation
+            }
+            do {
+                try await upload(photos, to: response.uploads)
+                return response.uploads
+            } catch HGRecordUploadError.uploadExpired where attempt == 0 {
+                continue
+            }
+        }
+        throw HGRecordUploadError.uploadExpired
+    }
+
     private func upload(_ photos: [HGUploadPhoto], to destinations: [HGUploadDestination]) async throws {
         for (photo, destination) in zip(photos, destinations) {
-            guard let url = URL(string: destination.uploadURL) else {
+            guard let expiresAt = destination.expiresAt.hgISO8601Date else {
+                throw HGRecordUploadError.uploadPreparation
+            }
+            guard expiresAt > .now else { throw HGRecordUploadError.uploadExpired }
+            guard let url = URL(string: destination.uploadURL), url.scheme?.lowercased() == "https" else {
                 throw HGRecordUploadError.uploadPreparation
             }
             var request = URLRequest(url: url)
@@ -115,6 +134,9 @@ struct HGRecordUploadService {
                 throw HGRecordUploadError.uploadFailed(statusCode: nil)
             }
             guard (200 ... 299).contains(httpResponse.statusCode) else {
+                if httpResponse.statusCode == 403, expiresAt <= .now {
+                    throw HGRecordUploadError.uploadExpired
+                }
                 throw HGRecordUploadError.uploadFailed(statusCode: httpResponse.statusCode)
             }
         }
@@ -195,12 +217,10 @@ private struct HGUploadURLRequest: Encodable {
 }
 
 private struct HGUploadFileRequest: Encodable {
-    let slot: Int
     let contentType: String
     let size: Int
 
-    init(photo: HGUploadPhoto, index: Int) {
-        slot = index + 1
+    init(photo: HGUploadPhoto) {
         contentType = photo.contentType
         size = photo.data.count
     }
@@ -213,10 +233,12 @@ private struct HGUploadURLResponse: Decodable {
 private struct HGUploadDestination: Decodable {
     let objectKey: String
     let uploadURL: String
+    let expiresAt: String
     let requiredHeaders: [String: String]?
 
     enum CodingKeys: String, CodingKey {
         case objectKey
+        case expiresAt
         case uploadURL = "uploadUrl"
         case requiredHeaders
     }
@@ -253,6 +275,7 @@ private struct HGUploadPhoto {
         guard let data = image.jpegData(compressionQuality: 0.85) else {
             throw HGRecordUploadError.photoEncoding
         }
+        try HGRecordUploadService.validatePhotoSize(data.count)
         self.data = data
     }
 }
@@ -261,6 +284,8 @@ enum HGRecordUploadError: LocalizedError {
     case teamUnavailable
     case photoCount
     case photoEncoding
+    case photoTooLarge
+    case uploadExpired
     case uploadPreparation
     case requiredHeadersMissing
     case uploadFailed(statusCode: Int?)
@@ -270,6 +295,8 @@ enum HGRecordUploadError: LocalizedError {
         case .teamUnavailable: "기록할 팀 정보를 찾지 못했습니다."
         case .photoCount: "사진은 1~2장 선택해주세요."
         case .photoEncoding: "선택한 사진을 처리하지 못했습니다."
+        case .photoTooLarge: "사진은 장당 5MiB 이하로 선택해주세요."
+        case .uploadExpired: "사진 업로드 시간이 만료됐습니다. 다시 저장해주세요."
         case .uploadPreparation: "사진 업로드를 준비하지 못했습니다."
         case .requiredHeadersMissing: "업로드 서버가 필요한 사진 전송 정보를 주지 않았습니다."
         case .uploadFailed: "사진 업로드에 실패했습니다."
@@ -281,6 +308,8 @@ enum HGRecordUploadError: LocalizedError {
         case .teamUnavailable: "TEAM_UNAVAILABLE"
         case .photoCount: "PHOTO_COUNT"
         case .photoEncoding: "PHOTO_ENCODING"
+        case .photoTooLarge: "PHOTO_TOO_LARGE"
+        case .uploadExpired: "UPLOAD_EXPIRED"
         case .uploadPreparation: "UPLOAD_PREPARATION"
         case .requiredHeadersMissing: "UPLOAD_HEADERS_MISSING"
         case let .uploadFailed(statusCode):

@@ -21,8 +21,7 @@ struct HGRecordDraftStore {
     ) {
         self.fileManager = fileManager
         self.ownerID = ownerID
-        self.rootDirectory = rootDirectory ?? fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appending(path: "HeatGuardTemporaryRecord")
+        self.rootDirectory = rootDirectory ?? Self.defaultRootDirectory(fileManager: fileManager)
     }
 
     func save(draft: HGRecordDraft, images: [UIImage]) throws {
@@ -34,9 +33,7 @@ struct HGRecordDraftStore {
         try fileManager.createDirectory(at: photosDirectory, withIntermediateDirectories: true)
 
         let photoFileNames = try images.enumerated().map { index, image in
-            guard let data = image.jpegData(compressionQuality: 0.85) else {
-                throw HGRecordDraftStoreError.photoEncoding
-            }
+            let data = try HGImageProcessing.jpegData(from: image, maximumByteCount: 5 * 1_024 * 1_024)
 
             let fileName = "photo-\(index + 1).jpg"
             try data.write(to: photosDirectory.appending(path: fileName), options: .atomic)
@@ -55,8 +52,14 @@ struct HGRecordDraftStore {
         let data = try Data(contentsOf: draftFileURL)
         let storedDraft = try decoder.decode(StoredDraft.self, from: data)
         guard storedDraft.ownerID == ownerID else { return nil }
-        let images = storedDraft.photoFileNames.compactMap { fileName in
-            UIImage(contentsOfFile: photosDirectory.appending(path: fileName).path)
+        let images = try storedDraft.photoFileNames.map { fileName in
+            let photoURL = photosDirectory.appending(path: fileName)
+            let attributes = try fileManager.attributesOfItem(atPath: photoURL.path)
+            guard let fileSize = attributes[.size] as? NSNumber,
+                  fileSize.uint64Value <= UInt64(HGImageProcessing.maximumEncodedByteCount) else {
+                throw HGRecordDraftStoreError.unavailablePhotos
+            }
+            return try HGImageProcessing.downsampledImage(from: Data(contentsOf: photoURL))
         }
 
         guard !images.isEmpty, images.count == storedDraft.photoFileNames.count else {
@@ -94,6 +97,12 @@ struct HGRecordDraftStore {
 
     private var draftFileURL: URL {
         storageDirectory.appending(path: "draft.json")
+    }
+
+    private static func defaultRootDirectory(fileManager: FileManager) -> URL {
+        let applicationSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true).appending(path: "Library/Application Support")
+        return applicationSupport.appending(path: "HeatGuardTemporaryRecord")
     }
 }
 

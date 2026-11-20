@@ -256,10 +256,13 @@ struct ProfileEditView: View {
     private func loadProfilePhoto(_ item: PhotosPickerItem?) async {
         guard let item else { return }
         do {
-            guard let data = try await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
                 return
             }
+            let image = try HGImageProcessing.downsampledImage(from: data)
             await updateProfilePhoto(image)
+        } catch is CancellationError {
+            return
         } catch {
             self.error = HGErrorPresentation(error: error)
         }
@@ -282,12 +285,19 @@ struct ProfileEditView: View {
     @MainActor
     private func updateProfilePhoto(_ image: UIImage) async {
         guard !isUpdatingPhoto else { return }
+        let optimizedImage: UIImage
+        do {
+            optimizedImage = try HGImageProcessing.downsampledImage(from: image)
+        } catch {
+            self.error = HGErrorPresentation(error: error)
+            return
+        }
         let previousImage = profileImage
-        profileImage = image
+        profileImage = optimizedImage
         isUpdatingPhoto = true
         defer { isUpdatingPhoto = false }
         do {
-            try await HGProfilePhotoService().uploadPhoto(image)
+            try await HGProfilePhotoService().uploadPhoto(optimizedImage)
         } catch is CancellationError {
             profileImage = previousImage
         } catch {

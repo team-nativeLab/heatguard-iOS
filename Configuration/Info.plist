@@ -12,6 +12,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>heatguard</string>
+				<string>heartguard</string>
 			</array>
 			<key>CFBundleURLName</key>
 			<string>aa.heatguard-iOS.site-link</string>

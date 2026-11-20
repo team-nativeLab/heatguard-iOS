@@ -26,6 +26,13 @@ struct HGErrorPresentation: Hashable {
             return
         }
 
+        if let imageError = error as? HGImageProcessingError {
+            title = "사진 처리 오류"
+            message = imageError.localizedDescription
+            diagnosticCode = imageError == .photoTooLarge ? "PHOTO_TOO_LARGE" : "INVALID_PHOTO"
+            return
+        }
+
         if let emergencyError = error as? HGEmergencyCallError {
             title = "긴급 호출 오류"
             message = emergencyError.localizedDescription
