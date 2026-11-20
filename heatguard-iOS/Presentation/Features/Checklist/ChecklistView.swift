@@ -14,6 +14,8 @@ struct ChecklistView: View {
     @State private var loadFailed = false
     @State private var updatingItemIDs: Set<String> = []
     @State private var error: HGErrorPresentation?
+    @State private var selectedTimeIndex = 0
+    @State private var now = Date()
 
     init(
         times: [String],
@@ -35,31 +37,30 @@ struct ChecklistView: View {
             let rowHeight = checklistRowHeight(for: geometry.size.height)
 
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 0) {
-                    summaryCard(compact: compact)
-                        .padding(.top, compact ? 4 : 6)
+                VStack(alignment: .leading, spacing: 14) {
+                    summaryCard()
 
-                    schedule(compact: compact)
-                        .padding(.top, compact ? 10 : 14)
+                    schedule()
+
+                    if !times.isEmpty {
+                        Text(selectedTimeCaption)
+                            .font(HGFont.medium(12, relativeTo: .caption))
+                            .foregroundStyle(HGColor.secondaryText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
 
                     Text("관리자가 설정한 항목이에요. 확인한 항목을 눌러 체크하세요.")
-                        .font(HGFont.regular(compact ? 10 : 11, relativeTo: .caption2))
+                        .font(HGFont.medium(12, relativeTo: .caption))
                         .foregroundStyle(HGColor.secondaryText)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                        .padding(.top, compact ? 8 : 12)
 
                     checklistItems(rowHeight: rowHeight)
-                        .padding(.top, compact ? 5 : 8)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, compact ? 8 : 12)
+                .padding(.top, compact ? 4 : 12)
                 .padding(.bottom, 12)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
-                .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
+                .background(HGColor.surface)
                 .padding(.horizontal, 24)
-                .padding(.top, compact ? 4 : 12)
             }
             .background(HGColor.appBackground)
         }
@@ -80,6 +81,12 @@ struct ChecklistView: View {
         .background(HGColor.appBackground)
         .hgRouteNavigationHeader(title: "체크리스트")
         .task { await loadItems() }
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(30))
+                now = Date()
+            }
+        }
         .alert(
             error?.title ?? "체크리스트 오류",
             isPresented: Binding(
@@ -106,6 +113,20 @@ struct ChecklistView: View {
         !items.isEmpty && checkedCount == items.count
     }
 
+    private var isSelectedTimeComplete: Bool {
+        isComplete
+    }
+
+    private var selectedTimeMissed: Bool {
+        guard times.indices.contains(selectedTimeIndex), let minute = minuteValue(for: times[selectedTimeIndex]) else { return false }
+        return minute < currentMinute && !isSelectedTimeComplete
+    }
+
+    private var activeMinute: Int? {
+        let scheduled = times.compactMap(minuteValue).sorted()
+        return scheduled.first(where: { $0 >= currentMinute }) ?? scheduled.last
+    }
+
     private var buttonTitle: String {
         if isLoading { return "체크 항목 불러오는 중..." }
         guard !items.isEmpty else { return "체크 항목 없음" }
@@ -119,25 +140,9 @@ struct ChecklistView: View {
         return names.isEmpty ? "오늘 확인할 체크 항목" : names.joined(separator: " · ")
     }
 
-    private var activeTime: String? {
-        let scheduled = times.compactMap { time -> (String, Int)? in
-            let displayTime = time.trimmingCharacters(in: .whitespacesAndNewlines)
-            let parts = displayTime.split(separator: ":")
-            guard parts.count >= 2,
-                  let hour = Int(parts[0]),
-                  let minute = Int(parts[1]),
-                  (0..<24).contains(hour),
-                  (0..<60).contains(minute) else { return nil }
-            return (formatTime(displayTime), hour * 60 + minute)
-        }
-        .sorted { $0.1 < $1.1 }
-
-        guard !scheduled.isEmpty else { return nil }
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
-        let now = calendar.dateComponents([.hour, .minute], from: Date())
-        let currentMinute = (now.hour ?? 0) * 60 + (now.minute ?? 0)
-        return scheduled.first(where: { $0.1 >= currentMinute })?.0
+    private var selectedTimeCaption: String {
+        guard times.indices.contains(selectedTimeIndex) else { return "오늘 체크 항목" }
+        return "\(formatTime(times[selectedTimeIndex])) 기준 체크"
     }
 
     private func formatTime(_ rawTime: String) -> String {
@@ -151,28 +156,38 @@ struct ChecklistView: View {
         return String(format: "%02d:%02d", hour, minute)
     }
 
-    private func summaryCard(compact: Bool) -> some View {
-        VStack(alignment: .leading, spacing: compact ? 7 : 8) {
+    private func minuteValue(for rawTime: String) -> Int? {
+        let parts = rawTime.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: ":")
+        guard parts.count >= 2,
+              let hour = Int(parts[0]),
+              let minute = Int(parts[1]),
+              (0..<24).contains(hour),
+              (0..<60).contains(minute) else { return nil }
+        return hour * 60 + minute
+    }
+
+    private func summaryCard() -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center) {
-                Text(activeTime.map { "\($0) 체크" } ?? "오늘 체크")
-                    .font(HGFont.bold(16, relativeTo: .headline))
+                Text(selectedTimeCaption)
+                    .font(HGFont.bold(18, relativeTo: .headline))
                     .foregroundStyle(HGColor.primaryText)
 
                 Spacer(minLength: 8)
 
-                Text(isComplete ? "완료" : "진행 중")
+                Text(isSelectedTimeComplete ? "완료" : (selectedTimeMissed ? "미완료" : "진행 중"))
                     .font(HGFont.medium(11, relativeTo: .caption))
-                    .foregroundStyle(isComplete ? HGColor.checklistSuccess : HGColor.primary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
+                    .foregroundStyle(isSelectedTimeComplete ? HGColor.primary : (selectedTimeMissed ? HGColor.error : HGColor.primary))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
                     .background(
-                        isComplete ? HGColor.successBackground : HGColor.photoSelectionBackground,
+                        HGColor.photoSelectionBackground,
                         in: Capsule()
                     )
             }
 
             Text(locationSubtitle)
-                .font(HGFont.regular(12, relativeTo: .caption))
+                .font(HGFont.regular(13, relativeTo: .caption))
                 .foregroundStyle(HGColor.secondaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -181,7 +196,7 @@ struct ChecklistView: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(HGColor.homeTimelineLine)
                     Capsule()
-                        .fill(isComplete ? HGColor.checklistSuccess : HGColor.primary)
+                        .fill(HGColor.primary)
                         .frame(width: geometry.size.width * progress)
                 }
             }
@@ -189,15 +204,14 @@ struct ChecklistView: View {
             .animation(.easeInOut(duration: 0.2), value: checkedCount)
 
             HStack {
-                Text("체크리스트")
-                Spacer()
-                Text(isLoading ? "불러오는 중" : "\(checkedCount) / \(items.count) 완료")
+                Text(isLoading ? "체크 항목 불러오는 중" : "체크리스트 \(checkedCount) / \(items.count) 완료")
             }
-            .font(HGFont.regular(11, relativeTo: .caption2))
-            .foregroundStyle(HGColor.secondaryText)
+            .font(HGFont.medium(12, relativeTo: .caption))
+            .foregroundStyle(HGColor.primary)
         }
-        .padding(.horizontal, 0)
-        .padding(.vertical, compact ? 4 : 6)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 18)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var progress: CGFloat {
@@ -206,46 +220,97 @@ struct ChecklistView: View {
     }
 
     @ViewBuilder
-    private func schedule(compact: Bool) -> some View {
+    private func schedule() -> some View {
         if times.isEmpty {
             Text("체크 시간이 설정되지 않았어요.")
                 .font(HGFont.regular(11, relativeTo: .caption2))
                 .foregroundStyle(HGColor.secondaryText)
-                .frame(maxWidth: .infinity, minHeight: compact ? 34 : 40)
+                .frame(maxWidth: .infinity, minHeight: 34)
         } else {
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 5),
-                alignment: .leading,
-                spacing: compact ? 3 : 5
-            ) {
-                ForEach(Array(times.enumerated()), id: \.offset) { _, rawTime in
-                    let time = rawTime.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let displayTime = formatTime(time)
-                    let isActive = displayTime == activeTime
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        ForEach(Array(times.enumerated()), id: \.offset) { index, time in
+                            let isSelected = selectedTimeIndex == index
+                            let minute = minuteValue(for: time)
+                            let isMissed = minute.map { $0 < currentMinute } ?? false
+                            let isCurrent = minute == activeMinute
+                            let stateColor = isCurrent ? HGColor.primary : (isMissed ? HGColor.error : HGColor.secondaryText)
 
-                    HStack(spacing: 4) {
-                        if isActive {
-                            Circle()
-                                .fill(.white)
-                                .frame(width: 4, height: 4)
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    selectedTimeIndex = index
+                                }
+                            } label: {
+                                VStack(spacing: 7) {
+                                    ZStack {
+                                        if isSelected {
+                                            Circle().fill(stateColor.opacity(0.16)).frame(width: 28, height: 28)
+                                        }
+                                        Circle()
+                                            .fill(isSelected ? stateColor : HGColor.surface)
+                                            .frame(width: isSelected ? 16 : 12, height: isSelected ? 16 : 12)
+                                        if !isSelected {
+                                            Circle().stroke(stateColor, lineWidth: 1.5).frame(width: 12, height: 12)
+                                        }
+                                    }
+                                    Text(displayHour(time))
+                                        .font(isSelected ? HGFont.bold(13, relativeTo: .caption) : HGFont.medium(12, relativeTo: .caption))
+                                        .foregroundStyle(stateColor)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .id(index)
+                            .accessibilityLabel("\(formatTime(time))\(isMissed ? ", 미완료" : "")")
+                            .accessibilityAddTraits(isSelected ? .isSelected : [])
+
+                            if index < times.count - 1 {
+                                let connectorColor = isMissed ? HGColor.error : HGColor.homeTimelineLine
+                                Rectangle()
+                                    .fill(connectorColor)
+                                    .frame(height: 2)
+                                    .frame(maxWidth: .infinity)
+                                    .offset(y: -10)
+                            }
                         }
-                        Text(displayTime)
-                            .font(HGFont.medium(compact ? 10 : 11, relativeTo: .caption2))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
                     }
-                    .foregroundStyle(isActive ? Color.white : HGColor.secondaryText)
-                    .frame(maxWidth: .infinity, minHeight: compact ? 25 : 28)
-                    .background(
-                        isActive ? HGColor.primary : HGColor.surface,
-                        in: Capsule()
-                    )
-                    .overlay {
-                        Capsule().stroke(isActive ? Color.clear : HGColor.inputBorder, lineWidth: 1)
+                }
+                .frame(height: 48)
+                .onAppear {
+                    selectedTimeIndex = currentTimeIndex
+                    proxy.scrollTo(currentTimeIndex, anchor: .center)
+                }
+                .onChange(of: currentTimeIndex) { _, newValue in
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        selectedTimeIndex = newValue
+                        proxy.scrollTo(newValue, anchor: .center)
                     }
                 }
             }
         }
+    }
+
+    private var currentMinute: Int {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul") ?? .current
+        let components = calendar.dateComponents([.hour, .minute], from: now)
+        return (components.hour ?? 0) * 60 + (components.minute ?? 0)
+    }
+
+    private var currentTimeIndex: Int {
+        let sorted = times.enumerated().compactMap { index, time -> (Int, Int)? in
+            minuteValue(for: time).map { (index, $0) }
+        }.sorted { $0.1 < $1.1 }
+        guard !sorted.isEmpty else { return 0 }
+        guard let next = sorted.first(where: { $0.1 >= currentMinute }) else { return sorted.last?.0 ?? 0 }
+        return next.0
+    }
+
+    private func displayHour(_ rawTime: String) -> String {
+        guard let minute = minuteValue(for: rawTime) else { return rawTime }
+        return String(format: "%02d시", minute / 60)
     }
 
     @ViewBuilder
@@ -351,6 +416,7 @@ struct ChecklistView: View {
     private func publishProgress() {
         onProgressChanged(checkedCount, items.count)
     }
+
 }
 
 private struct HGChecklistItemRow: View {
@@ -364,19 +430,22 @@ private struct HGChecklistItemRow: View {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(item.checked ? HGColor.primary : .clear)
+                        .fill(item.checked ? HGColor.primary : HGColor.surface)
                     Circle()
-                        .stroke(item.checked ? HGColor.primary : HGColor.homeTimelineBorder, lineWidth: 1.2)
+                        .stroke(
+                            item.checked ? HGColor.primary : Color(red: 201 / 255, green: 207 / 255, blue: 219 / 255),
+                            lineWidth: item.checked ? 0 : 1.5
+                        )
                     if item.checked {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(.white)
+                        Text("✓")
+                            .font(HGFont.bold(13, relativeTo: .caption))
+                            .foregroundStyle(Color.white)
                     }
                 }
                 .frame(width: 24, height: 24)
 
                 Text(item.text)
-                    .font(HGFont.medium(14, relativeTo: .subheadline))
+                    .font(item.checked ? HGFont.regular(14, relativeTo: .subheadline) : HGFont.medium(14, relativeTo: .subheadline))
                     .foregroundStyle(item.checked ? HGColor.secondaryText : HGColor.primaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -390,6 +459,7 @@ private struct HGChecklistItemRow: View {
                 }
             }
             .frame(maxWidth: .infinity, minHeight: height, alignment: .leading)
+            .padding(.horizontal, 16)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -397,6 +467,52 @@ private struct HGChecklistItemRow: View {
         .accessibilityLabel(item.text)
         .accessibilityValue(item.checked ? "체크됨" : "체크 안 됨")
         .accessibilityHint("두 번 탭하여 체크 상태를 변경합니다")
+    }
+}
+
+private struct HGChecklistFlowLayout: Layout {
+    let spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? subviews.map { $0.sizeThatFits(.unspecified).width }.max() ?? 0
+        var cursorX: CGFloat = 0
+        var cursorY: CGFloat = 0
+        var lineHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if cursorX > 0, cursorX + size.width > width {
+                cursorX = 0
+                cursorY += lineHeight + spacing
+                lineHeight = 0
+            }
+            cursorX += size.width + spacing
+            lineHeight = max(lineHeight, size.height)
+        }
+
+        return CGSize(width: width, height: cursorY + lineHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var cursorX = bounds.minX
+        var cursorY = bounds.minY
+        var lineHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if cursorX > bounds.minX, cursorX + size.width > bounds.maxX {
+                cursorX = bounds.minX
+                cursorY += lineHeight + spacing
+                lineHeight = 0
+            }
+            subview.place(
+                at: CGPoint(x: cursorX, y: cursorY),
+                anchor: .topLeading,
+                proposal: ProposedViewSize(size)
+            )
+            cursorX += size.width + spacing
+            lineHeight = max(lineHeight, size.height)
+        }
     }
 }
 

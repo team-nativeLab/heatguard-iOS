@@ -57,7 +57,21 @@ struct HGChecklistItem: Decodable, Identifiable, Equatable {
     let id: String
     let text: String
     let checked: Bool
-    enum CodingKeys: String, CodingKey { case id = "itemId", text, checked }
+    let checkedTimes: [String]?
+
+    init(id: String, text: String, checked: Bool, checkedTimes: [String]? = nil) {
+        self.id = id
+        self.text = text
+        self.checked = checked
+        self.checkedTimes = checkedTimes
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id = "itemId"
+        case text
+        case checked
+        case checkedTimes
+    }
 }
 private struct HGChecklistUpdateRequest: Encodable { let checked: Bool }
 
