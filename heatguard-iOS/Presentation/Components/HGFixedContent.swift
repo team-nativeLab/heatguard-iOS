@@ -35,11 +35,6 @@ struct HGFixedContent<Content: View>: View {
                         content(isCompact)
                             .frame(width: geometry.size.width)
                             .fixedSize(horizontal: false, vertical: true)
-                            .background {
-                                GeometryReader { contentGeometry in
-                                    Color.clear.preference(key: HGContentHeightKey.self, value: contentGeometry.size.height)
-                                }
-                            }
                     }
                     .scrollIndicators(.hidden)
                     .scrollDismissesKeyboard(.interactively)
@@ -61,7 +56,14 @@ struct HGFixedContent<Content: View>: View {
                         .frame(width: geometry.size.width, height: geometry.size.height, alignment: .top)
                 }
             }
-            .onPreferenceChange(HGContentHeightKey.self) { contentHeight = $0 }
+            .onPreferenceChange(HGContentHeightKey.self) { measuredHeight in
+                guard !keyboardAware, contentHeight != measuredHeight else { return }
+                // 같은 프레임의 크기 측정 피드백이 상태를 재진입 갱신하지 않도록 미룹니다.
+                DispatchQueue.main.async {
+                    guard contentHeight != measuredHeight else { return }
+                    contentHeight = measuredHeight
+                }
+            }
         }
     }
 

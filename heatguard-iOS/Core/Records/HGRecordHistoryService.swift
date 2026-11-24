@@ -17,7 +17,7 @@ struct HGRecordHistoryService {
             queryItems.append(URLQueryItem(name: "cursor", value: cursor))
         }
         if let date {
-            var formatter = DateFormatter()
+            let formatter = DateFormatter()
             formatter.locale = Locale(identifier: "en_US_POSIX")
             formatter.timeZone = TimeZone(identifier: "Asia/Seoul")
             formatter.dateFormat = "yyyy-MM-dd"
