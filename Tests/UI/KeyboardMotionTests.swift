@@ -30,19 +30,36 @@ final class KeyboardMotionTests: XCTestCase {
         )
 
         postKeyboardFrame(keyboardFrame)
-        try await Task.sleep(for: .milliseconds(100))
-        host.view.layoutIfNeeded()
+        let didMoveForKeyboard = try await waitForLayout(on: host) {
+            initialY - emailField.convert(emailField.bounds, to: window).minY > 0
+        }
+        XCTAssertTrue(didMoveForKeyboard, "키보드 표시 상태가 레이아웃에 반영되어야 합니다")
         let keyboardVisibleY = emailField.convert(emailField.bounds, to: window).minY
         let inputShift = initialY - keyboardVisibleY
         XCTAssertGreaterThan(inputShift, 0)
         XCTAssertLessThan(inputShift, 100, "키보드가 열려도 로그인 상단이 화면 밖으로 밀리면 안 됩니다")
 
         postKeyboardFrame(CGRect(x: 0, y: screenBounds.maxY, width: screenBounds.width, height: 0))
-        try await Task.sleep(for: .milliseconds(100))
-        host.view.layoutIfNeeded()
+        let didRestoreAfterKeyboard = try await waitForLayout(on: host) {
+            abs(emailField.convert(emailField.bounds, to: window).minY - initialY) <= 1
+        }
+        XCTAssertTrue(didRestoreAfterKeyboard, "키보드를 닫으면 입력 필드 위치가 복원되어야 합니다")
         let restoredY = emailField.convert(emailField.bounds, to: window).minY
         XCTAssertEqual(restoredY, initialY, accuracy: 1)
         window.isHidden = true
+    }
+
+    private func waitForLayout(
+        on host: UIViewController,
+        until condition: () -> Bool
+    ) async throws -> Bool {
+        for _ in 0..<100 {
+            host.view.setNeedsLayout()
+            host.view.layoutIfNeeded()
+            if condition() { return true }
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        return condition()
     }
 
     private func postKeyboardFrame(_ frame: CGRect) {

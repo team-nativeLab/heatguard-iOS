@@ -36,7 +36,17 @@ final class TextFieldKeyboardTests: XCTestCase {
         XCTAssertTrue(textField?.isFirstResponder == true)
         XCTAssertEqual(textField?.keyboardType, .numberPad)
         XCTAssertEqual(textField?.textContentType, .oneTimeCode)
+        if let textField, textField.isFirstResponder {
+            let editingEnded = expectation(
+                forNotification: UITextField.textDidEndEditingNotification,
+                object: textField
+            )
+            textField.resignFirstResponder()
+            await fulfillment(of: [editingEnded], timeout: 2)
+        }
+        window.resignKey()
         window.isHidden = true
+        window.rootViewController = nil
     }
 
     private func findTextField(in view: UIView) -> UITextField? {

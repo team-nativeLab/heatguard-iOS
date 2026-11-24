@@ -31,5 +31,16 @@ jobs:
           CODE_SIGNING_ALLOWED=YES
           CODE_SIGN_IDENTITY=-
 
+      - name: Build Release for iOS Simulator
+        run: >-
+          xcodebuild build
+          -configuration Release
+          -project heatguard-iOS.xcodeproj
+          -scheme heatguard-iOS
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=YES
+          CODE_SIGN_IDENTITY=-
+
       - name: Run iOS unit tests
         run: sh scripts/test-notifications.sh
