@@ -77,67 +77,71 @@ struct HomeView: View {
     }
 
     private var homeContent: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                header
-                HGHomeWeatherSummary(
-                    weather: displayedWeather,
-                    isCompact: false,
-                    refreshWarningText: weatherRefreshWarningText
-                )
-                    .padding(.top, 15)
-                sectionLabel("데이터 기록")
-                    .padding(.top, 20)
-                checkCard(isCompact: false)
+        GeometryReader { geometry in
+            let isCompact = geometry.size.width < 360
+
+            ScrollView {
+                VStack(spacing: 0) {
+                    header
+                    HGHomeWeatherSummary(
+                        weather: displayedWeather,
+                        isCompact: isCompact,
+                        refreshWarningText: weatherRefreshWarningText
+                    )
+                        .padding(.top, 15)
+                    sectionLabel("데이터 기록")
+                        .padding(.top, 20)
+                    checkCard(isCompact: isCompact)
+                        .padding(.top, 8)
+                    contactCard(isCompact: isCompact)
+                        .padding(.top, 16)
+                    sectionLabel("추가 기록")
+                        .padding(.top, 16)
+                    VStack(spacing: 8) {
+                        HomeActionRow(
+                            icon: "HomeCamera",
+                            title: "현장 사진",
+                            subtitle: "사진 촬영 또는 앨범에서 선택",
+                            rowHeight: 69
+                        ) {
+                            flowPath.append(HomeFlowRoute.fieldPhoto(HGRecordDraft(
+                                type: .thermometer,
+                                memo: "",
+                                temperature: recordWeather.temperature,
+                                humidity: recordWeather.humidity,
+                                teamName: dashboard.teamName,
+                                workplace: dashboard.workplace,
+                                siteName: dashboard.siteName
+                            )))
+                        }
+                        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
+                        HomeActionRow(
+                            icon: "HomeHistory",
+                            title: "기록 내역",
+                            subtitle: "지금까지의 기록을 확인하세요",
+                            rowHeight: 69
+                        ) {
+                            flowPath.append(HomeFlowRoute.recordHistory)
+                        }
+                        .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
+                    }
                     .padding(.top, 8)
-                contactCard(isCompact: false)
-                    .padding(.top, 16)
-                sectionLabel("추가 기록")
-                    .padding(.top, 16)
-                VStack(spacing: 8) {
-                    HomeActionRow(
-                        icon: "HomeCamera",
-                        title: "현장 사진",
-                        subtitle: "사진 촬영 또는 앨범에서 선택",
-                        rowHeight: 69
-                    ) {
-                        flowPath.append(HomeFlowRoute.fieldPhoto(HGRecordDraft(
-                            type: .thermometer,
-                            memo: "",
-                            temperature: recordWeather.temperature,
-                            humidity: recordWeather.humidity,
-                            teamName: dashboard.teamName,
-                            workplace: dashboard.workplace,
-                            siteName: dashboard.siteName
-                        )))
-                    }
-                    .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
-                    HomeActionRow(
-                        icon: "HomeHistory",
-                        title: "기록 내역",
-                        subtitle: "지금까지의 기록을 확인하세요",
-                        rowHeight: 69
-                    ) {
-                        flowPath.append(HomeFlowRoute.recordHistory)
-                    }
-                    .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 12))
                 }
-                .padding(.top, 8)
+                .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
+                .padding(.top, HGLayout.screenTopPadding)
             }
-            .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
-            .padding(.top, HGLayout.screenTopPadding)
-        }
-        .scrollIndicators(.hidden)
-        .refreshable { await loadDashboard(forceLocationWeatherRefresh: true) }
-        .background(HGColor.appBackground)
-        .toolbar(.hidden, for: .navigationBar)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            HGPrimaryButton(title: "기록하기") {
-                showsRecordTypes = true
-            }
-            .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
-            .padding(.vertical, 10)
+            .scrollIndicators(.hidden)
+            .refreshable { await loadDashboard(forceLocationWeatherRefresh: true) }
             .background(HGColor.appBackground)
+            .toolbar(.hidden, for: .navigationBar)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                HGPrimaryButton(title: "기록하기") {
+                    showsRecordTypes = true
+                }
+                .padding(.horizontal, HGLayout.homeScreenHorizontalPadding)
+                .padding(.vertical, 10)
+                .background(HGColor.appBackground)
+            }
         }
         .sheet(item: $resultSheet) { result in
             switch result {
@@ -305,7 +309,7 @@ struct HomeView: View {
 
     private var header: some View {
         HGScreenHeader(
-            title: "폭염가드",
+            title: "현장가드",
             onMenuTap: showMenuDrawer,
             notificationCount: unreadNotificationCount,
             onNotificationsTap: showNotifications
@@ -325,12 +329,17 @@ struct HomeView: View {
                     Text("오늘 체크 시간")
                         .font(HGFont.bold(14, relativeTo: .subheadline))
                     Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(HGColor.homeChevron)
+                    HStack(spacing: 4) {
+                        Text("체크리스트")
+                            .font(HGFont.medium(13, relativeTo: .subheadline))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundStyle(HGColor.primary)
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("체크리스트 열기")
 
             HomeTimeline(
                 rounds: checklistRounds,
@@ -354,7 +363,7 @@ struct HomeView: View {
             HomeActionRow(
                 icon: "HomeManagerPhone",
                 title: "관리자 전화",
-                subtitle: "현장 관리자에게 연락",
+                subtitle: "현장 관리자 연락처 확인",
                 isEnabled: dashboard.managerPhone?.telephoneURL != nil,
                 rowHeight: isCompact ? 54 : 65
             ) {
@@ -364,7 +373,7 @@ struct HomeView: View {
             HomeActionRow(
                 icon: "HomeEmergencyPhone",
                 title: "긴급 호출",
-                subtitle: "긴급 호출 등록 및 본사 연락",
+                subtitle: "본사 긴급호출",
                 rowHeight: isCompact ? 54 : 65
             ) {
                 showEmergencyCall()
@@ -375,7 +384,7 @@ struct HomeView: View {
 
     private func sectionLabel(_ title: String) -> some View {
         Text(title)
-            .font(HGFont.regular(11, relativeTo: .caption2))
+            .font(HGFont.regular(12, relativeTo: .caption))
             .foregroundStyle(HGColor.primaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -924,9 +933,9 @@ extension HomeView {
 enum HGHomeWeatherRefreshWarning {
     static func text(staleAgeDescription: String?) -> String {
         guard let staleAgeDescription else {
-            return "한파특보 정보를 불러오지 못했습니다"
+            return "한파 정보를 가져오지 못했습니다"
         }
-        return "한파특보 정보를 불러오지 못했습니다 · \(staleAgeDescription)"
+        return "한파 정보를 가져오지 못했습니다 · \(staleAgeDescription)"
     }
 }
 

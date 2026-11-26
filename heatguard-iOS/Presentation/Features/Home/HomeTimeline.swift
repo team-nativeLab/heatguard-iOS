@@ -21,12 +21,15 @@ struct HomeTimeline: View {
     }
 
     private var nextCheckCaption: String {
+        guard let rounds else {
+            return fallbackTimes.isEmpty ? "--" : "체크 시간 정보를 불러오는 중"
+        }
         guard let nextScheduledRound,
               let startsAt = roundDate(nextScheduledRound.startsAt) else {
-            if rounds?.items.contains(where: { $0.status == .inProgress }) == true {
+            if rounds.items.contains(where: { $0.status == .inProgress }) {
                 return "현재 체크 시간이에요"
             }
-            return rounds == nil ? "체크 시간 정보를 불러오는 중" : "오늘 예정된 다음 체크가 없습니다"
+            return "오늘 예정된 다음 체크가 없습니다"
         }
 
         let remainingMinutes = max(0, Int(ceil(startsAt.timeIntervalSince(now) / 60)))
@@ -77,12 +80,7 @@ struct HomeTimeline: View {
                         scrollToSelected(using: proxy, in: rounds)
                     }
                 }
-            } else if fallbackTimes.isEmpty {
-                Text(rounds == nil ? "체크 일정을 불러오는 중..." : "오늘 예정된 체크가 없습니다")
-                    .font(HGFont.regular(11, relativeTo: .caption2))
-                    .foregroundStyle(HGColor.secondaryText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
+            } else if !fallbackTimes.isEmpty {
                 legacyTimeline
             }
         }

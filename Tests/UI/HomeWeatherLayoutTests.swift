@@ -110,11 +110,11 @@ final class HomeWeatherLayoutTests: XCTestCase {
     func testWeatherRefreshFailureHasVisibleMessageWithoutLocationOrCache() {
         XCTAssertEqual(
             HGHomeWeatherRefreshWarning.text(staleAgeDescription: nil),
-            "한파특보 정보를 불러오지 못했습니다"
+            "한파 정보를 가져오지 못했습니다"
         )
         XCTAssertEqual(
             HGHomeWeatherRefreshWarning.text(staleAgeDescription: "2시간 전 정보"),
-            "한파특보 정보를 불러오지 못했습니다 · 2시간 전 정보"
+            "한파 정보를 가져오지 못했습니다 · 2시간 전 정보"
         )
     }
 
@@ -206,6 +206,11 @@ final class HomeWeatherLayoutTests: XCTestCase {
             host.view.layoutIfNeeded()
             let scrollViews = descendants(of: host.view).compactMap { $0 as? UIScrollView }
             XCTAssertFalse(scrollViews.isEmpty, "홈은 작은 화면에서도 스크롤할 수 있어야 합니다")
+            let verticalScrollViews = scrollViews.filter { $0.contentSize.height > $0.bounds.height }
+            XCTAssertTrue(
+                verticalScrollViews.allSatisfy { $0.contentSize.width <= $0.bounds.width + 1 },
+                "홈 콘텐츠가 가로로 넘치지 않아야 합니다: \(size)"
+            )
             let image = UIGraphicsImageRenderer(size: size).image { _ in
                 host.view.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: true)
             }

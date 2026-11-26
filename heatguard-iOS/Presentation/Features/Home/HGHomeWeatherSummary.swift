@@ -14,16 +14,16 @@ struct HGHomeWeatherSummary: View {
                             heatLevelTitle: weather.heatLevelTitle,
                             coldWaveWarning: weather.coldWaveWarning
                         )
-                        .padding(.leading, 23)
+                        .padding(.leading, isCompact ? 13 : 23)
 
                         Text(weather.measurementTitle)
-                            .font(HGFont.medium(12, relativeTo: .caption))
-                            .padding(.leading, 20)
+                            .font(HGFont.medium(isCompact ? 11 : 12, relativeTo: .caption))
+                            .padding(.leading, isCompact ? 13 : 20)
                             .padding(.top, 16)
 
-                        HStack(alignment: .center, spacing: 8) {
+                        HStack(alignment: .center, spacing: isCompact ? 6 : 8) {
                             Text(weather.temperatureText)
-                                .font(HGFont.bold(40, relativeTo: .largeTitle))
+                                .font(HGFont.bold(isCompact ? 32 : 40, relativeTo: .largeTitle))
                                 .fixedSize(horizontal: true, vertical: false)
                             if let deltaText = weather.temperatureDeltaBadgeText {
                                 Text(deltaText)
@@ -31,17 +31,19 @@ struct HGHomeWeatherSummary: View {
                                     .foregroundStyle(HGColor.error)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.8)
-                                    .frame(width: 54, height: 20)
+                                    .frame(width: isCompact ? 48 : 54, height: 20)
                                     .background(HGColor.homeBaselineBackground, in: Capsule())
                                     .accessibilityLabel(weather.temperatureDeltaText ?? deltaText)
                             }
                         }
-                        .padding(.leading, 21)
+                        .padding(.leading, isCompact ? 13 : 21)
 
                         Text("습도 \(weather.humidityText) · 체감온도 \(weather.apparentTemperatureText)")
                             .font(HGFont.regular(12, relativeTo: .caption))
-                            .padding(.leading, 20)
-                            .padding(.top, 8)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                            .padding(.leading, isCompact ? 13 : 20)
+                            .padding(.top, isCompact ? 6 : 8)
                     }
                     Spacer(minLength: 0)
                     Group {
@@ -58,7 +60,7 @@ struct HGHomeWeatherSummary: View {
                                 .foregroundStyle(weatherSymbolColor(for: weather.skyStatus))
                         }
                     }
-                    .frame(width: isCompact ? 120 : 159, height: 121)
+                    .frame(width: isCompact ? 82 : 159, height: isCompact ? 90 : 121)
                     .offset(y: -2)
                 }
 
@@ -80,19 +82,30 @@ struct HGHomeWeatherSummary: View {
                 }
 
                 HStack(spacing: 0) {
-                    HomeMetric(icon: "HomeHumidity", title: "습도", value: weather.humidityText)
+                    HomeMetric(
+                        icon: "HomeHumidity",
+                        title: "습도",
+                        value: weather.humidityText,
+                        isCompact: isCompact
+                    )
                     Divider().frame(height: 24).padding(.horizontal, 8)
-                    HomeMetric(icon: "HomeFeelsLike", title: "체감온도", value: weather.apparentTemperatureText)
+                    HomeMetric(
+                        icon: "HomeFeelsLike",
+                        title: "체감온도",
+                        value: weather.apparentTemperatureText,
+                        isCompact: isCompact
+                    )
                     Divider().frame(height: 24).padding(.horizontal, 8)
                     HomeMetric(
                         symbol: weather.skySymbol(at: timeline.date),
                         symbolColor: weatherSymbolColor(for: weather.skyStatus),
                         title: nil,
-                        value: weather.weatherStatusText
+                        value: weather.weatherStatusText,
+                        isCompact: isCompact
                     )
                 }
                 .padding(.horizontal, 18)
-                .frame(height: 78)
+                .frame(height: isCompact ? 88 : 78)
                 .background(HGColor.surface, in: RoundedRectangle(cornerRadius: 16))
                 .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
                 .padding(.horizontal, 26)
@@ -139,52 +152,75 @@ private struct HomeMetric: View {
     var symbolColor: Color?
     let title: String?
     let value: String
+    let isCompact: Bool
 
     init(
         icon: String? = nil,
         symbol: String? = nil,
         symbolColor: Color? = nil,
         title: String?,
-        value: String
+        value: String,
+        isCompact: Bool = false
     ) {
         self.icon = icon
         self.symbol = symbol
         self.symbolColor = symbolColor
         self.title = title
         self.value = value
+        self.isCompact = isCompact
     }
 
     var body: some View {
-        HStack(spacing: 8) {
-            Group {
-                if let symbol {
-                    Image(systemName: symbol)
-                        .resizable()
-                        .scaledToFit()
-                        .foregroundStyle(symbolColor ?? HGColor.secondaryText)
-                } else if let icon {
-                    Image(icon)
-                        .resizable()
-                        .scaledToFit()
+        Group {
+            if isCompact {
+                VStack(spacing: 4) {
+                    metricIcon
+                    metricText
                 }
-            }
-            .frame(width: 20, height: 20)
-            .frame(width: 36, height: 36)
-            .background(HGColor.homeMetricIconBackground, in: Circle())
-
-            VStack(alignment: .leading, spacing: 2) {
-                if let title {
-                    Text(title)
-                        .font(HGFont.regular(10, relativeTo: .caption2))
-                        .foregroundStyle(HGColor.secondaryText)
+                .frame(maxWidth: .infinity)
+            } else {
+                HStack(spacing: 8) {
+                    metricIcon
+                    metricText
                 }
-
-                Text(value)
-                    .font(HGFont.bold(14, relativeTo: .caption))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var metricIcon: some View {
+        Group {
+            if let symbol {
+                Image(systemName: symbol)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(symbolColor ?? HGColor.secondaryText)
+            } else if let icon {
+                Image(icon)
+                    .resizable()
+                    .scaledToFit()
+            }
+        }
+        .frame(width: isCompact ? 16 : 20, height: isCompact ? 16 : 20)
+        .frame(width: isCompact ? 28 : 36, height: isCompact ? 28 : 36)
+        .background(HGColor.homeMetricIconBackground, in: Circle())
+    }
+
+    private var metricText: some View {
+        VStack(alignment: isCompact ? .center : .leading, spacing: 2) {
+            if let title {
+                Text(title)
+                    .font(HGFont.regular(isCompact ? 9 : 10, relativeTo: .caption2))
+                    .foregroundStyle(HGColor.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+
+            Text(value)
+                .font(HGFont.bold(isCompact ? 11 : 14, relativeTo: .caption))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .multilineTextAlignment(isCompact ? .center : .leading)
     }
 }
