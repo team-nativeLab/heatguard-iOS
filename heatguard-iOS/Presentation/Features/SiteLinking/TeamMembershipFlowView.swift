@@ -505,48 +505,61 @@ struct TeamMembershipFlowView: View {
 
     private func membershipCard(_ membership: HGTeamMembership) -> some View {
         let isSelected = selectedTeamID == membership.teamID
-        return HStack(spacing: 12) {
-            Button {
-                Task { await select(membership) }
-            } label: {
-                HStack(spacing: 12) {
-                    ZStack {
-                        if isSelected {
-                            Circle().fill(HGColor.primary)
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundStyle(.white)
-                        }
+        let siteName = membership.siteName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hasDistinctSiteName = siteName?.isEmpty == false && siteName != membership.teamName
+
+        return Button {
+            Task { await select(membership) }
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    if isSelected {
+                        Circle().fill(HGColor.primary)
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundStyle(.white)
+                    } else {
+                        Image(systemName: "building.2.fill")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(HGColor.photoSelectionText)
                     }
-                    .frame(width: 32, height: 32)
-                    Text(membership.displayName)
-                        .font(HGFont.semiBold(16, relativeTo: .headline))
+                }
+                .frame(width: 32, height: 32)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    if hasDistinctSiteName, let siteName {
+                        Text(siteName)
+                            .font(HGFont.semiBold(14, relativeTo: .subheadline))
+                            .foregroundStyle(isSelected ? HGColor.primaryText : HGColor.photoSelectionText)
+                            .lineLimit(1)
+                    }
+                    Text(membership.teamName)
+                        .font(HGFont.regular(hasDistinctSiteName ? 13 : 16, relativeTo: .subheadline))
                         .foregroundStyle(isSelected ? HGColor.primaryText : HGColor.photoSelectionText)
                         .lineLimit(1)
-                    Spacer(minLength: 8)
-                    Text(isSelected ? "선택됨" : "선택 안됨")
-                        .font(HGFont.semiBold(13, relativeTo: .subheadline))
-                        .foregroundStyle(isSelected ? HGColor.primary : HGColor.photoSelectionText)
                 }
-                .padding(.leading, 18)
-                .frame(maxWidth: .infinity, minHeight: 92, alignment: .leading)
-            }
-            .buttonStyle(.plain)
-            .disabled(selectingTeamID != nil || busy)
 
-            Button {
-                pendingLeaveMembership = membership
-                showsLeaveConfirmation = true
-            } label: {
-                Text("나가기")
-                    .font(HGFont.medium(13, relativeTo: .subheadline))
-                    .foregroundStyle(HGColor.error)
-                    .frame(minWidth: 52, minHeight: 44)
+                Spacer(minLength: 8)
+
+                Text(isSelected ? "선택됨" : "선택 안됨")
+                    .font(HGFont.semiBold(13, relativeTo: .subheadline))
+                    .foregroundStyle(isSelected ? HGColor.primary : HGColor.photoSelectionText)
             }
-            .buttonStyle(.plain)
-            .disabled(busy)
+            .padding(.horizontal, 18)
+            .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
         }
-        .padding(.trailing, 12)
+        .buttonStyle(.plain)
+        .disabled(selectingTeamID != nil || busy)
+        .contextMenu {
+            Button(role: .destructive) {
+                requestLeave(membership)
+            } label: {
+                Label("현장 나가기", systemImage: "rectangle.portrait.and.arrow.right")
+            }
+        }
+        .accessibilityAction(named: Text("현장 나가기")) {
+            requestLeave(membership)
+        }
         .background(
             isSelected ? HGColor.photoSelectionBackground : HGColor.readOnlyField,
             in: RoundedRectangle(cornerRadius: 14)
@@ -555,7 +568,11 @@ struct TeamMembershipFlowView: View {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(isSelected ? HGColor.primary : HGColor.homeTimelineBorder, lineWidth: isSelected ? 1.5 : 1)
         }
-        .accessibilityElement(children: .contain)
+    }
+
+    private func requestLeave(_ membership: HGTeamMembership) {
+        pendingLeaveMembership = membership
+        showsLeaveConfirmation = true
     }
 
     private func flowHeader(title: String) -> some View {
