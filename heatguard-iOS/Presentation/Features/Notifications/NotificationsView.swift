@@ -118,6 +118,7 @@ struct NotificationsView: View {
             Spacer(minLength: 0)
         }
         .padding(.vertical, 6)
+        .animation(.easeInOut(duration: 0.18), value: category)
     }
 
     private var groupedNotifications: [NotificationDayGroup] {
@@ -258,6 +259,7 @@ private struct NotificationRow: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .background(notification.read ? HGColor.readOnlyField : HGColor.surface)
+        .animation(.easeInOut(duration: 0.18), value: notification.read)
         .contentShape(Rectangle())
     }
 
